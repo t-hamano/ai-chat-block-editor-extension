@@ -92,8 +92,8 @@ export function checkRequestLimit( requests: number ) {
 	if ( requests >= MAX_REQUESTS ) {
 		throw new Error(
 			__(
-				'The answer was stopped because the AI Assistant took too many steps. The edits made so far are kept.',
-				'ai-content-editing-assistant'
+				'The answer was stopped because the AI took too many steps. The edits made so far are kept.',
+				'ai-chat-block-editor-extension'
 			)
 		);
 	}

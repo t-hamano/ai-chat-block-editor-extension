@@ -1,6 +1,6 @@
 <?php
 /**
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  */
 
 /**
@@ -8,7 +8,7 @@
  */
 class Test_Relay extends WP_UnitTestCase {
 
-	use AI_Content_Editing_Assistant_Fake_Api_Key;
+	use AI_Chat_Block_Editor_Extension_Fake_Api_Key;
 
 	/**
 	 * The request that was sent to the provider, if any.
@@ -58,7 +58,7 @@ class Test_Relay extends WP_UnitTestCase {
 	 * @return WP_REST_Response
 	 */
 	private function chat( array $params = array() ) {
-		$request = new WP_REST_Request( 'POST', '/' . AI_CONTENT_EDITING_ASSISTANT_NAMESPACE . '/v1/chat' );
+		$request = new WP_REST_Request( 'POST', '/' . AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE . '/v1/chat' );
 		$request->set_header( 'content-type', 'application/json' );
 		$request->set_body(
 			wp_json_encode(
@@ -103,7 +103,7 @@ class Test_Relay extends WP_UnitTestCase {
 	 * Tests that the token limit is set on the server, whatever the body asks for.
 	 */
 	public function test_token_limit_is_set_on_the_server() {
-		$this->set_fake_api_key( 'openai-key', AI_Content_Editing_Assistant_Fake_OpenAI_Provider::class );
+		$this->set_fake_api_key( 'openai-key', AI_Chat_Block_Editor_Extension_Fake_OpenAI_Provider::class );
 
 		$this->chat(
 			array(
@@ -129,8 +129,8 @@ class Test_Relay extends WP_UnitTestCase {
 	 * @param array  $body     The request body.
 	 */
 	public function test_function_tools_are_passed_on( $provider, $body ) {
-		$this->set_fake_api_key( 'openai-key', AI_Content_Editing_Assistant_Fake_OpenAI_Provider::class );
-		$this->set_fake_api_key( 'google-key', AI_Content_Editing_Assistant_Fake_Google_Provider::class );
+		$this->set_fake_api_key( 'openai-key', AI_Chat_Block_Editor_Extension_Fake_OpenAI_Provider::class );
+		$this->set_fake_api_key( 'google-key', AI_Chat_Block_Editor_Extension_Fake_Google_Provider::class );
 
 		$response = $this->chat(
 			array(
@@ -213,8 +213,8 @@ class Test_Relay extends WP_UnitTestCase {
 	 * @param array  $body     The request body.
 	 */
 	public function test_invalid_body_is_rejected( $provider, $body ) {
-		$this->set_fake_api_key( 'openai-key', AI_Content_Editing_Assistant_Fake_OpenAI_Provider::class );
-		$this->set_fake_api_key( 'google-key', AI_Content_Editing_Assistant_Fake_Google_Provider::class );
+		$this->set_fake_api_key( 'openai-key', AI_Chat_Block_Editor_Extension_Fake_OpenAI_Provider::class );
+		$this->set_fake_api_key( 'google-key', AI_Chat_Block_Editor_Extension_Fake_Google_Provider::class );
 
 		$response = $this->chat(
 			array(
@@ -223,7 +223,7 @@ class Test_Relay extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertSame( 'ai_content_editing_assistant_invalid_body', $response->as_error()->get_error_code() );
+		$this->assertSame( 'ai_chat_block_editor_extension_invalid_body', $response->as_error()->get_error_code() );
 		$this->assertNull( $this->sent );
 	}
 
@@ -286,7 +286,7 @@ class Test_Relay extends WP_UnitTestCase {
 	 * Tests that OpenAI requests go to OpenAI, with the key as a bearer token.
 	 */
 	public function test_relays_the_request_to_openai() {
-		$this->set_fake_api_key( 'openai-key', AI_Content_Editing_Assistant_Fake_OpenAI_Provider::class );
+		$this->set_fake_api_key( 'openai-key', AI_Chat_Block_Editor_Extension_Fake_OpenAI_Provider::class );
 
 		$response = $this->chat(
 			array(
@@ -310,7 +310,7 @@ class Test_Relay extends WP_UnitTestCase {
 	public function test_openai_needs_its_own_key() {
 		$response = $this->chat( array( 'provider' => 'openai' ) );
 
-		$this->assertSame( 'ai_content_editing_assistant_no_api_key', $response->as_error()->get_error_code() );
+		$this->assertSame( 'ai_chat_block_editor_extension_no_api_key', $response->as_error()->get_error_code() );
 		$this->assertNull( $this->sent );
 	}
 
@@ -319,7 +319,7 @@ class Test_Relay extends WP_UnitTestCase {
 	 * `stream` taken out of the body.
 	 */
 	public function test_relays_the_request_to_google() {
-		$this->set_fake_api_key( 'google-key', AI_Content_Editing_Assistant_Fake_Google_Provider::class );
+		$this->set_fake_api_key( 'google-key', AI_Chat_Block_Editor_Extension_Fake_Google_Provider::class );
 
 		$response = $this->chat(
 			array(
@@ -354,7 +354,7 @@ class Test_Relay extends WP_UnitTestCase {
 	 * @param mixed $model The model.
 	 */
 	public function test_invalid_google_model_is_rejected( $model ) {
-		$this->set_fake_api_key( 'google-key', AI_Content_Editing_Assistant_Fake_Google_Provider::class );
+		$this->set_fake_api_key( 'google-key', AI_Chat_Block_Editor_Extension_Fake_Google_Provider::class );
 
 		$response = $this->chat(
 			array(
@@ -363,7 +363,7 @@ class Test_Relay extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertSame( 'ai_content_editing_assistant_invalid_model', $response->as_error()->get_error_code() );
+		$this->assertSame( 'ai_chat_block_editor_extension_invalid_model', $response->as_error()->get_error_code() );
 		$this->assertNull( $this->sent );
 	}
 
@@ -417,7 +417,7 @@ class Test_Relay extends WP_UnitTestCase {
 
 		$response = $this->chat();
 
-		$this->assertSame( 'ai_content_editing_assistant_no_api_key', $response->as_error()->get_error_code() );
+		$this->assertSame( 'ai_chat_block_editor_extension_no_api_key', $response->as_error()->get_error_code() );
 		$this->assertNull( $this->sent );
 	}
 

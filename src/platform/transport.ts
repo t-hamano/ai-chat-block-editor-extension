@@ -20,7 +20,7 @@ export const IDLE_TIMEOUT = 330_000;
  * The event the relay adds when the provider's answer stopped partway.
  * Its data is `{ message }`.
  */
-export const RELAY_ERROR_EVENT = 'ai_content_editing_assistant_error';
+export const RELAY_ERROR_EVENT = 'ai_chat_block_editor_extension_error';
 
 /**
  * An event of a provider's answer, with its data read from JSON.
@@ -37,7 +37,10 @@ export type AnswerEvent = {
  */
 export function connectionLost(): Error {
 	return new Error(
-		__( 'The connection was lost before the answer was finished.', 'ai-content-editing-assistant' )
+		__(
+			'The connection was lost before the answer was finished.',
+			'ai-chat-block-editor-extension'
+		)
 	);
 }
 
@@ -155,7 +158,7 @@ function toRequestError( error: unknown ): Error {
 	return new Error(
 		typeof message === 'string' && message
 			? message
-			: __( 'The answer could not be loaded.', 'ai-content-editing-assistant' )
+			: __( 'The answer could not be loaded.', 'ai-chat-block-editor-extension' )
 	);
 }
 
@@ -202,7 +205,7 @@ async function* stream( request: RelayRequest ): AsyncGenerator< AnswerEvent > {
 		}
 		return timedOut
 			? new Error(
-					__( 'The answer took too long, so it was stopped.', 'ai-content-editing-assistant' )
+					__( 'The answer took too long, so it was stopped.', 'ai-chat-block-editor-extension' )
 				)
 			: null;
 	};
@@ -213,7 +216,7 @@ async function* stream( request: RelayRequest ): AsyncGenerator< AnswerEvent > {
 		let response: Response;
 		try {
 			response = await apiFetch< Response, false >( {
-				path: '/ai-content-editing-assistant/v1/chat',
+				path: '/ai-chat-block-editor-extension/v1/chat',
 				method: 'POST',
 				data: { provider, post_id: postId, stream: true, body },
 				parse: false,
@@ -233,7 +236,7 @@ async function* stream( request: RelayRequest ): AsyncGenerator< AnswerEvent > {
 
 		if ( ! response.body || ! hasType( response, 'event-stream' ) ) {
 			throw new StreamFailed(
-				__( 'The answer could not be read.', 'ai-content-editing-assistant' )
+				__( 'The answer could not be read.', 'ai-chat-block-editor-extension' )
 			);
 		}
 		try {
@@ -282,7 +285,7 @@ async function* answerAtOnce( request: RelayRequest ): AsyncGenerator< AnswerEve
 	let answer: unknown;
 	try {
 		const response = await apiFetch< Response, false >( {
-			path: '/ai-content-editing-assistant/v1/chat',
+			path: '/ai-chat-block-editor-extension/v1/chat',
 			method: 'POST',
 			data: { provider, post_id: postId, stream: false, body },
 			parse: false,
@@ -295,14 +298,14 @@ async function* answerAtOnce( request: RelayRequest ): AsyncGenerator< AnswerEve
 		}
 		if ( timedOut ) {
 			throw new Error(
-				__( 'The answer took too long, so it was stopped.', 'ai-content-editing-assistant' )
+				__( 'The answer took too long, so it was stopped.', 'ai-chat-block-editor-extension' )
 			);
 		}
 		if ( error instanceof Response ) {
 			throw new Error( await readError( error ) );
 		}
 		if ( error instanceof SyntaxError ) {
-			throw new Error( __( 'The answer could not be read.', 'ai-content-editing-assistant' ) );
+			throw new Error( __( 'The answer could not be read.', 'ai-chat-block-editor-extension' ) );
 		}
 		throw toRequestError( error );
 	} finally {

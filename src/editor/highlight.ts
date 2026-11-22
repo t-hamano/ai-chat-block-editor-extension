@@ -19,18 +19,18 @@ import './canvas.scss';
  */
 export const HIGHLIGHT_DURATION = 1000;
 
-export const HIGHLIGHT_CLASS_NAME = 'ai-content-editing-assistant-is-changed';
+export const HIGHLIGHT_CLASS_NAME = 'ai-chat-block-editor-extension-is-changed';
 
 /**
  * The name of the CSS custom highlight that colors the changed text.
  */
-export const TEXT_HIGHLIGHT_NAME = 'ai-content-editing-assistant-changed-text';
+export const TEXT_HIGHLIGHT_NAME = 'ai-chat-block-editor-extension-changed-text';
 
 /**
  * The custom property that fades out the changed text's color. The
  * CSS Custom Highlight API cannot animate, so it is set on each frame.
  */
-export const TEXT_OPACITY_PROPERTY = '--ai-content-editing-assistant-changed-text-opacity';
+export const TEXT_OPACITY_PROPERTY = '--ai-chat-block-editor-extension-changed-text-opacity';
 
 type BlockState = {
 	// The block editor replaces a block's attributes object only when they
@@ -366,7 +366,7 @@ export function highlightChanges( before: BlockSnapshot ) {
 				'The AI changed %d block.',
 				'The AI changed %d blocks.',
 				clientIds.length,
-				'ai-content-editing-assistant'
+				'ai-chat-block-editor-extension'
 			),
 			clientIds.length
 		)
@@ -396,7 +396,7 @@ function announceRemoved( before: BlockSnapshot ) {
 				'The AI removed %d block.',
 				'The AI removed %d blocks.',
 				count,
-				'ai-content-editing-assistant'
+				'ai-chat-block-editor-extension'
 			),
 			count
 		)
@@ -495,7 +495,7 @@ export function withChangeHighlight< P extends BlockListBlockProps >(
 export function registerChangeHighlight() {
 	addFilter(
 		'editor.BlockListBlock',
-		'ai-content-editing-assistant/change-highlight',
+		'ai-chat-block-editor-extension/change-highlight',
 		withChangeHighlight
 	);
 }

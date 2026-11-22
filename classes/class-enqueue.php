@@ -1,11 +1,11 @@
 <?php
 /**
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  * @author Aki Hamano
  * @license GPL-2.0+
  */
 
-namespace AI_Content_Editing_Assistant;
+namespace AI_Chat_Block_Editor_Extension;
 
 class Enqueue {
 
@@ -43,7 +43,7 @@ class Enqueue {
 			return;
 		}
 
-		$asset_path = AI_CONTENT_EDITING_ASSISTANT_PATH . '/build/index.asset.php';
+		$asset_path = AI_CHAT_BLOCK_EDITOR_EXTENSION_PATH . '/build/index.asset.php';
 
 		if ( ! file_exists( $asset_path ) ) {
 			return;
@@ -52,17 +52,17 @@ class Enqueue {
 		$asset_file = include $asset_path;
 
 		wp_enqueue_script(
-			AI_CONTENT_EDITING_ASSISTANT_NAMESPACE,
-			AI_CONTENT_EDITING_ASSISTANT_URL . '/build/index.js',
+			AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE,
+			AI_CHAT_BLOCK_EDITOR_EXTENSION_URL . '/build/index.js',
 			$asset_file['dependencies'],
 			$asset_file['version'],
 			array( 'in_footer' => true )
 		);
 
 		wp_add_inline_script(
-			AI_CONTENT_EDITING_ASSISTANT_NAMESPACE,
+			AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE,
 			sprintf(
-				'window.aiContentEditingAssistant = %s;',
+				'window.aiChatBlockEditorExtension = %s;',
 				wp_json_encode(
 					array(
 						'hasApiKey'     => Api_Key::has_any(),
@@ -73,15 +73,15 @@ class Enqueue {
 			'before'
 		);
 
-		wp_set_script_translations( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE, AI_CONTENT_EDITING_ASSISTANT_NAMESPACE );
+		wp_set_script_translations( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE, AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE );
 
 		wp_enqueue_style(
-			AI_CONTENT_EDITING_ASSISTANT_NAMESPACE,
-			AI_CONTENT_EDITING_ASSISTANT_URL . '/build/style-index.css',
+			AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE,
+			AI_CHAT_BLOCK_EDITOR_EXTENSION_URL . '/build/style-index.css',
 			array(),
 			$asset_file['version']
 		);
-		wp_style_add_data( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE, 'rtl', 'replace' );
+		wp_style_add_data( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE, 'rtl', 'replace' );
 	}
 
 	/**
@@ -95,18 +95,18 @@ class Enqueue {
 			return;
 		}
 
-		$asset_path = AI_CONTENT_EDITING_ASSISTANT_PATH . '/build/index.asset.php';
+		$asset_path = AI_CHAT_BLOCK_EDITOR_EXTENSION_PATH . '/build/index.asset.php';
 
-		if ( ! file_exists( $asset_path ) || ! file_exists( AI_CONTENT_EDITING_ASSISTANT_PATH . '/build/index.css' ) ) {
+		if ( ! file_exists( $asset_path ) || ! file_exists( AI_CHAT_BLOCK_EDITOR_EXTENSION_PATH . '/build/index.css' ) ) {
 			return;
 		}
 
 		$asset_file = include $asset_path;
-		$handle     = AI_CONTENT_EDITING_ASSISTANT_NAMESPACE . '-canvas';
+		$handle     = AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE . '-canvas';
 
 		wp_enqueue_style(
 			$handle,
-			AI_CONTENT_EDITING_ASSISTANT_URL . '/build/index.css',
+			AI_CHAT_BLOCK_EDITOR_EXTENSION_URL . '/build/index.css',
 			array(),
 			$asset_file['version']
 		);

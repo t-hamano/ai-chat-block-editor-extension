@@ -74,8 +74,8 @@ jobs:
       # Check the same files that are deployed to WordPress.org.
       - name: Copy distributed files
         run: |
-          mkdir -p "$RUNNER_TEMP/dist/ai-content-editing-assistant"
-          rsync -rc --exclude-from=.distignore ./ "$RUNNER_TEMP/dist/ai-content-editing-assistant/"
+          mkdir -p "$RUNNER_TEMP/dist/ai-chat-block-editor-extension"
+          rsync -rc --exclude-from=.distignore ./ "$RUNNER_TEMP/dist/ai-chat-block-editor-extension/"
           # The development config loads the plugin from the repository root,
           # which would conflict with the copied plugin.
           rm .wp-env.json
@@ -83,7 +83,7 @@ jobs:
       - name: Run Plugin Check
         uses: wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e # v1.1.9
         with:
-          build-dir: ${{ runner.temp }}/dist/ai-content-editing-assistant
+          build-dir: ${{ runner.temp }}/dist/ai-chat-block-editor-extension
           # Without a token, the results stay in the job log instead of being
           # posted as a comment on the pull request.
           repo-token: ''

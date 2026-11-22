@@ -1,6 +1,6 @@
 <?php
 /**
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  */
 
 use WordPress\AiClient\Common\Exception\RuntimeException;
@@ -17,7 +17,7 @@ use WordPress\AiClient\Providers\Models\DTO\ModelMetadata;
  * Stands in for the Anthropic provider plugin. It takes an API key and has
  * no models, so tests can give the AI Client a key without the plugin.
  */
-class AI_Content_Editing_Assistant_Fake_Provider extends AbstractProvider {
+class AI_Chat_Block_Editor_Extension_Fake_Provider extends AbstractProvider {
 
 	const ID = 'anthropic';
 

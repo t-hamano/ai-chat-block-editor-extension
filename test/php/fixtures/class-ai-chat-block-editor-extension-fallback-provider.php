@@ -1,6 +1,6 @@
 <?php
 /**
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  */
 
 use WordPress\AiClient\Common\Exception\RuntimeException;
@@ -29,7 +29,7 @@ use WordPress\AiClient\Results\Enums\FinishReasonEnum;
  * Stands in for a provider the relay does not know. Its models record the
  * prompt they get and answer with `$answer`, instead of calling an API.
  */
-class AI_Content_Editing_Assistant_Fallback_Provider extends AbstractProvider {
+class AI_Chat_Block_Editor_Extension_Fallback_Provider extends AbstractProvider {
 
 	const ID = 'fallback-test';
 
@@ -95,13 +95,13 @@ class AI_Content_Editing_Assistant_Fallback_Provider extends AbstractProvider {
 			}
 
 			public function generateTextResult( array $prompt ): GenerativeAiResult {
-				AI_Content_Editing_Assistant_Fallback_Provider::$prompt = array(
+				AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt = array(
 					'model'    => $this->model_metadata->getId(),
 					'messages' => array_map( static fn( Message $message ) => $message->toArray(), $prompt ),
 					'config'   => $this->config,
 				);
 
-				$answer = AI_Content_Editing_Assistant_Fallback_Provider::$answer ?? new ModelMessage( array( new MessagePart( 'Hi' ) ) );
+				$answer = AI_Chat_Block_Editor_Extension_Fallback_Provider::$answer ?? new ModelMessage( array( new MessagePart( 'Hi' ) ) );
 
 				return new GenerativeAiResult(
 					'result-id',
@@ -129,18 +129,18 @@ class AI_Content_Editing_Assistant_Fallback_Provider extends AbstractProvider {
 	protected static function createModelMetadataDirectory(): ModelMetadataDirectoryInterface {
 		return new class() implements ModelMetadataDirectoryInterface {
 			public function listModelMetadata(): array {
-				return array_map( array( AI_Content_Editing_Assistant_Fallback_Provider::class, 'model_metadata' ), AI_Content_Editing_Assistant_Fallback_Provider::MODELS );
+				return array_map( array( AI_Chat_Block_Editor_Extension_Fallback_Provider::class, 'model_metadata' ), AI_Chat_Block_Editor_Extension_Fallback_Provider::MODELS );
 			}
 
 			public function hasModelMetadata( string $model_id ): bool {
-				return in_array( $model_id, AI_Content_Editing_Assistant_Fallback_Provider::MODELS, true );
+				return in_array( $model_id, AI_Chat_Block_Editor_Extension_Fallback_Provider::MODELS, true );
 			}
 
 			public function getModelMetadata( string $model_id ): ModelMetadata {
 				if ( ! $this->hasModelMetadata( $model_id ) ) {
 					throw new RuntimeException( 'No such model.' );
 				}
-				return AI_Content_Editing_Assistant_Fallback_Provider::model_metadata( $model_id );
+				return AI_Chat_Block_Editor_Extension_Fallback_Provider::model_metadata( $model_id );
 			}
 		};
 	}

@@ -26,13 +26,13 @@ import './style.scss';
 function getActivityLabel( activity: NonNullable< AssistantChatMessage[ 'activity' ] > ) {
 	switch ( activity ) {
 		case 'thinking':
-			return __( 'Thinking…', 'ai-content-editing-assistant' );
+			return __( 'Thinking…', 'ai-chat-block-editor-extension' );
 		case 'editing':
-			return __( 'Editing the content…', 'ai-content-editing-assistant' );
+			return __( 'Editing the content…', 'ai-chat-block-editor-extension' );
 		case 'reading':
-			return __( 'Reading the content…', 'ai-content-editing-assistant' );
+			return __( 'Reading the content…', 'ai-chat-block-editor-extension' );
 		default:
-			return __( 'Waiting for the answer…', 'ai-content-editing-assistant' );
+			return __( 'Waiting for the answer…', 'ai-chat-block-editor-extension' );
 	}
 }
 
@@ -45,33 +45,38 @@ function getActivityLabel( activity: NonNullable< AssistantChatMessage[ 'activit
 export function formatUsage( usage: AiUsage ) {
 	const input = sprintf(
 		/* translators: %s: Number of tokens. */
-		_n( '%s input token', '%s input tokens', usage.inputTokens, 'ai-content-editing-assistant' ),
+		_n( '%s input token', '%s input tokens', usage.inputTokens, 'ai-chat-block-editor-extension' ),
 		usage.inputTokens.toLocaleString()
 	);
 	const cached = usage.cachedInputTokens
 		? sprintf(
 				/* translators: %s: Number of tokens. */
-				__( '(%s cached)', 'ai-content-editing-assistant' ),
+				__( '(%s cached)', 'ai-chat-block-editor-extension' ),
 				usage.cachedInputTokens.toLocaleString()
 			)
 		: '';
 	const output = sprintf(
 		/* translators: %s: Number of tokens. */
-		_n( '%s output token', '%s output tokens', usage.outputTokens, 'ai-content-editing-assistant' ),
+		_n(
+			'%s output token',
+			'%s output tokens',
+			usage.outputTokens,
+			'ai-chat-block-editor-extension'
+		),
 		usage.outputTokens.toLocaleString()
 	);
 
 	return cached
 		? sprintf(
 				/* translators: 1: Input tokens. 2: Cached input tokens. 3: Output tokens. Example: "12,345 input tokens (10,000 cached), 678 output tokens". */
-				__( '%1$s %2$s, %3$s', 'ai-content-editing-assistant' ),
+				__( '%1$s %2$s, %3$s', 'ai-chat-block-editor-extension' ),
 				input,
 				cached,
 				output
 			)
 		: sprintf(
 				/* translators: 1: Input tokens. 2: Output tokens. Example: "12,345 input tokens, 678 output tokens". */
-				__( '%1$s, %2$s', 'ai-content-editing-assistant' ),
+				__( '%1$s, %2$s', 'ai-chat-block-editor-extension' ),
 				input,
 				output
 			);
@@ -82,27 +87,27 @@ function AssistantMessage( { message }: { message: AssistantChatMessage } ) {
 
 	return (
 		<Stack
-			className="ai-content-editing-assistant-chat__message is-assistant"
+			className="ai-chat-block-editor-extension-chat__message is-assistant"
 			direction="column"
 			gap="sm"
 		>
 			{ message.text && <AnswerMarkdown>{ message.text }</AnswerMarkdown> }
 			{ message.editStatus === 'applied' && (
-				<Text variant="body-sm" className="ai-content-editing-assistant-chat__note">
-					{ __( 'Edited the content.', 'ai-content-editing-assistant' ) }
+				<Text variant="body-sm" className="ai-chat-block-editor-extension-chat__note">
+					{ __( 'Edited the content.', 'ai-chat-block-editor-extension' ) }
 				</Text>
 			) }
 			{ message.editStatus === 'dropped' && (
-				<Text variant="body-sm" className="ai-content-editing-assistant-chat__note">
+				<Text variant="body-sm" className="ai-chat-block-editor-extension-chat__note">
 					{ __(
 						'The edit was not applied because the selected blocks no longer exist.',
-						'ai-content-editing-assistant'
+						'ai-chat-block-editor-extension'
 					) }
 				</Text>
 			) }
 			{ activity && (
 				<Stack
-					className="ai-content-editing-assistant-chat__note"
+					className="ai-chat-block-editor-extension-chat__note"
 					direction="row"
 					align="center"
 					gap="sm"
@@ -113,20 +118,20 @@ function AssistantMessage( { message }: { message: AssistantChatMessage } ) {
 				</Stack>
 			) }
 			{ message.status === 'stopped' && (
-				<Text variant="body-sm" className="ai-content-editing-assistant-chat__note">
-					{ __( 'Stopped.', 'ai-content-editing-assistant' ) }
+				<Text variant="body-sm" className="ai-chat-block-editor-extension-chat__note">
+					{ __( 'Stopped.', 'ai-chat-block-editor-extension' ) }
 				</Text>
 			) }
 			{ message.status === 'error' && (
 				<Notice.Root intent="error">
 					<Notice.Description>
 						{ message.error ||
-							__( 'The answer could not be loaded.', 'ai-content-editing-assistant' ) }
+							__( 'The answer could not be loaded.', 'ai-chat-block-editor-extension' ) }
 					</Notice.Description>
 				</Notice.Root>
 			) }
 			{ message.usage && message.status !== 'streaming' && (
-				<Text variant="body-sm" className="ai-content-editing-assistant-chat__usage">
+				<Text variant="body-sm" className="ai-chat-block-editor-extension-chat__usage">
 					{ formatUsage( message.usage ) }
 				</Text>
 			) }
@@ -145,7 +150,7 @@ function useSelectionStatus() {
 		if ( getTextSelection( editor ) ) {
 			return {
 				icon: typography,
-				label: __( 'Text selected', 'ai-content-editing-assistant' ),
+				label: __( 'Text selected', 'ai-chat-block-editor-extension' ),
 			};
 		}
 		const count = editor.getSelectedBlockClientIds().length;
@@ -156,7 +161,7 @@ function useSelectionStatus() {
 			icon: blockDefault,
 			label: sprintf(
 				/* translators: %d: Number of selected blocks. */
-				_n( '%d block selected', '%d blocks selected', count, 'ai-content-editing-assistant' ),
+				_n( '%d block selected', '%d blocks selected', count, 'ai-chat-block-editor-extension' ),
 				count
 			),
 		};
@@ -226,9 +231,9 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 	};
 
 	return (
-		<Stack className="ai-content-editing-assistant-chat" direction="column">
+		<Stack className="ai-chat-block-editor-extension-chat" direction="column">
 			<Stack
-				className="ai-content-editing-assistant-chat__messages"
+				className="ai-chat-block-editor-extension-chat__messages"
 				direction="column"
 				gap="lg"
 				ref={ messagesRef }
@@ -237,17 +242,17 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 					<Notice.Root intent="info">
 						<Notice.Description>
 							{ __(
-								'Switch to the visual editor to use the AI Assistant.',
-								'ai-content-editing-assistant'
+								'Switch to the visual editor to use the AI chat.',
+								'ai-chat-block-editor-extension'
 							) }
 						</Notice.Description>
 					</Notice.Root>
 				) }
 				{ isAvailable && conversation.messages.length === 0 && (
-					<Text variant="body-sm" className="ai-content-editing-assistant-chat__note">
+					<Text variant="body-sm" className="ai-chat-block-editor-extension-chat__note">
 						{ __(
-							'Ask the AI Assistant to write or edit. The selected blocks are sent with your message.',
-							'ai-content-editing-assistant'
+							'Ask the AI to write or edit. The selected blocks are sent with your message.',
+							'ai-chat-block-editor-extension'
 						) }
 					</Text>
 				) }
@@ -257,7 +262,7 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 					) : (
 						<Text
 							key={ message.id }
-							className="ai-content-editing-assistant-chat__message is-user"
+							className="ai-chat-block-editor-extension-chat__message is-user"
 							render={ <div /> }
 						>
 							{ message.text }
@@ -269,12 +274,12 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 						<Notice.Description>
 							{ __(
 								'This conversation has grown long, so each message costs more. Start a new conversation to keep the cost down.',
-								'ai-content-editing-assistant'
+								'ai-chat-block-editor-extension'
 							) }
 						</Notice.Description>
 						<Notice.Actions>
 							<Notice.ActionButton onClick={ reset }>
-								{ __( 'New conversation', 'ai-content-editing-assistant' ) }
+								{ __( 'New conversation', 'ai-chat-block-editor-extension' ) }
 							</Notice.ActionButton>
 						</Notice.Actions>
 					</Notice.Root>
@@ -289,15 +294,15 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 						} }
 					/>
 				}
-				className="ai-content-editing-assistant-chat__composer"
+				className="ai-chat-block-editor-extension-chat__composer"
 				direction="column"
 				gap="sm"
 			>
 				<TextareaControl
-					className="ai-content-editing-assistant-chat__input"
-					label={ __( 'Message', 'ai-content-editing-assistant' ) }
+					className="ai-chat-block-editor-extension-chat__input"
+					label={ __( 'Message', 'ai-chat-block-editor-extension' ) }
 					hideLabelFromVision
-					placeholder={ __( 'Ask the AI Assistant', 'ai-content-editing-assistant' ) }
+					placeholder={ __( 'Ask the AI', 'ai-chat-block-editor-extension' ) }
 					value={ draft }
 					onValueChange={ setDraft }
 					onKeyDown={ onKeyDown }
@@ -305,7 +310,7 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 				/>
 				<Stack direction="row" align="center" justify="space-between" gap="sm">
 					<Stack
-						className="ai-content-editing-assistant-chat__selection"
+						className="ai-chat-block-editor-extension-chat__selection"
 						direction="row"
 						align="center"
 						gap="xs"
@@ -325,7 +330,7 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 									<path d="M7 7h10v10H7z" fill="currentColor" />
 								</svg>
 							}
-							label={ __( 'Stop', 'ai-content-editing-assistant' ) }
+							label={ __( 'Stop', 'ai-chat-block-editor-extension' ) }
 							tone="neutral"
 							size="compact"
 							onClick={ stop }
@@ -334,7 +339,7 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 						<IconButton
 							type="submit"
 							icon={ arrowUp }
-							label={ __( 'Send', 'ai-content-editing-assistant' ) }
+							label={ __( 'Send', 'ai-chat-block-editor-extension' ) }
 							size="compact"
 							disabled={ ! canSend }
 						/>

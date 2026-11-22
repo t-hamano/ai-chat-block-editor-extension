@@ -1,7 +1,7 @@
-=== AI Content Editing Assistant ===
+=== AI Chat Block Editor Extension ===
 Contributors: wildworks
 Donate link: https://www.paypal.me/thamanoJP
-Tags: ai, gutenberg, block, editor, assistant
+Tags: ai, gutenberg, block, editor, chat
 Requires at least: 7.1
 Tested up to: 7.2
 Stable tag: 0.1.0
@@ -13,7 +13,7 @@ Select blocks or text in the block editor and edit them by chatting with AI.
 
 == Description ==
 
-AI Content Editing Assistant adds an AI chat to the block editor. Select blocks or a piece of text, tell the AI what you want to change, and it edits the content for you.
+AI Chat Block Editor Extension adds an AI chat to the block editor. Select blocks or a piece of text, tell the AI what you want to change, and it edits the content for you.
 
 **Edit What You Select**
 
@@ -35,7 +35,7 @@ Only users with administrator privileges can use this plugin, and only super adm
 
 == Installation ==
 
-1. Upload the `ai-content-editing-assistant` folder to the `/wp-content/plugins/` directory.
+1. Upload the `ai-chat-block-editor-extension` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 3. Install an AI provider plugin and set its API key on the Connectors screen.
 
@@ -57,7 +57,7 @@ Long posts and long conversations use more text per request. Start a new convers
 
 = Where can I check how much I have used? =
 
-Each answer in the chat shows how many tokens it used. For the exact usage and cost, check the usage page of your provider. The Assistant settings in the chat also link to these pages.
+Each answer in the chat shows how many tokens it used. For the exact usage and cost, check the usage page of your provider. The Chat settings in the sidebar also link to these pages.
 
 * Anthropic: https://platform.claude.com/usage
 * OpenAI: https://platform.openai.com/usage
@@ -65,7 +65,7 @@ Each answer in the chat shows how many tokens it used. For the exact usage and c
 
 = Which AI providers and models can I use? =
 
-Anthropic, OpenAI, and Google are fully supported. Other providers work too, if their provider plugin supports the AI Client in WordPress. To choose the provider and model, open the Assistant settings in the chat. By default, the first connected provider among Anthropic, OpenAI, and Google is used.
+Anthropic, OpenAI, and Google are fully supported. Other providers work too, if their provider plugin supports the AI Client in WordPress. To choose the provider and model, open the Chat settings in the sidebar. By default, the first connected provider among Anthropic, OpenAI, and Google is used.
 
 = Where is my API key stored? =
 
@@ -85,7 +85,7 @@ No. Conversations are kept only while the editor is open, and are cleared when y
 
 == External services ==
 
-This plugin sends content to an AI provider to edit it. It connects only to the provider whose API key is set on the Connectors screen, and only when an administrator or a super admin uses the AI assistant in the block editor.
+This plugin sends content to an AI provider to edit it. It connects only to the provider whose API key is set on the Connectors screen, and only when an administrator or a super admin uses the AI chat in the block editor.
 
 For Anthropic, OpenAI, and Google, the plugin connects to the provider directly, so that the answer appears as it is written. The AI Client in WordPress returns the whole answer at once, so it is not used for these providers. The requests still go through the WordPress HTTP API, and the site's settings that turn AI off still apply. Other providers go through the AI Client.
 

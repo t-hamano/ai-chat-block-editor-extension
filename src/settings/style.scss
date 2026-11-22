@@ -1,5 +1,5 @@
 // The same spacing as the Global Styles screens.
-.ai-content-editing-assistant-settings__header {
+.ai-chat-block-editor-extension-settings__header {
 	padding: var(--wpds-dimension-padding-md) var(--wpds-dimension-padding-lg);
 
 	h2 {
@@ -7,10 +7,10 @@
 	}
 }
 
-.ai-content-editing-assistant-settings__content {
+.ai-chat-block-editor-extension-settings__content {
 	padding: 0 var(--wpds-dimension-padding-lg) var(--wpds-dimension-padding-lg);
 }
 
-.ai-content-editing-assistant-settings__note {
+.ai-chat-block-editor-extension-settings__note {
 	color: var(--wpds-color-foreground-content-neutral-weak);
 }

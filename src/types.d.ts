@@ -12,7 +12,7 @@ declare module '@wordpress/block-library' {
 
 // Set by the plugin when it enqueues the editor script.
 interface Window {
-	aiContentEditingAssistant: {
+	aiChatBlockEditorExtension: {
 		hasApiKey: boolean;
 		connectorsUrl: string;
 	};

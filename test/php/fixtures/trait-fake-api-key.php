@@ -1,6 +1,6 @@
 <?php
 /**
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  */
 
 use WordPress\AiClient\AiClient;
@@ -10,7 +10,7 @@ use WordPress\AiClient\Providers\Http\DTO\ApiKeyRequestAuthentication;
  * Gives the AI Client an API key for a fake provider, and takes it away
  * after each test.
  */
-trait AI_Content_Editing_Assistant_Fake_Api_Key {
+trait AI_Chat_Block_Editor_Extension_Fake_Api_Key {
 
 	/**
 	 * Sets the API key of a fake provider.
@@ -18,7 +18,7 @@ trait AI_Content_Editing_Assistant_Fake_Api_Key {
 	 * @param string $key      The key. An empty string means no key.
 	 * @param string $provider The fake provider's class. The Anthropic one by default.
 	 */
-	protected function set_fake_api_key( string $key, string $provider = AI_Content_Editing_Assistant_Fake_Provider::class ) {
+	protected function set_fake_api_key( string $key, string $provider = AI_Chat_Block_Editor_Extension_Fake_Provider::class ) {
 		$registry = AiClient::defaultRegistry();
 
 		if ( ! $registry->hasProvider( $provider::ID ) ) {
@@ -34,7 +34,7 @@ trait AI_Content_Editing_Assistant_Fake_Api_Key {
 	public function tear_down() {
 		$registry = AiClient::defaultRegistry();
 
-		foreach ( array( AI_Content_Editing_Assistant_Fake_Provider::class, AI_Content_Editing_Assistant_Fake_OpenAI_Provider::class, AI_Content_Editing_Assistant_Fake_Google_Provider::class ) as $provider ) {
+		foreach ( array( AI_Chat_Block_Editor_Extension_Fake_Provider::class, AI_Chat_Block_Editor_Extension_Fake_OpenAI_Provider::class, AI_Chat_Block_Editor_Extension_Fake_Google_Provider::class ) as $provider ) {
 			if ( $registry->hasProvider( $provider::ID ) ) {
 				$this->set_fake_api_key( '', $provider );
 			}

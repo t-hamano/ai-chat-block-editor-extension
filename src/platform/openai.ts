@@ -138,7 +138,7 @@ export async function readOpenAiStream(
 	events: AsyncIterable< AnswerEvent >,
 	onEvent: AiChatRequest[ 'onEvent' ]
 ): Promise< OpenAiAnswer > {
-	const declined = __( 'The model declined to answer.', 'ai-content-editing-assistant' );
+	const declined = __( 'The model declined to answer.', 'ai-chat-block-editor-extension' );
 	const output: OpenAiItem[] = [];
 	let finished: { status?: string; incomplete_details?: { reason?: string } } | null = null;
 
@@ -177,13 +177,13 @@ export async function readOpenAiStream(
 			case 'response.failed':
 				throw new Error(
 					payload.response?.error?.message ??
-						__( 'The answer could not be loaded.', 'ai-content-editing-assistant' )
+						__( 'The answer could not be loaded.', 'ai-chat-block-editor-extension' )
 				);
 			case 'error':
 				throw new Error(
 					payload.message ??
 						payload.error?.message ??
-						__( 'The answer could not be loaded.', 'ai-content-editing-assistant' )
+						__( 'The answer could not be loaded.', 'ai-chat-block-editor-extension' )
 				);
 		}
 	}
@@ -198,7 +198,7 @@ export async function readOpenAiStream(
 			throw new Error( declined );
 		}
 		throw new Error(
-			__( 'The answer was cut off because it was too long.', 'ai-content-editing-assistant' )
+			__( 'The answer was cut off because it was too long.', 'ai-chat-block-editor-extension' )
 		);
 	}
 
@@ -215,7 +215,7 @@ export async function readOpenAiStream(
  */
 export function toOpenAiEvents( answer: any ): AnswerEvent[] {
 	if ( ! Array.isArray( answer?.output ) ) {
-		throw new Error( __( 'The answer could not be read.', 'ai-content-editing-assistant' ) );
+		throw new Error( __( 'The answer could not be read.', 'ai-chat-block-editor-extension' ) );
 	}
 	const data: object[] = [];
 	answer.output.forEach( ( item: OpenAiItem, index: number ) => {
@@ -346,7 +346,7 @@ export function createOpenAiPlatform( getPostId: () => number, model = OPENAI_MO
 				}
 				failures += tools.failures;
 				if ( failures > MAX_FAILED_EDITS ) {
-					throw new Error( __( 'The edit could not be made.', 'ai-content-editing-assistant' ) );
+					throw new Error( __( 'The edit could not be made.', 'ai-chat-block-editor-extension' ) );
 				}
 				checkRequestLimit( ++requests );
 				// The output goes back unchanged, with its reasoning, so the model

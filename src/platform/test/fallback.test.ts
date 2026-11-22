@@ -196,7 +196,7 @@ describe( 'createFallbackPlatform', () => {
 		await chat( onEvent );
 
 		expect( requests[ 0 ] ).toEqual( {
-			path: '/ai-content-editing-assistant/v1/fallback',
+			path: '/ai-chat-block-editor-extension/v1/fallback',
 			post_id: 1,
 			system: 'System',
 			messages: [ { role: 'user', parts: [ { text: 'Rewrite this' } ] } ],

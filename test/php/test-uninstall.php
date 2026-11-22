@@ -1,6 +1,6 @@
 <?php
 /**
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  */
 
 /**
@@ -13,11 +13,11 @@ class Test_Uninstall extends WP_UnitTestCase {
 	 */
 	private function uninstall() {
 		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-			define( 'WP_UNINSTALL_PLUGIN', 'ai-content-editing-assistant/ai-content-editing-assistant.php' );
+			define( 'WP_UNINSTALL_PLUGIN', 'ai-chat-block-editor-extension/ai-chat-block-editor-extension.php' );
 		}
 
-		if ( function_exists( 'ai_content_editing_assistant_uninstall_site' ) ) {
-			ai_content_editing_assistant_uninstall_site();
+		if ( function_exists( 'ai_chat_block_editor_extension_uninstall_site' ) ) {
+			ai_chat_block_editor_extension_uninstall_site();
 		} else {
 			require dirname( __DIR__, 2 ) . '/uninstall.php';
 		}
@@ -37,10 +37,10 @@ class Test_Uninstall extends WP_UnitTestCase {
 			$meta_key,
 			wp_slash(
 				array(
-					'core'                         => array( 'fixedToolbar' => true ),
-					'other-plugin'                 => array( 'pattern' => '\\d+' ),
-					'ai-content-editing-assistant' => array( 'model' => 'anthropic/claude' ),
-					'_modified'                    => '2026-11-15T00:00:00.000Z',
+					'core'                           => array( 'fixedToolbar' => true ),
+					'other-plugin'                   => array( 'pattern' => '\\d+' ),
+					'ai-chat-block-editor-extension' => array( 'model' => 'anthropic/claude' ),
+					'_modified'                      => '2026-11-15T00:00:00.000Z',
 				)
 			)
 		);
@@ -70,8 +70,8 @@ class Test_Uninstall extends WP_UnitTestCase {
 			$user_id,
 			$meta_key,
 			array(
-				'ai-content-editing-assistant' => array( 'model' => 'anthropic/claude' ),
-				'_modified'                    => '2026-11-15T00:00:00.000Z',
+				'ai-chat-block-editor-extension' => array( 'model' => 'anthropic/claude' ),
+				'_modified'                      => '2026-11-15T00:00:00.000Z',
 			)
 		);
 

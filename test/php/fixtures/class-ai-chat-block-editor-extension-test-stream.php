@@ -1,15 +1,15 @@
 <?php
 /**
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  */
 
-use AI_Content_Editing_Assistant\Stream;
+use AI_Chat_Block_Editor_Extension\Stream;
 
 /**
  * A stream that records the status and content type it would send, instead
  * of sending headers and closing the test's output buffers.
  */
-class AI_Content_Editing_Assistant_Test_Stream extends Stream {
+class AI_Chat_Block_Editor_Extension_Test_Stream extends Stream {
 
 	/**
 	 * The status and content type at the time the output started, if it did.

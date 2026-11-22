@@ -1,11 +1,11 @@
 <?php
 /**
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  * @author Aki Hamano
  * @license GPL-2.0+
  */
 
-namespace AI_Content_Editing_Assistant;
+namespace AI_Chat_Block_Editor_Extension;
 
 use WP_Error;
 use WP_REST_Request;
@@ -43,7 +43,7 @@ class Models {
 	 */
 	public function register_routes() {
 		register_rest_route(
-			AI_CONTENT_EDITING_ASSISTANT_NAMESPACE . '/v1',
+			AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE . '/v1',
 			'/models',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -87,14 +87,14 @@ class Models {
 
 		if ( '' === $api_key ) {
 			return new WP_Error(
-				'ai_content_editing_assistant_no_api_key',
-				__( 'No API key is set for this provider.', 'ai-content-editing-assistant' ),
+				'ai_chat_block_editor_extension_no_api_key',
+				__( 'No API key is set for this provider.', 'ai-chat-block-editor-extension' ),
 				array( 'status' => 400 )
 			);
 		}
 
 		// The key is part of the name, so a new key gets its own list.
-		$cache_key = AI_CONTENT_EDITING_ASSISTANT_NAMESPACE . '_models_' . md5( $provider_id . $api_key );
+		$cache_key = AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE . '_models_' . md5( $provider_id . $api_key );
 		$models    = get_transient( $cache_key );
 
 		if ( is_array( $models ) ) {
@@ -132,7 +132,7 @@ class Models {
 
 		if ( is_wp_error( $response ) ) {
 			return new WP_Error(
-				'ai_content_editing_assistant_provider_unreachable',
+				'ai_chat_block_editor_extension_provider_unreachable',
 				$response->get_error_message(),
 				array( 'status' => 502 )
 			);
@@ -145,8 +145,8 @@ class Models {
 
 		if ( 200 !== wp_remote_retrieve_response_code( $response ) || ! is_array( $list ) ) {
 			return new WP_Error(
-				'ai_content_editing_assistant_models_unavailable',
-				__( 'The provider did not return its models.', 'ai-content-editing-assistant' ),
+				'ai_chat_block_editor_extension_models_unavailable',
+				__( 'The provider did not return its models.', 'ai-chat-block-editor-extension' ),
 				array( 'status' => 502 )
 			);
 		}

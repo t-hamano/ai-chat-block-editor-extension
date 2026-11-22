@@ -1,12 +1,12 @@
-# AI Content Editing Assistant
+# AI Chat Block Editor Extension
 
-[![Test](https://github.com/t-hamano/ai-content-editing-assistant/actions/workflows/test.yml/badge.svg)](https://github.com/t-hamano/ai-content-editing-assistant/actions/workflows/test.yml)
+[![Test](https://github.com/t-hamano/ai-chat-block-editor-extension/actions/workflows/test.yml/badge.svg)](https://github.com/t-hamano/ai-chat-block-editor-extension/actions/workflows/test.yml)
 
-![AI Content Editing Assistant](https://raw.githubusercontent.com/t-hamano/ai-content-editing-assistant/main/.wordpress-org/banner-1544x500.png)
+![AI Chat Block Editor Extension](https://raw.githubusercontent.com/t-hamano/ai-chat-block-editor-extension/main/.wordpress-org/banner-1544x500.png)
 
 Select blocks or text in the block editor and edit them by chatting with AI. The plugin uses the API keys registered on the Connectors screen in WordPress core.
 
-![AI Content Editing Assistant demo](https://raw.githubusercontent.com/t-hamano/ai-content-editing-assistant/main/.wordpress-org/screenshot-1.gif)
+![AI Chat Block Editor Extension demo](https://raw.githubusercontent.com/t-hamano/ai-chat-block-editor-extension/main/.wordpress-org/screenshot-1.gif)
 
 ## Features
 
@@ -35,7 +35,7 @@ The plugin uses the API keys registered on the Connectors screen in WordPress co
 ## Usage
 
 1. Open a post or page in the block editor.
-2. Open the AI Assistant sidebar from the sparkle icon in the top toolbar, or from **AI Assistant** in the Options menu.
+2. Open the AI Chat sidebar from the sparkle icon in the top toolbar, or from **AI Chat** in the Options menu.
 3. Choose what to edit:
    * **Blocks**: select one or more blocks. Only the selected blocks are changed.
    * **Text inside a block**: select a few words. Only that text is changed.

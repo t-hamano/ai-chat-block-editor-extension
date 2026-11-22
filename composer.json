@@ -1,5 +1,5 @@
 {
-	"name": "t-hamano/ai-content-editing-assistant",
+	"name": "t-hamano/ai-chat-block-editor-extension",
 	"description": "Select blocks or text in the block editor and edit them by chatting with AI.",
 	"license": "GPL-2.0-or-later",
 	"authors": [

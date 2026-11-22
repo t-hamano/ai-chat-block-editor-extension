@@ -1,26 +1,26 @@
 <?php
 /**
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  */
 
-use AI_Content_Editing_Assistant\Enqueue;
+use AI_Chat_Block_Editor_Extension\Enqueue;
 
 /**
  * Tests for the Enqueue class.
  */
 class Test_Enqueue extends WP_UnitTestCase {
 
-	use AI_Content_Editing_Assistant_Fake_Api_Key;
+	use AI_Chat_Block_Editor_Extension_Fake_Api_Key;
 
 	/**
 	 * Removes the script and style enqueued by a test.
 	 */
 	public function tear_down() {
 		$this->set_fake_api_key( '' );
-		wp_dequeue_script( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE );
-		wp_deregister_script( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE );
-		wp_dequeue_style( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE );
-		wp_deregister_style( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE );
+		wp_dequeue_script( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE );
+		wp_deregister_script( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE );
+		wp_dequeue_style( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE );
+		wp_deregister_style( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE );
 
 		parent::tear_down();
 	}
@@ -33,15 +33,15 @@ class Test_Enqueue extends WP_UnitTestCase {
 
 		( new Enqueue() )->enqueue_editor_scripts();
 
-		$this->assertFalse( wp_script_is( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE ) );
-		$this->assertFalse( wp_style_is( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE ) );
+		$this->assertFalse( wp_script_is( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE ) );
+		$this->assertFalse( wp_style_is( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE ) );
 	}
 
 	/**
 	 * Tests that the script and style are enqueued for administrators.
 	 */
 	public function test_script_is_enqueued_for_administrator() {
-		if ( ! file_exists( AI_CONTENT_EDITING_ASSISTANT_PATH . '/build/index.asset.php' ) ) {
+		if ( ! file_exists( AI_CHAT_BLOCK_EDITOR_EXTENSION_PATH . '/build/index.asset.php' ) ) {
 			$this->markTestSkipped( 'The script is only enqueued when the plugin is built.' );
 		}
 
@@ -50,11 +50,11 @@ class Test_Enqueue extends WP_UnitTestCase {
 
 		( new Enqueue() )->enqueue_editor_scripts();
 
-		$this->assertTrue( wp_script_is( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE ) );
-		$this->assertTrue( wp_style_is( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE ) );
+		$this->assertTrue( wp_script_is( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE ) );
+		$this->assertTrue( wp_style_is( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE ) );
 		$this->assertStringContainsString(
 			'"hasApiKey":true',
-			implode( '', wp_scripts()->get_data( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE, 'before' ) )
+			implode( '', wp_scripts()->get_data( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE, 'before' ) )
 		);
 	}
 
@@ -63,7 +63,7 @@ class Test_Enqueue extends WP_UnitTestCase {
 	 * sidebar can link to the Connectors screen.
 	 */
 	public function test_script_is_enqueued_without_api_key() {
-		if ( ! file_exists( AI_CONTENT_EDITING_ASSISTANT_PATH . '/build/index.asset.php' ) ) {
+		if ( ! file_exists( AI_CHAT_BLOCK_EDITOR_EXTENSION_PATH . '/build/index.asset.php' ) ) {
 			$this->markTestSkipped( 'The script is only enqueued when the plugin is built.' );
 		}
 
@@ -71,10 +71,10 @@ class Test_Enqueue extends WP_UnitTestCase {
 
 		( new Enqueue() )->enqueue_editor_scripts();
 
-		$this->assertTrue( wp_script_is( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE ) );
+		$this->assertTrue( wp_script_is( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE ) );
 		$this->assertStringContainsString(
 			'"hasApiKey":false',
-			implode( '', wp_scripts()->get_data( AI_CONTENT_EDITING_ASSISTANT_NAMESPACE, 'before' ) )
+			implode( '', wp_scripts()->get_data( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE, 'before' ) )
 		);
 	}
 }

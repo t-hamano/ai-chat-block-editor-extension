@@ -33,7 +33,7 @@ async function readAll( events: AsyncIterable< AnswerEvent > ) {
 }
 
 function relayError( message: string ) {
-	return `\n\nevent: ai_content_editing_assistant_error\ndata: ${ JSON.stringify( { message } ) }\n\n`;
+	return `\n\nevent: ai_chat_block_editor_extension_error\ndata: ${ JSON.stringify( { message } ) }\n\n`;
 }
 
 function request( signal = new AbortController().signal ) {
@@ -99,7 +99,7 @@ describe( 'requestAnswer', () => {
 
 		expect( await readAll( request() ) ).toEqual( [ { event: 'message', data: {} } ] );
 		expect( vi.mocked( apiFetch ).mock.calls[ 0 ][ 0 ] ).toMatchObject( {
-			path: '/ai-content-editing-assistant/v1/chat',
+			path: '/ai-chat-block-editor-extension/v1/chat',
 			data: { provider: 'anthropic', post_id: 1, stream: true, body: {} },
 		} );
 	} );

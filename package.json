@@ -1,5 +1,5 @@
 {
-	"name": "ai-content-editing-assistant",
+	"name": "ai-chat-block-editor-extension",
 	"version": "0.1.0",
 	"description": "Select blocks or text in the block editor and edit them by chatting with AI.",
 	"author": "Aki Hamano",
@@ -10,10 +10,10 @@
 		"ai",
 		"assistant"
 	],
-	"homepage": "https://github.com/t-hamano/ai-content-editing-assistant",
-	"repository": "git+https://github.com/t-hamano/ai-content-editing-assistant.git",
+	"homepage": "https://github.com/t-hamano/ai-chat-block-editor-extension",
+	"repository": "git+https://github.com/t-hamano/ai-chat-block-editor-extension.git",
 	"bugs": {
-		"url": "https://github.com/t-hamano/ai-content-editing-assistant/issues"
+		"url": "https://github.com/t-hamano/ai-chat-block-editor-extension/issues"
 	},
 	"engines": {
 		"node": ">=24.22.1",
@@ -24,7 +24,7 @@
 		"src",
 		"skills",
 		"build",
-		"ai-content-editing-assistant.php",
+		"ai-chat-block-editor-extension.php",
 		"uninstall.php"
 	],
 	"dependencies": {
@@ -80,7 +80,7 @@
 		"format": "wp-scripts format",
 		"generate:block-reference": "node scripts/generate-block-reference.cjs",
 		"test:unit": "wp-scripts test-unit-js",
-		"test:php": "wp-env --config .wp-env.test.json run cli --env-cwd=wp-content/plugins/ai-content-editing-assistant vendor/bin/phpunit",
+		"test:php": "wp-env --config .wp-env.test.json run cli --env-cwd=wp-content/plugins/ai-chat-block-editor-extension vendor/bin/phpunit",
 		"eval": "npx --yes promptfoo@0.125.1 eval -c scripts/eval/promptfooconfig.yaml",
 		"eval:view": "npx --yes promptfoo@0.125.1 view",
 		"eval:record": "node scripts/eval/record.mjs",

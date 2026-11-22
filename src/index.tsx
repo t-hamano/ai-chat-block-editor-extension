@@ -11,6 +11,6 @@ import Sidebar from './sidebar';
 
 registerChangeHighlight();
 
-registerPlugin( 'ai-content-editing-assistant', {
+registerPlugin( 'ai-chat-block-editor-extension', {
 	render: Sidebar,
 } );

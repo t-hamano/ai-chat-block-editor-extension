@@ -1,11 +1,11 @@
 <?php
 /**
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  * @author Aki Hamano
  * @license GPL-2.0+
  */
 
-namespace AI_Content_Editing_Assistant;
+namespace AI_Chat_Block_Editor_Extension;
 
 use InvalidArgumentException;
 use WordPress\AiClient\Messages\DTO\Message;
@@ -47,7 +47,7 @@ class Fallback {
 	 */
 	public function register_routes() {
 		register_rest_route(
-			AI_CONTENT_EDITING_ASSISTANT_NAMESPACE . '/v1',
+			AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE . '/v1',
 			'/fallback',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -96,7 +96,7 @@ class Fallback {
 						'default' => array(),
 					),
 					'models'   => array(
-						'description' => __( 'The preferred models in order, as [provider ID, model ID] pairs. The AI Client chooses when none of them is available.', 'ai-content-editing-assistant' ),
+						'description' => __( 'The preferred models in order, as [provider ID, model ID] pairs. The AI Client chooses when none of them is available.', 'ai-chat-block-editor-extension' ),
 						'type'        => 'array',
 						'items'       => array(
 							'type'     => 'array',
@@ -136,7 +136,7 @@ class Fallback {
 				static function ( array $message ): Message {
 					foreach ( $message['parts'] as $part ) {
 						if ( ! array_intersect( array_keys( $part ), self::PART_KEYS ) || isset( $part['file'] ) ) {
-							throw new InvalidArgumentException( esc_html__( 'Messages may only contain text, tool calls, and tool results.', 'ai-content-editing-assistant' ) );
+							throw new InvalidArgumentException( esc_html__( 'Messages may only contain text, tool calls, and tool results.', 'ai-chat-block-editor-extension' ) );
 						}
 					}
 
@@ -150,7 +150,7 @@ class Fallback {
 			);
 		} catch ( InvalidArgumentException $e ) {
 			return new WP_Error(
-				'ai_content_editing_assistant_invalid_conversation',
+				'ai_chat_block_editor_extension_invalid_conversation',
 				$e->getMessage(),
 				array( 'status' => 400 )
 			);

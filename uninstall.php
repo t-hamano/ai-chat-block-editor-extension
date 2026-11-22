@@ -2,7 +2,7 @@
 /**
  * Removes the data the plugin stored, when the plugin is deleted.
  *
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  * @author Aki Hamano
  * @license GPL-2.0+
  */
@@ -12,7 +12,7 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 /**
  * Removes the data the plugin stored on the current site.
  *
- * Each user's model choice is kept in the `ai-content-editing-assistant`
+ * Each user's model choice is kept in the `ai-chat-block-editor-extension`
  * scope of the `persisted_preferences` user meta. That meta also holds the
  * preferences of WordPress itself and of other plugins, so only this scope
  * is removed.
@@ -20,10 +20,10 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
  * The cached model lists are transients that expire within 12 hours, and
  * WordPress deletes expired transients on its own, so they are left alone.
  */
-function ai_content_editing_assistant_uninstall_site() {
+function ai_chat_block_editor_extension_uninstall_site() {
 	global $wpdb;
 
-	$scope    = 'ai-content-editing-assistant';
+	$scope    = 'ai-chat-block-editor-extension';
 	$meta_key = $wpdb->get_blog_prefix() . 'persisted_preferences';
 	$user_ids = get_users(
 		array(
@@ -53,18 +53,18 @@ function ai_content_editing_assistant_uninstall_site() {
 }
 
 if ( is_multisite() ) {
-	$ai_content_editing_assistant_site_ids = get_sites(
+	$ai_chat_block_editor_extension_site_ids = get_sites(
 		array(
 			'fields' => 'ids',
 			'number' => 0,
 		)
 	);
 
-	foreach ( $ai_content_editing_assistant_site_ids as $ai_content_editing_assistant_site_id ) {
-		switch_to_blog( $ai_content_editing_assistant_site_id );
-		ai_content_editing_assistant_uninstall_site();
+	foreach ( $ai_chat_block_editor_extension_site_ids as $ai_chat_block_editor_extension_site_id ) {
+		switch_to_blog( $ai_chat_block_editor_extension_site_id );
+		ai_chat_block_editor_extension_uninstall_site();
 		restore_current_blog();
 	}
 } else {
-	ai_content_editing_assistant_uninstall_site();
+	ai_chat_block_editor_extension_uninstall_site();
 }

@@ -38,7 +38,7 @@ const components: Components = {
  */
 export function AnswerMarkdown( { children }: { children: string } ) {
 	return (
-		<Text className="ai-content-editing-assistant-chat__markdown" render={ <div /> }>
+		<Text className="ai-chat-block-editor-extension-chat__markdown" render={ <div /> }>
 			<Markdown remarkPlugins={ remarkPlugins } components={ components }>
 				{ children }
 			</Markdown>

@@ -19,30 +19,30 @@ import icon from './icon';
 import { createAutoPlatform, type ModelChoice } from './platform/select';
 import { ModelSettings } from './settings';
 
-const SIDEBAR_NAME = 'ai-assistant';
+const SIDEBAR_NAME = 'ai-chat';
 
 const ai = createAutoPlatform(
 	() => selectStore( editorStore ).getCurrentPostId() as number,
 	() =>
 		( selectStore( preferencesStore ).get(
-			'ai-content-editing-assistant',
+			'ai-chat-block-editor-extension',
 			'model'
 		) as ModelChoice | null ) ?? null
 );
 
-const { hasApiKey, connectorsUrl } = window.aiContentEditingAssistant;
+const { hasApiKey, connectorsUrl } = window.aiChatBlockEditorExtension;
 
 // Without an API key the assistant cannot be used, so the sidebar links to
 // the Connectors screen, where one is set up.
 function NoConnectorNotice() {
 	return (
-		<div className="ai-content-editing-assistant-sidebar__notice">
+		<div className="ai-chat-block-editor-extension-sidebar__notice">
 			<Notice.Root intent="info">
 				<Notice.Description>
 					{ createInterpolateElement(
 						__(
 							'No connector is set up. Set up at least one connector on the <a>Connectors screen</a>.',
-							'ai-content-editing-assistant'
+							'ai-chat-block-editor-extension'
 						),
 						// eslint-disable-next-line jsx-a11y/anchor-has-content -- The link text is filled in from the translation.
 						{ a: <a href={ connectorsUrl } /> }
@@ -54,7 +54,7 @@ function NoConnectorNotice() {
 }
 
 export default function Sidebar() {
-	const title = __( 'AI Assistant', 'ai-content-editing-assistant' );
+	const title = __( 'AI Chat', 'ai-chat-block-editor-extension' );
 	const isVisualEditor = useSelect(
 		( select ) => select( editorStore ).getEditorMode() === 'visual',
 		[]
@@ -82,14 +82,14 @@ export default function Sidebar() {
 				name={ SIDEBAR_NAME }
 				title={ title }
 				icon={ icon }
-				className="ai-content-editing-assistant-sidebar"
+				className="ai-chat-block-editor-extension-sidebar"
 				// @ts-expect-error `PluginSidebar` passes `header` on to `ComplementaryArea`, but its types leave it out.
 				header={
 					<>
 						<h2 className="interface-complementary-area-header__title">{ title }</h2>
 						<IconButton
 							icon={ plus }
-							label={ __( 'New conversation', 'ai-content-editing-assistant' ) }
+							label={ __( 'New conversation', 'ai-chat-block-editor-extension' ) }
 							variant="minimal"
 							tone="neutral"
 							size="compact"
@@ -98,7 +98,7 @@ export default function Sidebar() {
 						/>
 						<IconButton
 							icon={ cog }
-							label={ __( 'Assistant settings', 'ai-content-editing-assistant' ) }
+							label={ __( 'Chat settings', 'ai-chat-block-editor-extension' ) }
 							variant="minimal"
 							tone="neutral"
 							size="compact"

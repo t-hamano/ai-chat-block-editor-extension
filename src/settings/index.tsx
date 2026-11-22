@@ -36,14 +36,14 @@ export function ModelSettings( { onClose }: Props ) {
 	const choice = useSelect(
 		( select ) =>
 			select( preferencesStore ).get(
-				'ai-content-editing-assistant',
+				'ai-chat-block-editor-extension',
 				'model'
 			) as ModelChoice | null,
 		[]
 	);
 	const { set } = useDispatch( preferencesStore );
 	const setModelChoice = ( value: ModelChoice | null ) =>
-		set( 'ai-content-editing-assistant', 'model', value );
+		set( 'ai-chat-block-editor-extension', 'model', value );
 	const [ providers, setProviders ] = useState< ProviderOption[] | null >( null );
 	const [ hasError, setHasError ] = useState( false );
 
@@ -59,7 +59,7 @@ export function ModelSettings( { onClose }: Props ) {
 	}, [] );
 
 	const automatic: Item = {
-		label: __( 'Automatic', 'ai-content-editing-assistant' ),
+		label: __( 'Automatic', 'ai-chat-block-editor-extension' ),
 		value: null,
 	};
 	const provider = providers?.find( ( option ) => option.id === choice?.provider );
@@ -76,7 +76,7 @@ export function ModelSettings( { onClose }: Props ) {
 	const modelItems: Item[] = modelIds.map( ( id ) => ( { label: id, value: id } ) );
 
 	/* translators: Used between list items, there is a space after the comma. */
-	const separator = __( ', ', 'ai-content-editing-assistant' ); // eslint-disable-line @wordpress/i18n-no-flanking-whitespace
+	const separator = __( ', ', 'ai-chat-block-editor-extension' ); // eslint-disable-line @wordpress/i18n-no-flanking-whitespace
 	const usageLinks = ( provider ? [ provider ] : ( providers ?? [] ) ).map( ( option, index ) => (
 		<Fragment key={ option.id }>
 			{ index > 0 && separator }
@@ -91,18 +91,18 @@ export function ModelSettings( { onClose }: Props ) {
 		content = (
 			<Notice.Root intent="error">
 				<Notice.Description>
-					{ __( 'The providers could not be loaded.', 'ai-content-editing-assistant' ) }
+					{ __( 'The providers could not be loaded.', 'ai-chat-block-editor-extension' ) }
 				</Notice.Description>
 			</Notice.Root>
 		);
 	} else if ( ! providers ) {
-		content = <Spinner aria-label={ __( 'Loading…', 'ai-content-editing-assistant' ) } />;
+		content = <Spinner aria-label={ __( 'Loading…', 'ai-chat-block-editor-extension' ) } />;
 	} else if ( providers.length === 0 ) {
 		content = (
-			<Text variant="body-sm" className="ai-content-editing-assistant-settings__note">
+			<Text variant="body-sm" className="ai-chat-block-editor-extension-settings__note">
 				{ __(
 					'The model is chosen by the AI Client, because none of Anthropic, OpenAI, and Google is connected in Connectors.',
-					'ai-content-editing-assistant'
+					'ai-chat-block-editor-extension'
 				) }
 			</Text>
 		);
@@ -110,10 +110,10 @@ export function ModelSettings( { onClose }: Props ) {
 		content = (
 			<>
 				<SelectControl
-					label={ __( 'Provider', 'ai-content-editing-assistant' ) }
+					label={ __( 'Provider', 'ai-chat-block-editor-extension' ) }
 					description={ __(
 						'Only providers connected in Connectors are listed. Automatic uses the first of Anthropic, OpenAI, and Google that is connected.',
-						'ai-content-editing-assistant'
+						'ai-chat-block-editor-extension'
 					) }
 					items={ providerItems }
 					value={
@@ -126,7 +126,7 @@ export function ModelSettings( { onClose }: Props ) {
 				/>
 				{ provider && choice && (
 					<SelectControl
-						label={ __( 'Model', 'ai-content-editing-assistant' ) }
+						label={ __( 'Model', 'ai-chat-block-editor-extension' ) }
 						items={ modelItems }
 						value={ modelItems.find( ( item ) => item.value === choice.model ) ?? null }
 						onValueChange={ ( item: Item | null ) => {
@@ -136,13 +136,13 @@ export function ModelSettings( { onClose }: Props ) {
 						} }
 					/>
 				) }
-				<Text variant="body-sm" className="ai-content-editing-assistant-settings__note">
+				<Text variant="body-sm" className="ai-chat-block-editor-extension-settings__note">
 					{ createInterpolateElement(
 						sprintf(
 							/* translators: %s: Links to the usage pages of the providers. */
 							__(
 								"The provider bills for usage. Check the exact usage on the provider's dashboard: %s",
-								'ai-content-editing-assistant'
+								'ai-chat-block-editor-extension'
 							),
 							'<links />'
 						),
@@ -154,26 +154,30 @@ export function ModelSettings( { onClose }: Props ) {
 	}
 
 	return (
-		<Stack className="ai-content-editing-assistant-settings" direction="column">
+		<Stack className="ai-chat-block-editor-extension-settings" direction="column">
 			<Stack
-				className="ai-content-editing-assistant-settings__header"
+				className="ai-chat-block-editor-extension-settings__header"
 				direction="row"
 				align="center"
 				gap="sm"
 			>
 				<IconButton
 					icon={ isRTL() ? chevronRight : chevronLeft }
-					label={ __( 'Back', 'ai-content-editing-assistant' ) }
+					label={ __( 'Back', 'ai-chat-block-editor-extension' ) }
 					variant="minimal"
 					tone="neutral"
 					size="small"
 					onClick={ onClose }
 				/>
 				<Text variant="heading-md" render={ <h2 /> }>
-					{ __( 'Assistant settings', 'ai-content-editing-assistant' ) }
+					{ __( 'Chat settings', 'ai-chat-block-editor-extension' ) }
 				</Text>
 			</Stack>
-			<Stack className="ai-content-editing-assistant-settings__content" direction="column" gap="lg">
+			<Stack
+				className="ai-chat-block-editor-extension-settings__content"
+				direction="column"
+				gap="lg"
+			>
 				{ content }
 			</Stack>
 		</Stack>

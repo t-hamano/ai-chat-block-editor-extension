@@ -1,11 +1,11 @@
 <?php
 /**
- * @package AI_Content_Editing_Assistant
+ * @package AI_Chat_Block_Editor_Extension
  * @author Aki Hamano
  * @license GPL-2.0+
  */
 
-namespace AI_Content_Editing_Assistant;
+namespace AI_Chat_Block_Editor_Extension;
 
 use WP_Error;
 
@@ -24,7 +24,7 @@ class Stream {
 	/**
 	 * The event that tells the browser the provider's answer stopped partway
 	 */
-	const ERROR_EVENT = 'ai_content_editing_assistant_error';
+	const ERROR_EVENT = 'ai_chat_block_editor_extension_error';
 
 	/**
 	 * The provider's HTTP status
@@ -101,7 +101,7 @@ class Stream {
 
 		if ( is_wp_error( $response ) ) {
 			return new WP_Error(
-				'ai_content_editing_assistant_provider_unreachable',
+				'ai_chat_block_editor_extension_provider_unreachable',
 				$response->get_error_message(),
 				array( 'status' => 502 )
 			);
@@ -179,8 +179,8 @@ class Stream {
 	 */
 	public function send_error( bool $timed_out ) {
 		$message = $timed_out
-			? __( 'The provider took too long to answer, so the answer was stopped.', 'ai-content-editing-assistant' )
-			: __( 'The connection to the provider was lost before the answer was finished.', 'ai-content-editing-assistant' );
+			? __( 'The provider took too long to answer, so the answer was stopped.', 'ai-chat-block-editor-extension' )
+			: __( 'The connection to the provider was lost before the answer was finished.', 'ai-chat-block-editor-extension' );
 
 		// The empty lines end an event the provider may have left unfinished.
 		echo "\n\nevent: " . self::ERROR_EVENT . "\ndata: " . wp_json_encode( array( 'message' => $message ) ) . "\n\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
