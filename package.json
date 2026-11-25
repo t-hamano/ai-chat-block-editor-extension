@@ -10,10 +10,10 @@
 		"ai",
 		"assistant"
 	],
-	"homepage": "https://github.com/t-hamano/ai-chat-block-editor-extension",
-	"repository": "git+https://github.com/t-hamano/ai-chat-block-editor-extension.git",
+	"homepage": "https://github.com/t-hamano/blocktune",
+	"repository": "git+https://github.com/t-hamano/blocktune.git",
 	"bugs": {
-		"url": "https://github.com/t-hamano/ai-chat-block-editor-extension/issues"
+		"url": "https://github.com/t-hamano/blocktune/issues"
 	},
 	"engines": {
 		"node": ">=24.22.1",
