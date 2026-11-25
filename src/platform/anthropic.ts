@@ -334,8 +334,7 @@ export async function readAnthropicStream(
 				break;
 			case 'error':
 				throw new Error(
-					payload.error?.message ??
-						__( 'The answer could not be loaded.', 'ai-chat-block-editor-extension' )
+					payload.error?.message ?? __( 'The answer could not be loaded.', 'blocktune' )
 				);
 		}
 	}
@@ -350,12 +349,10 @@ export async function readAnthropicStream(
 	}
 	// Either can cut a tool call off, so its edit is not applied.
 	if ( stopReason === 'refusal' ) {
-		throw new Error( __( 'The model declined to answer.', 'ai-chat-block-editor-extension' ) );
+		throw new Error( __( 'The model declined to answer.', 'blocktune' ) );
 	}
 	if ( stopReason === 'max_tokens' ) {
-		throw new Error(
-			__( 'The answer was cut off because it was too long.', 'ai-chat-block-editor-extension' )
-		);
+		throw new Error( __( 'The answer was cut off because it was too long.', 'blocktune' ) );
 	}
 
 	return { content: content.filter( Boolean ), stopReason, invalidInputs };
@@ -370,7 +367,7 @@ export async function readAnthropicStream(
  */
 export function toAnthropicEvents( answer: any ): AnswerEvent[] {
 	if ( ! Array.isArray( answer?.content ) ) {
-		throw new Error( __( 'The answer could not be read.', 'ai-chat-block-editor-extension' ) );
+		throw new Error( __( 'The answer could not be read.', 'blocktune' ) );
 	}
 	const event = ( name: string, data: object ): AnswerEvent => ( { event: name, data } );
 	const events = [ event( 'message_start', { message: { usage: answer.usage ?? {} } } ) ];
@@ -515,7 +512,7 @@ export function createAnthropicPlatform(
 				}
 				failures += tools.failures;
 				if ( failures > MAX_FAILED_EDITS ) {
-					throw new Error( __( 'The edit could not be made.', 'ai-chat-block-editor-extension' ) );
+					throw new Error( __( 'The edit could not be made.', 'blocktune' ) );
 				}
 				checkRequestLimit( ++requests );
 				// The answer goes back unchanged, with its thinking, so the model

@@ -24,25 +24,22 @@ const SIDEBAR_NAME = 'ai-chat';
 const ai = createAutoPlatform(
 	() => selectStore( editorStore ).getCurrentPostId() as number,
 	() =>
-		( selectStore( preferencesStore ).get(
-			'ai-chat-block-editor-extension',
-			'model'
-		) as ModelChoice | null ) ?? null
+		( selectStore( preferencesStore ).get( 'blocktune', 'model' ) as ModelChoice | null ) ?? null
 );
 
-const { hasApiKey, connectorsUrl } = window.aiChatBlockEditorExtension;
+const { hasApiKey, connectorsUrl } = window.blocktune;
 
 // Without an API key the assistant cannot be used, so the sidebar links to
 // the Connectors screen, where one is set up.
 function NoConnectorNotice() {
 	return (
-		<div className="ai-chat-block-editor-extension-sidebar__notice">
+		<div className="blocktune-sidebar__notice">
 			<Notice.Root intent="info">
 				<Notice.Description>
 					{ createInterpolateElement(
 						__(
 							'No connector is set up. Set up at least one connector on the <a>Connectors screen</a>.',
-							'ai-chat-block-editor-extension'
+							'blocktune'
 						),
 						// eslint-disable-next-line jsx-a11y/anchor-has-content -- The link text is filled in from the translation.
 						{ a: <a href={ connectorsUrl } /> }
@@ -54,7 +51,7 @@ function NoConnectorNotice() {
 }
 
 export default function Sidebar() {
-	const title = __( 'AI Chat', 'ai-chat-block-editor-extension' );
+	const title = __( 'AI Chat', 'blocktune' );
 	const isVisualEditor = useSelect(
 		( select ) => select( editorStore ).getEditorMode() === 'visual',
 		[]
@@ -82,14 +79,14 @@ export default function Sidebar() {
 				name={ SIDEBAR_NAME }
 				title={ title }
 				icon={ icon }
-				className="ai-chat-block-editor-extension-sidebar"
+				className="blocktune-sidebar"
 				// @ts-expect-error `PluginSidebar` passes `header` on to `ComplementaryArea`, but its types leave it out.
 				header={
 					<>
 						<h2 className="interface-complementary-area-header__title">{ title }</h2>
 						<IconButton
 							icon={ plus }
-							label={ __( 'New conversation', 'ai-chat-block-editor-extension' ) }
+							label={ __( 'New conversation', 'blocktune' ) }
 							variant="minimal"
 							tone="neutral"
 							size="compact"
@@ -98,7 +95,7 @@ export default function Sidebar() {
 						/>
 						<IconButton
 							icon={ cog }
-							label={ __( 'Chat settings', 'ai-chat-block-editor-extension' ) }
+							label={ __( 'Chat settings', 'blocktune' ) }
 							variant="minimal"
 							tone="neutral"
 							size="compact"

@@ -1,6 +1,6 @@
 <?php
 /**
- * @package AI_Chat_Block_Editor_Extension
+ * @package Blocktune
  */
 
 use WordPress\AiClient\AiClient;
@@ -22,12 +22,12 @@ class Test_Fallback extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 
 		$registry = AiClient::defaultRegistry();
-		if ( ! $registry->hasProvider( AI_Chat_Block_Editor_Extension_Fallback_Provider::ID ) ) {
-			$registry->registerProvider( AI_Chat_Block_Editor_Extension_Fallback_Provider::class );
+		if ( ! $registry->hasProvider( Blocktune_Fallback_Provider::ID ) ) {
+			$registry->registerProvider( Blocktune_Fallback_Provider::class );
 		}
 
-		AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt = null;
-		AI_Chat_Block_Editor_Extension_Fallback_Provider::$answer = null;
+		Blocktune_Fallback_Provider::$prompt = null;
+		Blocktune_Fallback_Provider::$answer = null;
 	}
 
 	/**
@@ -37,7 +37,7 @@ class Test_Fallback extends WP_UnitTestCase {
 	 * @return WP_REST_Response
 	 */
 	private function chat( array $params = array() ) {
-		$request = new WP_REST_Request( 'POST', '/' . AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE . '/v1/fallback' );
+		$request = new WP_REST_Request( 'POST', '/' . BLOCKTUNE_NAMESPACE . '/v1/fallback' );
 		$request->set_header( 'content-type', 'application/json' );
 		$request->set_body(
 			wp_json_encode(
@@ -51,7 +51,7 @@ class Test_Fallback extends WP_UnitTestCase {
 								'parts' => array( array( 'text' => 'Hello' ) ),
 							),
 						),
-						'models'   => array( array( AI_Chat_Block_Editor_Extension_Fallback_Provider::ID, 'test-model' ) ),
+						'models'   => array( array( Blocktune_Fallback_Provider::ID, 'test-model' ) ),
 					),
 					$params
 				)
@@ -79,10 +79,10 @@ class Test_Fallback extends WP_UnitTestCase {
 			),
 			$data['usage']
 		);
-		$this->assertSame( AI_Chat_Block_Editor_Extension_Fallback_Provider::ID, $data['provider'] );
+		$this->assertSame( Blocktune_Fallback_Provider::ID, $data['provider'] );
 		$this->assertSame( 'test-model', $data['model'] );
 
-		$prompt = AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt;
+		$prompt = Blocktune_Fallback_Provider::$prompt;
 		$this->assertSame( 'Hello', $prompt['messages'][0]['parts'][0]['text'] );
 		$this->assertSame( 'Be brief.', $prompt['config']->getSystemInstruction() );
 	}
@@ -94,13 +94,13 @@ class Test_Fallback extends WP_UnitTestCase {
 		$this->chat(
 			array(
 				'models' => array(
-					array( AI_Chat_Block_Editor_Extension_Fallback_Provider::ID, 'retired-model' ),
-					array( AI_Chat_Block_Editor_Extension_Fallback_Provider::ID, 'other-model' ),
+					array( Blocktune_Fallback_Provider::ID, 'retired-model' ),
+					array( Blocktune_Fallback_Provider::ID, 'other-model' ),
 				),
 			)
 		);
 
-		$this->assertSame( 'other-model', AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt['model'] );
+		$this->assertSame( 'other-model', Blocktune_Fallback_Provider::$prompt['model'] );
 	}
 
 	/**
@@ -110,14 +110,14 @@ class Test_Fallback extends WP_UnitTestCase {
 		$response = $this->chat( array( 'models' => array() ) );
 
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertNotNull( AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt );
+		$this->assertNotNull( Blocktune_Fallback_Provider::$prompt );
 	}
 
 	/**
 	 * Tests that tools are declared, and the model's tool calls come back.
 	 */
 	public function test_passes_tools_and_returns_tool_calls() {
-		AI_Chat_Block_Editor_Extension_Fallback_Provider::$answer = new ModelMessage(
+		Blocktune_Fallback_Provider::$answer = new ModelMessage(
 			array( new MessagePart( new FunctionCall( 'call-1', 'edit_blocks', array( 'action' => 'replace' ) ) ) )
 		);
 
@@ -136,7 +136,7 @@ class Test_Fallback extends WP_UnitTestCase {
 			)
 		);
 
-		$declarations = AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt['config']->getFunctionDeclarations();
+		$declarations = Blocktune_Fallback_Provider::$prompt['config']->getFunctionDeclarations();
 		$this->assertSame( 'edit_blocks', $declarations[0]->getName() );
 		$this->assertSame( 'object', $declarations[0]->getParameters()['type'] );
 
@@ -183,7 +183,7 @@ class Test_Fallback extends WP_UnitTestCase {
 
 		$this->assertSame( 200, $this->chat( array( 'messages' => $messages ) )->get_status() );
 
-		$sent = AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt['messages'];
+		$sent = Blocktune_Fallback_Provider::$prompt['messages'];
 		$this->assertCount( 3, $sent );
 		$this->assertSame( 'Make it shorter', $sent[0]['parts'][0]['text'] );
 		$this->assertSame( 'call-1', $sent[1]['parts'][0]['functionCall']['id'] );
@@ -213,8 +213,8 @@ class Test_Fallback extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertSame( 'ai_chat_block_editor_extension_invalid_conversation', $response->as_error()->get_error_code() );
-		$this->assertNull( AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt );
+		$this->assertSame( 'blocktune_invalid_conversation', $response->as_error()->get_error_code() );
+		$this->assertNull( Blocktune_Fallback_Provider::$prompt );
 	}
 
 	/**
@@ -233,7 +233,7 @@ class Test_Fallback extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( 400, $response->get_status() );
-		$this->assertNull( AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt );
+		$this->assertNull( Blocktune_Fallback_Provider::$prompt );
 	}
 
 	/**
@@ -243,7 +243,7 @@ class Test_Fallback extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
 		$this->assertSame( 403, $this->chat()->get_status() );
-		$this->assertNull( AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt );
+		$this->assertNull( Blocktune_Fallback_Provider::$prompt );
 	}
 
 	/**
@@ -251,7 +251,7 @@ class Test_Fallback extends WP_UnitTestCase {
 	 */
 	public function test_cannot_chat_about_a_post_that_does_not_exist() {
 		$this->assertSame( 403, $this->chat( array( 'post_id' => PHP_INT_MAX ) )->get_status() );
-		$this->assertNull( AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt );
+		$this->assertNull( Blocktune_Fallback_Provider::$prompt );
 	}
 
 	/**
@@ -261,7 +261,7 @@ class Test_Fallback extends WP_UnitTestCase {
 		add_filter( 'wp_ai_client_prevent_prompt', '__return_true' );
 
 		$this->assertSame( 503, $this->chat()->get_status() );
-		$this->assertNull( AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt );
+		$this->assertNull( Blocktune_Fallback_Provider::$prompt );
 	}
 
 	/**
@@ -271,6 +271,6 @@ class Test_Fallback extends WP_UnitTestCase {
 		add_filter( 'wp_supports_ai', '__return_false' );
 
 		$this->assertSame( 503, $this->chat()->get_status() );
-		$this->assertNull( AI_Chat_Block_Editor_Extension_Fallback_Provider::$prompt );
+		$this->assertNull( Blocktune_Fallback_Provider::$prompt );
 	}
 }

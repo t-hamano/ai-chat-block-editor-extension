@@ -15,7 +15,7 @@ jobs:
       contents: read
     uses: WordPress/action-wp-playground-pr-preview/.github/workflows/preview-build.yml@1b15093d61b5e98cdfeb31466f34ade495762cd7 # v4
     with:
-      artifacts: ai-chat-block-editor-extension=ai-chat-block-editor-extension.zip
+      artifacts: blocktune=blocktune.zip
       # The reusable workflow has no check-latest input, so pin a version that satisfies the engines field.
       node-version: '24.22.1'
       build-command: |

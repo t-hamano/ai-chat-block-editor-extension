@@ -4,7 +4,7 @@
 
 // The same overlay as the block editor draws on multi-selected blocks,
 // faded out over the same time as `HIGHLIGHT_DURATION`.
-.wp-block.ai-chat-block-editor-extension-is-changed::after {
+.wp-block.blocktune-is-changed::after {
 	content: "";
 	position: absolute;
 	z-index: 1;
@@ -13,10 +13,10 @@
 	right: 0;
 	bottom: 0;
 	left: 0;
-	animation: ai-chat-block-editor-extension-changed 1s ease-out forwards;
+	animation: blocktune-changed 1s ease-out forwards;
 }
 
-@keyframes ai-chat-block-editor-extension-changed {
+@keyframes blocktune-changed {
 
 	0%,
 	60% {
@@ -32,7 +32,7 @@
 // highlight ends, without fading.
 @media (prefers-reduced-motion: reduce) {
 
-	.wp-block.ai-chat-block-editor-extension-is-changed::after {
+	.wp-block.blocktune-is-changed::after {
 		animation: none;
 		background-color: rgba(var(--wp-admin-theme-color--rgb), 0.4);
 	}
@@ -41,6 +41,6 @@
 // The changed text, colored through the CSS Custom Highlight API without
 // adding formatting to the content. The script fades it out over the same
 // time as the block highlight, through the opacity property.
-::highlight(ai-chat-block-editor-extension-changed-text) {
-	background-color: rgba(var(--wp-admin-theme-color--rgb), calc(0.4 * var(--ai-chat-block-editor-extension-changed-text-opacity, 1)));
+::highlight(blocktune-changed-text) {
+	background-color: rgba(var(--wp-admin-theme-color--rgb), calc(0.4 * var(--blocktune-changed-text-opacity, 1)));
 }

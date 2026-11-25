@@ -93,7 +93,7 @@ export function checkRequestLimit( requests: number ) {
 		throw new Error(
 			__(
 				'The answer was stopped because the AI took too many steps. The edits made so far are kept.',
-				'ai-chat-block-editor-extension'
+				'blocktune'
 			)
 		);
 	}

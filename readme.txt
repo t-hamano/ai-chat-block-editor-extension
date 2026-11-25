@@ -1,4 +1,4 @@
-=== AI Chat Block Editor Extension ===
+=== Blocktune – AI Block Editing Chat ===
 Contributors: wildworks
 Donate link: https://www.paypal.me/thamanoJP
 Tags: ai, gutenberg, block, editor, chat
@@ -13,7 +13,7 @@ Select blocks or text in the block editor and edit them by chatting with AI.
 
 == Description ==
 
-AI Chat Block Editor Extension adds an AI chat to the block editor. Select blocks or a piece of text, tell the AI what you want to change, and it edits the content for you.
+Blocktune adds an AI chat to the block editor. Select blocks or a piece of text, tell the AI what you want to change, and it edits the content for you.
 
 **Edit What You Select**
 
@@ -35,7 +35,7 @@ Only users with administrator privileges can use this plugin, and only super adm
 
 == Installation ==
 
-1. Upload the `ai-chat-block-editor-extension` folder to the `/wp-content/plugins/` directory.
+1. Upload the `blocktune` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 3. Install an AI provider plugin and set its API key on the Connectors screen.
 

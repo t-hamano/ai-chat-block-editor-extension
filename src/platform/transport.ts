@@ -20,7 +20,7 @@ export const IDLE_TIMEOUT = 330_000;
  * The event the relay adds when the provider's answer stopped partway.
  * Its data is `{ message }`.
  */
-export const RELAY_ERROR_EVENT = 'ai_chat_block_editor_extension_error';
+export const RELAY_ERROR_EVENT = 'blocktune_error';
 
 /**
  * An event of a provider's answer, with its data read from JSON.
@@ -36,12 +36,7 @@ export type AnswerEvent = {
  * @return The error.
  */
 export function connectionLost(): Error {
-	return new Error(
-		__(
-			'The connection was lost before the answer was finished.',
-			'ai-chat-block-editor-extension'
-		)
-	);
+	return new Error( __( 'The connection was lost before the answer was finished.', 'blocktune' ) );
 }
 
 /**
@@ -158,7 +153,7 @@ function toRequestError( error: unknown ): Error {
 	return new Error(
 		typeof message === 'string' && message
 			? message
-			: __( 'The answer could not be loaded.', 'ai-chat-block-editor-extension' )
+			: __( 'The answer could not be loaded.', 'blocktune' )
 	);
 }
 
@@ -204,9 +199,7 @@ async function* stream( request: RelayRequest ): AsyncGenerator< AnswerEvent > {
 			return new DOMException( 'The answer was stopped.', 'AbortError' );
 		}
 		return timedOut
-			? new Error(
-					__( 'The answer took too long, so it was stopped.', 'ai-chat-block-editor-extension' )
-				)
+			? new Error( __( 'The answer took too long, so it was stopped.', 'blocktune' ) )
 			: null;
 	};
 	let started = false;
@@ -216,7 +209,7 @@ async function* stream( request: RelayRequest ): AsyncGenerator< AnswerEvent > {
 		let response: Response;
 		try {
 			response = await apiFetch< Response, false >( {
-				path: '/ai-chat-block-editor-extension/v1/chat',
+				path: '/blocktune/v1/chat',
 				method: 'POST',
 				data: { provider, post_id: postId, stream: true, body },
 				parse: false,
@@ -235,9 +228,7 @@ async function* stream( request: RelayRequest ): AsyncGenerator< AnswerEvent > {
 		}
 
 		if ( ! response.body || ! hasType( response, 'event-stream' ) ) {
-			throw new StreamFailed(
-				__( 'The answer could not be read.', 'ai-chat-block-editor-extension' )
-			);
+			throw new StreamFailed( __( 'The answer could not be read.', 'blocktune' ) );
 		}
 		try {
 			for await ( const event of readEvents( response.body, watch.signal ) ) {
@@ -285,7 +276,7 @@ async function* answerAtOnce( request: RelayRequest ): AsyncGenerator< AnswerEve
 	let answer: unknown;
 	try {
 		const response = await apiFetch< Response, false >( {
-			path: '/ai-chat-block-editor-extension/v1/chat',
+			path: '/blocktune/v1/chat',
 			method: 'POST',
 			data: { provider, post_id: postId, stream: false, body },
 			parse: false,
@@ -297,15 +288,13 @@ async function* answerAtOnce( request: RelayRequest ): AsyncGenerator< AnswerEve
 			throw new DOMException( 'The answer was stopped.', 'AbortError' );
 		}
 		if ( timedOut ) {
-			throw new Error(
-				__( 'The answer took too long, so it was stopped.', 'ai-chat-block-editor-extension' )
-			);
+			throw new Error( __( 'The answer took too long, so it was stopped.', 'blocktune' ) );
 		}
 		if ( error instanceof Response ) {
 			throw new Error( await readError( error ) );
 		}
 		if ( error instanceof SyntaxError ) {
-			throw new Error( __( 'The answer could not be read.', 'ai-chat-block-editor-extension' ) );
+			throw new Error( __( 'The answer could not be read.', 'blocktune' ) );
 		}
 		throw toRequestError( error );
 	} finally {

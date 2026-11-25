@@ -1,5 +1,5 @@
 // The same spacing as the Global Styles screens.
-.ai-chat-block-editor-extension-settings__header {
+.blocktune-settings__header {
 	padding: var(--wpds-dimension-padding-md) var(--wpds-dimension-padding-lg);
 
 	h2 {
@@ -7,10 +7,10 @@
 	}
 }
 
-.ai-chat-block-editor-extension-settings__content {
+.blocktune-settings__content {
 	padding: 0 var(--wpds-dimension-padding-lg) var(--wpds-dimension-padding-lg);
 }
 
-.ai-chat-block-editor-extension-settings__note {
+.blocktune-settings__note {
 	color: var(--wpds-color-foreground-content-neutral-weak);
 }

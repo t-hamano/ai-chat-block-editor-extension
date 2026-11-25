@@ -1,6 +1,6 @@
 <?php
 /**
- * @package AI_Chat_Block_Editor_Extension
+ * @package Blocktune
  */
 
 /**
@@ -8,7 +8,7 @@
  */
 class Test_Models extends WP_UnitTestCase {
 
-	use AI_Chat_Block_Editor_Extension_Fake_Api_Key;
+	use Blocktune_Fake_Api_Key;
 
 	/**
 	 * The requests that were sent to the provider.
@@ -90,7 +90,7 @@ class Test_Models extends WP_UnitTestCase {
 	 * @return WP_REST_Response
 	 */
 	private function list_models( string $provider = 'anthropic' ) {
-		$request = new WP_REST_Request( 'GET', '/' . AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE . '/v1/models' );
+		$request = new WP_REST_Request( 'GET', '/' . BLOCKTUNE_NAMESPACE . '/v1/models' );
 		$request->set_param( 'provider', $provider );
 
 		return rest_get_server()->dispatch( $request );
@@ -126,7 +126,7 @@ class Test_Models extends WP_UnitTestCase {
 	 * Tests that OpenAI's models are listed with the key as a bearer token.
 	 */
 	public function test_lists_the_openai_models() {
-		$this->set_fake_api_key( 'openai-key', AI_Chat_Block_Editor_Extension_Fake_OpenAI_Provider::class );
+		$this->set_fake_api_key( 'openai-key', Blocktune_Fake_OpenAI_Provider::class );
 
 		$response = $this->list_models( 'openai' );
 
@@ -139,7 +139,7 @@ class Test_Models extends WP_UnitTestCase {
 	 * Tests that Google's models are listed by their ID, without the models that cannot chat.
 	 */
 	public function test_lists_the_google_models() {
-		$this->set_fake_api_key( 'google-key', AI_Chat_Block_Editor_Extension_Fake_Google_Provider::class );
+		$this->set_fake_api_key( 'google-key', Blocktune_Fake_Google_Provider::class );
 		$this->answer = $this->response(
 			200,
 			array(
@@ -211,7 +211,7 @@ class Test_Models extends WP_UnitTestCase {
 
 		$response = $this->list_models();
 
-		$this->assertSame( 'ai_chat_block_editor_extension_models_unavailable', $response->as_error()->get_error_code() );
+		$this->assertSame( 'blocktune_models_unavailable', $response->as_error()->get_error_code() );
 
 		$this->answer = $this->response( 200, array( 'data' => array( array( 'id' => 'model-a' ) ) ) );
 
@@ -228,7 +228,7 @@ class Test_Models extends WP_UnitTestCase {
 		$response = $this->list_models();
 
 		$this->assertSame( 502, $response->get_status() );
-		$this->assertSame( 'ai_chat_block_editor_extension_provider_unreachable', $response->as_error()->get_error_code() );
+		$this->assertSame( 'blocktune_provider_unreachable', $response->as_error()->get_error_code() );
 	}
 
 	/**
@@ -239,7 +239,7 @@ class Test_Models extends WP_UnitTestCase {
 
 		$response = $this->list_models();
 
-		$this->assertSame( 'ai_chat_block_editor_extension_no_api_key', $response->as_error()->get_error_code() );
+		$this->assertSame( 'blocktune_no_api_key', $response->as_error()->get_error_code() );
 		$this->assertCount( 0, $this->sent );
 	}
 

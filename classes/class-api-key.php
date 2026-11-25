@@ -1,11 +1,11 @@
 <?php
 /**
- * @package AI_Chat_Block_Editor_Extension
+ * @package Blocktune
  * @author Aki Hamano
  * @license GPL-2.0+
  */
 
-namespace AI_Chat_Block_Editor_Extension;
+namespace Blocktune;
 
 use WordPress\AiClient\AiClient;
 use WordPress\AiClient\Providers\Http\DTO\ApiKeyRequestAuthentication;

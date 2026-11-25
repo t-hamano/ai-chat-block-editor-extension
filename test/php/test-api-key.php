@@ -1,22 +1,22 @@
 <?php
 /**
- * @package AI_Chat_Block_Editor_Extension
+ * @package Blocktune
  */
 
-use AI_Chat_Block_Editor_Extension\Api_Key;
+use Blocktune\Api_Key;
 
 /**
  * Tests for the Api_Key class.
  */
 class Test_Api_Key extends WP_UnitTestCase {
 
-	use AI_Chat_Block_Editor_Extension_Fake_Api_Key;
+	use Blocktune_Fake_Api_Key;
 
 	/**
 	 * Tests that a provider that is not registered has no key.
 	 */
 	public function test_unregistered_provider_has_no_key() {
-		$this->assertSame( '', Api_Key::get( 'ai-chat-block-editor-extension-unregistered' ) );
+		$this->assertSame( '', Api_Key::get( 'blocktune-unregistered' ) );
 	}
 
 	/**
@@ -25,7 +25,7 @@ class Test_Api_Key extends WP_UnitTestCase {
 	public function test_get_returns_the_key() {
 		$this->set_fake_api_key( 'test-key' );
 
-		$this->assertSame( 'test-key', Api_Key::get( AI_Chat_Block_Editor_Extension_Fake_Provider::ID ) );
+		$this->assertSame( 'test-key', Api_Key::get( Blocktune_Fake_Provider::ID ) );
 	}
 
 	/**
@@ -34,7 +34,7 @@ class Test_Api_Key extends WP_UnitTestCase {
 	public function test_get_returns_empty_string_without_key() {
 		$this->set_fake_api_key( '' );
 
-		$this->assertSame( '', Api_Key::get( AI_Chat_Block_Editor_Extension_Fake_Provider::ID ) );
+		$this->assertSame( '', Api_Key::get( Blocktune_Fake_Provider::ID ) );
 	}
 
 	/**

@@ -11,6 +11,6 @@ import Sidebar from './sidebar';
 
 registerChangeHighlight();
 
-registerPlugin( 'ai-chat-block-editor-extension', {
+registerPlugin( 'blocktune', {
 	render: Sidebar,
 } );

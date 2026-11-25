@@ -1,12 +1,12 @@
-# AI Chat Block Editor Extension
+# Blocktune – AI Block Editing Chat
 
-[![Test](https://github.com/t-hamano/ai-chat-block-editor-extension/actions/workflows/test.yml/badge.svg)](https://github.com/t-hamano/ai-chat-block-editor-extension/actions/workflows/test.yml)
+[![Test](https://github.com/t-hamano/blocktune/actions/workflows/test.yml/badge.svg)](https://github.com/t-hamano/blocktune/actions/workflows/test.yml)
 
-![AI Chat Block Editor Extension](https://raw.githubusercontent.com/t-hamano/ai-chat-block-editor-extension/main/.wordpress-org/banner-1544x500.png)
+![Blocktune](https://raw.githubusercontent.com/t-hamano/blocktune/main/.wordpress-org/banner-1544x500.png)
 
 Select blocks or text in the block editor and edit them by chatting with AI. The plugin uses the API keys registered on the Connectors screen in WordPress core.
 
-![AI Chat Block Editor Extension demo](https://raw.githubusercontent.com/t-hamano/ai-chat-block-editor-extension/main/.wordpress-org/screenshot-1.gif)
+![Blocktune demo](https://raw.githubusercontent.com/t-hamano/blocktune/main/.wordpress-org/screenshot-1.gif)
 
 ## Features
 

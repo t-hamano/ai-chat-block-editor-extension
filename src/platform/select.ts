@@ -128,16 +128,16 @@ export function chooseModel( provider: Provider, models: Model[] | null ): strin
 async function loadModels( provider: string ): Promise< Model[] | null | false > {
 	try {
 		return await apiFetch< Model[] >( {
-			path: `/ai-chat-block-editor-extension/v1/models?provider=${ provider }`,
+			path: `/blocktune/v1/models?provider=${ provider }`,
 		} );
 	} catch ( error ) {
 		// The route answers this when the provider has no key in Connectors.
 		const code = ( error as { code?: unknown } )?.code;
-		if ( code === 'ai_chat_block_editor_extension_no_api_key' ) {
+		if ( code === 'blocktune_no_api_key' ) {
 			return false;
 		}
 		// The plugin's other errors mean the provider has a key but did not answer.
-		if ( typeof code === 'string' && code.startsWith( 'ai_chat_block_editor_extension_' ) ) {
+		if ( typeof code === 'string' && code.startsWith( 'blocktune_' ) ) {
 			return null;
 		}
 		throw error;

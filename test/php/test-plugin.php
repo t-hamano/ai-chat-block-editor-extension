@@ -1,6 +1,6 @@
 <?php
 /**
- * @package AI_Chat_Block_Editor_Extension
+ * @package Blocktune
  */
 
 /**
@@ -12,8 +12,8 @@ class Test_Plugin extends WP_UnitTestCase {
 	 * Tests that the plugin constants are defined.
 	 */
 	public function test_constants_are_defined() {
-		$this->assertSame( 'ai-chat-block-editor-extension', AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE );
-		$this->assertSame( untrailingslashit( dirname( __DIR__, 2 ) ), AI_CHAT_BLOCK_EDITOR_EXTENSION_PATH );
-		$this->assertStringEndsWith( '/ai-chat-block-editor-extension', AI_CHAT_BLOCK_EDITOR_EXTENSION_URL );
+		$this->assertSame( 'blocktune', BLOCKTUNE_NAMESPACE );
+		$this->assertSame( untrailingslashit( dirname( __DIR__, 2 ) ), BLOCKTUNE_PATH );
+		$this->assertStringEndsWith( '/blocktune', BLOCKTUNE_URL );
 	}
 }

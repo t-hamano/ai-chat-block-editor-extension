@@ -1,11 +1,11 @@
 <?php
 /**
- * @package AI_Chat_Block_Editor_Extension
+ * @package Blocktune
  * @author Aki Hamano
  * @license GPL-2.0+
  */
 
-namespace AI_Chat_Block_Editor_Extension;
+namespace Blocktune;
 
 use WP_Error;
 use WP_REST_Request;
@@ -133,7 +133,7 @@ class Relay {
 	 */
 	public function register_routes() {
 		register_rest_route(
-			AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE . '/v1',
+			BLOCKTUNE_NAMESPACE . '/v1',
 			'/chat',
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
@@ -188,8 +188,8 @@ class Relay {
 
 		if ( '' === $api_key ) {
 			return new WP_Error(
-				'ai_chat_block_editor_extension_no_api_key',
-				__( 'No API key is set for this provider.', 'ai-chat-block-editor-extension' ),
+				'blocktune_no_api_key',
+				__( 'No API key is set for this provider.', 'blocktune' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -201,8 +201,8 @@ class Relay {
 			apply_filters( 'wp_ai_client_prevent_prompt', false, wp_ai_client_prompt()->using_provider( $provider_id ) ) // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 		) {
 			return new WP_Error(
-				'ai_chat_block_editor_extension_prompt_prevented',
-				__( 'The site does not allow AI requests.', 'ai-chat-block-editor-extension' ),
+				'blocktune_prompt_prevented',
+				__( 'The site does not allow AI requests.', 'blocktune' ),
 				array( 'status' => 503 )
 			);
 		}
@@ -236,8 +236,8 @@ class Relay {
 			// The model is part of the address, so it must not change where the request goes.
 			if ( ! is_string( $model ) || ! preg_match( '/^[a-z0-9][a-z0-9._-]*$/i', $model ) ) {
 				return new WP_Error(
-					'ai_chat_block_editor_extension_invalid_model',
-					__( 'The model is not valid.', 'ai-chat-block-editor-extension' ),
+					'blocktune_invalid_model',
+					__( 'The model is not valid.', 'blocktune' ),
 					array( 'status' => 400 )
 				);
 			}
@@ -269,7 +269,7 @@ class Relay {
 
 		if ( is_wp_error( $response ) ) {
 			return new WP_Error(
-				'ai_chat_block_editor_extension_provider_unreachable',
+				'blocktune_provider_unreachable',
 				$response->get_error_message(),
 				array( 'status' => 502 )
 			);
@@ -299,8 +299,8 @@ class Relay {
 
 		if ( ! self::has_only( $body, $provider['body'] ) ) {
 			return new WP_Error(
-				'ai_chat_block_editor_extension_invalid_body',
-				__( 'The request asks for something the assistant does not use.', 'ai-chat-block-editor-extension' ),
+				'blocktune_invalid_body',
+				__( 'The request asks for something the assistant does not use.', 'blocktune' ),
 				array( 'status' => 400 )
 			);
 		}
