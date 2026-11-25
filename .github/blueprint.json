@@ -10,7 +10,7 @@
 			"step": "installPlugin",
 			"pluginData": {
 				"resource": "url",
-				"url": "{{ARTIFACT_URL:ai-chat-block-editor-extension}}"
+				"url": "{{ARTIFACT_URL:blocktune}}"
 			}
 		},
 		{

@@ -19,18 +19,18 @@ import './canvas.scss';
  */
 export const HIGHLIGHT_DURATION = 1000;
 
-export const HIGHLIGHT_CLASS_NAME = 'ai-chat-block-editor-extension-is-changed';
+export const HIGHLIGHT_CLASS_NAME = 'blocktune-is-changed';
 
 /**
  * The name of the CSS custom highlight that colors the changed text.
  */
-export const TEXT_HIGHLIGHT_NAME = 'ai-chat-block-editor-extension-changed-text';
+export const TEXT_HIGHLIGHT_NAME = 'blocktune-changed-text';
 
 /**
  * The custom property that fades out the changed text's color. The
  * CSS Custom Highlight API cannot animate, so it is set on each frame.
  */
-export const TEXT_OPACITY_PROPERTY = '--ai-chat-block-editor-extension-changed-text-opacity';
+export const TEXT_OPACITY_PROPERTY = '--blocktune-changed-text-opacity';
 
 type BlockState = {
 	// The block editor replaces a block's attributes object only when they
@@ -362,12 +362,7 @@ export function highlightChanges( before: BlockSnapshot ) {
 	speak(
 		sprintf(
 			/* translators: %d: The number of blocks. */
-			_n(
-				'The AI changed %d block.',
-				'The AI changed %d blocks.',
-				clientIds.length,
-				'ai-chat-block-editor-extension'
-			),
+			_n( 'The AI changed %d block.', 'The AI changed %d blocks.', clientIds.length, 'blocktune' ),
 			clientIds.length
 		)
 	);
@@ -392,12 +387,7 @@ function announceRemoved( before: BlockSnapshot ) {
 	speak(
 		sprintf(
 			/* translators: %d: The number of blocks. */
-			_n(
-				'The AI removed %d block.',
-				'The AI removed %d blocks.',
-				count,
-				'ai-chat-block-editor-extension'
-			),
+			_n( 'The AI removed %d block.', 'The AI removed %d blocks.', count, 'blocktune' ),
 			count
 		)
 	);
@@ -493,9 +483,5 @@ export function withChangeHighlight< P extends BlockListBlockProps >(
  * Registers the highlight of changed blocks in the editor.
  */
 export function registerChangeHighlight() {
-	addFilter(
-		'editor.BlockListBlock',
-		'ai-chat-block-editor-extension/change-highlight',
-		withChangeHighlight
-	);
+	addFilter( 'editor.BlockListBlock', 'blocktune/change-highlight', withChangeHighlight );
 }

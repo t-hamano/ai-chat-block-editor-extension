@@ -224,7 +224,7 @@ export async function readGeminiStream(
 	events: AsyncIterable< AnswerEvent >,
 	onEvent: AiChatRequest[ 'onEvent' ]
 ): Promise< GeminiAnswer > {
-	const declined = __( 'The model declined to answer.', 'ai-chat-block-editor-extension' );
+	const declined = __( 'The model declined to answer.', 'blocktune' );
 	const parts: GeminiPart[] = [];
 	let usage: AiUsage | undefined;
 	let finishReason: string | undefined;
@@ -233,8 +233,7 @@ export async function readGeminiStream(
 	for await ( const { data: payload } of events ) {
 		if ( payload.error ) {
 			throw new Error(
-				payload.error.message ??
-					__( 'The answer could not be loaded.', 'ai-chat-block-editor-extension' )
+				payload.error.message ?? __( 'The answer could not be loaded.', 'blocktune' )
 			);
 		}
 		if ( payload.promptFeedback?.blockReason ) {
@@ -285,12 +284,10 @@ export async function readGeminiStream(
 	}
 	// It can cut a function call off, so its edit is not applied.
 	if ( finishReason === 'MAX_TOKENS' ) {
-		throw new Error(
-			__( 'The answer was cut off because it was too long.', 'ai-chat-block-editor-extension' )
-		);
+		throw new Error( __( 'The answer was cut off because it was too long.', 'blocktune' ) );
 	}
 	if ( finishReason === 'MALFORMED_FUNCTION_CALL' || finishReason === 'UNEXPECTED_TOOL_CALL' ) {
-		throw new Error( __( 'The edit could not be made.', 'ai-chat-block-editor-extension' ) );
+		throw new Error( __( 'The edit could not be made.', 'blocktune' ) );
 	}
 
 	return { parts, calls: parts.filter( ( part ) => part.functionCall ) };
@@ -387,7 +384,7 @@ export function createGeminiPlatform( getPostId: () => number, model = GEMINI_MO
 				}
 				failures += tools.failures;
 				if ( failures > MAX_FAILED_EDITS ) {
-					throw new Error( __( 'The edit could not be made.', 'ai-chat-block-editor-extension' ) );
+					throw new Error( __( 'The edit could not be made.', 'blocktune' ) );
 				}
 				checkRequestLimit( ++requests );
 				// The answer goes back unchanged, with its thought signatures, so

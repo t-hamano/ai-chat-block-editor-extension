@@ -1,11 +1,11 @@
 <?php
 /**
- * @package AI_Chat_Block_Editor_Extension
+ * @package Blocktune
  * @author Aki Hamano
  * @license GPL-2.0+
  */
 
-namespace AI_Chat_Block_Editor_Extension;
+namespace Blocktune;
 
 class Enqueue {
 
@@ -43,7 +43,7 @@ class Enqueue {
 			return;
 		}
 
-		$asset_path = AI_CHAT_BLOCK_EDITOR_EXTENSION_PATH . '/build/index.asset.php';
+		$asset_path = BLOCKTUNE_PATH . '/build/index.asset.php';
 
 		if ( ! file_exists( $asset_path ) ) {
 			return;
@@ -52,17 +52,17 @@ class Enqueue {
 		$asset_file = include $asset_path;
 
 		wp_enqueue_script(
-			AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE,
-			AI_CHAT_BLOCK_EDITOR_EXTENSION_URL . '/build/index.js',
+			BLOCKTUNE_NAMESPACE,
+			BLOCKTUNE_URL . '/build/index.js',
 			$asset_file['dependencies'],
 			$asset_file['version'],
 			array( 'in_footer' => true )
 		);
 
 		wp_add_inline_script(
-			AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE,
+			BLOCKTUNE_NAMESPACE,
 			sprintf(
-				'window.aiChatBlockEditorExtension = %s;',
+				'window.blocktune = %s;',
 				wp_json_encode(
 					array(
 						'hasApiKey'     => Api_Key::has_any(),
@@ -73,15 +73,15 @@ class Enqueue {
 			'before'
 		);
 
-		wp_set_script_translations( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE, AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE );
+		wp_set_script_translations( BLOCKTUNE_NAMESPACE, BLOCKTUNE_NAMESPACE );
 
 		wp_enqueue_style(
-			AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE,
-			AI_CHAT_BLOCK_EDITOR_EXTENSION_URL . '/build/style-index.css',
+			BLOCKTUNE_NAMESPACE,
+			BLOCKTUNE_URL . '/build/style-index.css',
 			array(),
 			$asset_file['version']
 		);
-		wp_style_add_data( AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE, 'rtl', 'replace' );
+		wp_style_add_data( BLOCKTUNE_NAMESPACE, 'rtl', 'replace' );
 	}
 
 	/**
@@ -95,18 +95,18 @@ class Enqueue {
 			return;
 		}
 
-		$asset_path = AI_CHAT_BLOCK_EDITOR_EXTENSION_PATH . '/build/index.asset.php';
+		$asset_path = BLOCKTUNE_PATH . '/build/index.asset.php';
 
-		if ( ! file_exists( $asset_path ) || ! file_exists( AI_CHAT_BLOCK_EDITOR_EXTENSION_PATH . '/build/index.css' ) ) {
+		if ( ! file_exists( $asset_path ) || ! file_exists( BLOCKTUNE_PATH . '/build/index.css' ) ) {
 			return;
 		}
 
 		$asset_file = include $asset_path;
-		$handle     = AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE . '-canvas';
+		$handle     = BLOCKTUNE_NAMESPACE . '-canvas';
 
 		wp_enqueue_style(
 			$handle,
-			AI_CHAT_BLOCK_EDITOR_EXTENSION_URL . '/build/index.css',
+			BLOCKTUNE_URL . '/build/index.css',
 			array(),
 			$asset_file['version']
 		);

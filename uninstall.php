@@ -2,7 +2,7 @@
 /**
  * Removes the data the plugin stored, when the plugin is deleted.
  *
- * @package AI_Chat_Block_Editor_Extension
+ * @package Blocktune
  * @author Aki Hamano
  * @license GPL-2.0+
  */
@@ -12,7 +12,7 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 /**
  * Removes the data the plugin stored on the current site.
  *
- * Each user's model choice is kept in the `ai-chat-block-editor-extension`
+ * Each user's model choice is kept in the `blocktune`
  * scope of the `persisted_preferences` user meta. That meta also holds the
  * preferences of WordPress itself and of other plugins, so only this scope
  * is removed.
@@ -20,10 +20,10 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
  * The cached model lists are transients that expire within 12 hours, and
  * WordPress deletes expired transients on its own, so they are left alone.
  */
-function ai_chat_block_editor_extension_uninstall_site() {
+function blocktune_uninstall_site() {
 	global $wpdb;
 
-	$scope    = 'ai-chat-block-editor-extension';
+	$scope    = 'blocktune';
 	$meta_key = $wpdb->get_blog_prefix() . 'persisted_preferences';
 	$user_ids = get_users(
 		array(
@@ -53,18 +53,18 @@ function ai_chat_block_editor_extension_uninstall_site() {
 }
 
 if ( is_multisite() ) {
-	$ai_chat_block_editor_extension_site_ids = get_sites(
+	$blocktune_site_ids = get_sites(
 		array(
 			'fields' => 'ids',
 			'number' => 0,
 		)
 	);
 
-	foreach ( $ai_chat_block_editor_extension_site_ids as $ai_chat_block_editor_extension_site_id ) {
-		switch_to_blog( $ai_chat_block_editor_extension_site_id );
-		ai_chat_block_editor_extension_uninstall_site();
+	foreach ( $blocktune_site_ids as $blocktune_site_id ) {
+		switch_to_blog( $blocktune_site_id );
+		blocktune_uninstall_site();
 		restore_current_blog();
 	}
 } else {
-	ai_chat_block_editor_extension_uninstall_site();
+	blocktune_uninstall_site();
 }

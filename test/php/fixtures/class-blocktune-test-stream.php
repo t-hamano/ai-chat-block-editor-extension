@@ -1,15 +1,15 @@
 <?php
 /**
- * @package AI_Chat_Block_Editor_Extension
+ * @package Blocktune
  */
 
-use AI_Chat_Block_Editor_Extension\Stream;
+use Blocktune\Stream;
 
 /**
  * A stream that records the status and content type it would send, instead
  * of sending headers and closing the test's output buffers.
  */
-class AI_Chat_Block_Editor_Extension_Test_Stream extends Stream {
+class Blocktune_Test_Stream extends Stream {
 
 	/**
 	 * The status and content type at the time the output started, if it did.

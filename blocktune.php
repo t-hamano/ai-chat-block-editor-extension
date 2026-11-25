@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: AI Chat Block Editor Extension
+ * Plugin Name: Blocktune – AI Block Editing Chat
  * Description: Select blocks or text in the block editor and edit them by chatting with AI.
  * Requires at least: 7.1
  * Requires PHP: 8.3
@@ -9,18 +9,18 @@
  * Author URI: https://github.com/t-hamano
  * License: GPL2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: ai-chat-block-editor-extension
+ * Text Domain: blocktune
  *
- * @package AI_Chat_Block_Editor_Extension
+ * @package Blocktune
  * @author Aki Hamano
  * @license GPL-2.0+
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AI_CHAT_BLOCK_EDITOR_EXTENSION_NAMESPACE', 'ai-chat-block-editor-extension' );
-define( 'AI_CHAT_BLOCK_EDITOR_EXTENSION_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
-define( 'AI_CHAT_BLOCK_EDITOR_EXTENSION_URL', untrailingslashit( plugin_dir_url( __FILE__ ) ) );
+define( 'BLOCKTUNE_NAMESPACE', 'blocktune' );
+define( 'BLOCKTUNE_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
+define( 'BLOCKTUNE_URL', untrailingslashit( plugin_dir_url( __FILE__ ) ) );
 
 require_once __DIR__ . '/classes/class-api-key.php';
 require_once __DIR__ . '/classes/class-enqueue.php';
@@ -29,7 +29,7 @@ require_once __DIR__ . '/classes/class-models.php';
 require_once __DIR__ . '/classes/class-relay.php';
 require_once __DIR__ . '/classes/class-stream.php';
 
-new AI_Chat_Block_Editor_Extension\Enqueue();
-new AI_Chat_Block_Editor_Extension\Fallback();
-new AI_Chat_Block_Editor_Extension\Models();
-new AI_Chat_Block_Editor_Extension\Relay();
+new Blocktune\Enqueue();
+new Blocktune\Fallback();
+new Blocktune\Models();
+new Blocktune\Relay();

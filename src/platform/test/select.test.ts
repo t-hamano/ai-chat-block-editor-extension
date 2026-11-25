@@ -42,7 +42,7 @@ vi.mock( '../fallback', () => ( {
 
 const [ anthropic, openai, google ] = PROVIDERS;
 const getPostId = () => 1;
-const NO_KEY = { code: 'ai_chat_block_editor_extension_no_api_key', message: 'No key.' };
+const NO_KEY = { code: 'blocktune_no_api_key', message: 'No key.' };
 
 const list = ( ...ids: string[] ) => ids.map( ( id ) => ( { id, name: id } ) );
 
@@ -110,7 +110,7 @@ describe( 'selectPlatform', () => {
 	} );
 
 	it( 'uses a provider with a key whose list could not be loaded', async () => {
-		mockModels( { anthropic: { code: 'ai_chat_block_editor_extension_provider_unreachable' } } );
+		mockModels( { anthropic: { code: 'blocktune_provider_unreachable' } } );
 
 		expect( await selectPlatform( getPostId ) ).toEqual( { name: 'anthropic' } );
 		expect( createAnthropicPlatform ).toHaveBeenCalledWith( getPostId, anthropic.recommended[ 0 ] );
@@ -142,7 +142,7 @@ describe( 'selectPlatform', () => {
 	} );
 
 	it( 'keeps the chosen model when the list could not be loaded', async () => {
-		mockModels( { openai: { code: 'ai_chat_block_editor_extension_provider_unreachable' } } );
+		mockModels( { openai: { code: 'blocktune_provider_unreachable' } } );
 
 		await selectPlatform( getPostId, { provider: 'openai', model: 'gpt-6' } );
 		expect( createOpenAiPlatform ).toHaveBeenCalledWith( getPostId, 'gpt-6' );
@@ -173,7 +173,7 @@ describe( 'listProviderOptions', () => {
 	it( 'lists the providers with a key, and the models that can chat, recommended first', async () => {
 		mockModels( {
 			openai: list( 'gpt-image-2', 'gpt-7', openai.recommended[ 1 ], 'gpt-4.1' ),
-			google: { code: 'ai_chat_block_editor_extension_provider_unreachable' },
+			google: { code: 'blocktune_provider_unreachable' },
 		} );
 
 		expect( await listProviderOptions() ).toEqual( [

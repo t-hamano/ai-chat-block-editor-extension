@@ -34,16 +34,11 @@ export function ModelSettings( { onClose }: Props ) {
 	// Preferences are kept in the user's meta, so the choice follows the
 	// user to other posts and browsers. `null` means automatic.
 	const choice = useSelect(
-		( select ) =>
-			select( preferencesStore ).get(
-				'ai-chat-block-editor-extension',
-				'model'
-			) as ModelChoice | null,
+		( select ) => select( preferencesStore ).get( 'blocktune', 'model' ) as ModelChoice | null,
 		[]
 	);
 	const { set } = useDispatch( preferencesStore );
-	const setModelChoice = ( value: ModelChoice | null ) =>
-		set( 'ai-chat-block-editor-extension', 'model', value );
+	const setModelChoice = ( value: ModelChoice | null ) => set( 'blocktune', 'model', value );
 	const [ providers, setProviders ] = useState< ProviderOption[] | null >( null );
 	const [ hasError, setHasError ] = useState( false );
 
@@ -59,7 +54,7 @@ export function ModelSettings( { onClose }: Props ) {
 	}, [] );
 
 	const automatic: Item = {
-		label: __( 'Automatic', 'ai-chat-block-editor-extension' ),
+		label: __( 'Automatic', 'blocktune' ),
 		value: null,
 	};
 	const provider = providers?.find( ( option ) => option.id === choice?.provider );
@@ -76,7 +71,7 @@ export function ModelSettings( { onClose }: Props ) {
 	const modelItems: Item[] = modelIds.map( ( id ) => ( { label: id, value: id } ) );
 
 	/* translators: Used between list items, there is a space after the comma. */
-	const separator = __( ', ', 'ai-chat-block-editor-extension' ); // eslint-disable-line @wordpress/i18n-no-flanking-whitespace
+	const separator = __( ', ', 'blocktune' ); // eslint-disable-line @wordpress/i18n-no-flanking-whitespace
 	const usageLinks = ( provider ? [ provider ] : ( providers ?? [] ) ).map( ( option, index ) => (
 		<Fragment key={ option.id }>
 			{ index > 0 && separator }
@@ -91,18 +86,18 @@ export function ModelSettings( { onClose }: Props ) {
 		content = (
 			<Notice.Root intent="error">
 				<Notice.Description>
-					{ __( 'The providers could not be loaded.', 'ai-chat-block-editor-extension' ) }
+					{ __( 'The providers could not be loaded.', 'blocktune' ) }
 				</Notice.Description>
 			</Notice.Root>
 		);
 	} else if ( ! providers ) {
-		content = <Spinner aria-label={ __( 'Loading…', 'ai-chat-block-editor-extension' ) } />;
+		content = <Spinner aria-label={ __( 'Loading…', 'blocktune' ) } />;
 	} else if ( providers.length === 0 ) {
 		content = (
-			<Text variant="body-sm" className="ai-chat-block-editor-extension-settings__note">
+			<Text variant="body-sm" className="blocktune-settings__note">
 				{ __(
 					'The model is chosen by the AI Client, because none of Anthropic, OpenAI, and Google is connected in Connectors.',
-					'ai-chat-block-editor-extension'
+					'blocktune'
 				) }
 			</Text>
 		);
@@ -110,10 +105,10 @@ export function ModelSettings( { onClose }: Props ) {
 		content = (
 			<>
 				<SelectControl
-					label={ __( 'Provider', 'ai-chat-block-editor-extension' ) }
+					label={ __( 'Provider', 'blocktune' ) }
 					description={ __(
 						'Only providers connected in Connectors are listed. Automatic uses the first of Anthropic, OpenAI, and Google that is connected.',
-						'ai-chat-block-editor-extension'
+						'blocktune'
 					) }
 					items={ providerItems }
 					value={
@@ -126,7 +121,7 @@ export function ModelSettings( { onClose }: Props ) {
 				/>
 				{ provider && choice && (
 					<SelectControl
-						label={ __( 'Model', 'ai-chat-block-editor-extension' ) }
+						label={ __( 'Model', 'blocktune' ) }
 						items={ modelItems }
 						value={ modelItems.find( ( item ) => item.value === choice.model ) ?? null }
 						onValueChange={ ( item: Item | null ) => {
@@ -136,13 +131,13 @@ export function ModelSettings( { onClose }: Props ) {
 						} }
 					/>
 				) }
-				<Text variant="body-sm" className="ai-chat-block-editor-extension-settings__note">
+				<Text variant="body-sm" className="blocktune-settings__note">
 					{ createInterpolateElement(
 						sprintf(
 							/* translators: %s: Links to the usage pages of the providers. */
 							__(
 								"The provider bills for usage. Check the exact usage on the provider's dashboard: %s",
-								'ai-chat-block-editor-extension'
+								'blocktune'
 							),
 							'<links />'
 						),
@@ -154,30 +149,21 @@ export function ModelSettings( { onClose }: Props ) {
 	}
 
 	return (
-		<Stack className="ai-chat-block-editor-extension-settings" direction="column">
-			<Stack
-				className="ai-chat-block-editor-extension-settings__header"
-				direction="row"
-				align="center"
-				gap="sm"
-			>
+		<Stack className="blocktune-settings" direction="column">
+			<Stack className="blocktune-settings__header" direction="row" align="center" gap="sm">
 				<IconButton
 					icon={ isRTL() ? chevronRight : chevronLeft }
-					label={ __( 'Back', 'ai-chat-block-editor-extension' ) }
+					label={ __( 'Back', 'blocktune' ) }
 					variant="minimal"
 					tone="neutral"
 					size="small"
 					onClick={ onClose }
 				/>
 				<Text variant="heading-md" render={ <h2 /> }>
-					{ __( 'Chat settings', 'ai-chat-block-editor-extension' ) }
+					{ __( 'Chat settings', 'blocktune' ) }
 				</Text>
 			</Stack>
-			<Stack
-				className="ai-chat-block-editor-extension-settings__content"
-				direction="column"
-				gap="lg"
-			>
+			<Stack className="blocktune-settings__content" direction="column" gap="lg">
 				{ content }
 			</Stack>
 		</Stack>

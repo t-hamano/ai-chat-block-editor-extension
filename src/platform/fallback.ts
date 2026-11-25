@@ -127,7 +127,7 @@ export function readFallbackAnswer(
 ): FallbackPart[] {
 	const parts = answer?.message?.parts;
 	if ( ! Array.isArray( parts ) ) {
-		throw new Error( __( 'The answer could not be read.', 'ai-chat-block-editor-extension' ) );
+		throw new Error( __( 'The answer could not be read.', 'blocktune' ) );
 	}
 
 	if ( answer.usage ) {
@@ -142,14 +142,12 @@ export function readFallbackAnswer(
 
 	switch ( answer.finishReason ) {
 		case 'content_filter':
-			throw new Error( __( 'The model declined to answer.', 'ai-chat-block-editor-extension' ) );
+			throw new Error( __( 'The model declined to answer.', 'blocktune' ) );
 		case 'length':
 			// A function call may be cut off, so no edit is applied.
-			throw new Error(
-				__( 'The answer was cut off because it was too long.', 'ai-chat-block-editor-extension' )
-			);
+			throw new Error( __( 'The answer was cut off because it was too long.', 'blocktune' ) );
 		case 'error':
-			throw new Error( __( 'The answer could not be loaded.', 'ai-chat-block-editor-extension' ) );
+			throw new Error( __( 'The answer could not be loaded.', 'blocktune' ) );
 	}
 
 	const text = parts
@@ -245,7 +243,7 @@ export function createFallbackPlatform(
 				let answer: FallbackAnswer;
 				try {
 					answer = await apiFetch< FallbackAnswer >( {
-						path: '/ai-chat-block-editor-extension/v1/fallback',
+						path: '/blocktune/v1/fallback',
 						method: 'POST',
 						data: {
 							post_id: getPostId(),
@@ -265,7 +263,7 @@ export function createFallbackPlatform(
 					throw new Error(
 						typeof message === 'string' && message
 							? message
-							: __( 'The answer could not be loaded.', 'ai-chat-block-editor-extension' )
+							: __( 'The answer could not be loaded.', 'blocktune' )
 					);
 				}
 
@@ -280,7 +278,7 @@ export function createFallbackPlatform(
 				}
 				failures += tools.failures;
 				if ( failures > MAX_FAILED_EDITS ) {
-					throw new Error( __( 'The edit could not be made.', 'ai-chat-block-editor-extension' ) );
+					throw new Error( __( 'The edit could not be made.', 'blocktune' ) );
 				}
 				checkRequestLimit( ++requests );
 				// The model's message goes back unchanged, with its reasoning, so

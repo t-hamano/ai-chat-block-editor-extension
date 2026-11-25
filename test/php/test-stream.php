@@ -1,6 +1,6 @@
 <?php
 /**
- * @package AI_Chat_Block_Editor_Extension
+ * @package Blocktune
  */
 
 /**
@@ -32,7 +32,7 @@ class Test_Stream extends WP_UnitTestCase {
 			10,
 			3
 		);
-		$stream = new AI_Chat_Block_Editor_Extension_Test_Stream();
+		$stream = new Blocktune_Test_Stream();
 
 		$this->expectOutputString( "data: {}\n\n" );
 
@@ -50,7 +50,7 @@ class Test_Stream extends WP_UnitTestCase {
 			static fn() => new WP_Error( 'http_request_not_executed', 'User has blocked requests through HTTP.' )
 		);
 
-		$error = ( new AI_Chat_Block_Editor_Extension_Test_Stream() )->send( 'https://api.example.com/', array(), '{}' );
+		$error = ( new Blocktune_Test_Stream() )->send( 'https://api.example.com/', array(), '{}' );
 
 		$this->assertWPError( $error );
 		$this->assertSame( 502, $error->get_error_data()['status'] );
@@ -60,9 +60,9 @@ class Test_Stream extends WP_UnitTestCase {
 	 * Tests that an answer that stopped partway ends with an event that says why.
 	 */
 	public function test_sends_an_error_event() {
-		$stream = new AI_Chat_Block_Editor_Extension_Test_Stream();
+		$stream = new Blocktune_Test_Stream();
 
-		$this->expectOutputRegex( '/^\n\nevent: ai_chat_block_editor_extension_error\ndata: \{"message":"The provider took too long[^"]*"\}\n\n$/' );
+		$this->expectOutputRegex( '/^\n\nevent: blocktune_error\ndata: \{"message":"The provider took too long[^"]*"\}\n\n$/' );
 
 		$stream->send_error( true );
 	}
@@ -71,7 +71,7 @@ class Test_Stream extends WP_UnitTestCase {
 	 * Tests that an error is returned when the provider cannot be reached.
 	 */
 	public function test_unreachable_provider_is_an_error() {
-		$error = ( new AI_Chat_Block_Editor_Extension_Test_Stream() )->send( 'http://127.0.0.1:9/', array(), '{}' );
+		$error = ( new Blocktune_Test_Stream() )->send( 'http://127.0.0.1:9/', array(), '{}' );
 
 		$this->assertWPError( $error );
 		$this->assertSame( 502, $error->get_error_data()['status'] );
