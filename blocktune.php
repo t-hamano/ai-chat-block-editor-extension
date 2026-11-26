@@ -26,10 +26,12 @@ require_once __DIR__ . '/classes/class-api-key.php';
 require_once __DIR__ . '/classes/class-enqueue.php';
 require_once __DIR__ . '/classes/class-fallback.php';
 require_once __DIR__ . '/classes/class-models.php';
+require_once __DIR__ . '/classes/class-plugin-links.php';
 require_once __DIR__ . '/classes/class-relay.php';
 require_once __DIR__ . '/classes/class-stream.php';
 
 new Blocktune\Enqueue();
 new Blocktune\Fallback();
 new Blocktune\Models();
+new Blocktune\Plugin_Links();
 new Blocktune\Relay();
