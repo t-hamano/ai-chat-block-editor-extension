@@ -101,6 +101,7 @@ export default function Sidebar() {
 							size="compact"
 							aria-pressed={ isSettingsOpen }
 							onClick={ () => setIsSettingsOpen( ! isSettingsOpen ) }
+							disabled={ ! hasApiKey }
 						/>
 					</>
 				}
