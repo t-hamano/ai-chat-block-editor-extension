@@ -101,6 +101,8 @@ export default function Sidebar() {
 							size="compact"
 							aria-pressed={ isSettingsOpen }
 							onClick={ () => setIsSettingsOpen( ! isSettingsOpen ) }
+							// Without a connector there are no models to choose from.
+							disabled={ ! hasApiKey }
 						/>
 					</>
 				}
