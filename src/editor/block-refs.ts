@@ -65,9 +65,7 @@ function addRefs( block: Block, markup: string ): string {
 	// A classic block is saved without delimiters at the top level, so it
 	// gets no ID, nested or not.
 	const ref =
-		block.name === getFreeformContentHandlerName()
-			? ''
-			: `<!-- ref:${ getRef( block.clientId ) } -->`;
+		block.name === getFreeformContentHandlerName() ? '' : `<!-- ${ getRef( block.clientId ) } -->`;
 	const parts = [ ref ];
 	let cursor = 0;
 	block.innerBlocks.forEach( ( innerBlock ) => {

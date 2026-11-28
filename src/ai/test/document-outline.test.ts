@@ -16,10 +16,10 @@ import {
 } from '../document-outline';
 
 const paragraph = ( ref: string, text: string ) =>
-	`<!-- ref:${ ref } --><!-- wp:paragraph -->\n<p>${ text }</p>\n<!-- /wp:paragraph -->`;
+	`<!-- ${ ref } --><!-- wp:paragraph -->\n<p>${ text }</p>\n<!-- /wp:paragraph -->`;
 
 const group = ( ref: string, ...inner: string[] ) =>
-	`<!-- ref:${ ref } --><!-- wp:group {"layout":{"type":"constrained"}} -->\n<div class="wp-block-group">${ inner.join(
+	`<!-- ${ ref } --><!-- wp:group {"layout":{"type":"constrained"}} -->\n<div class="wp-block-group">${ inner.join(
 		'\n\n'
 	) }</div>\n<!-- /wp:group -->`;
 
@@ -30,7 +30,7 @@ describe( 'parseOutline', () => {
 		const document = doc(
 			paragraph( 'b1', 'One &amp; <strong>two</strong>.' ),
 			group( 'b2', paragraph( 'b3', 'Inside.' ) ),
-			'<!-- ref:b4 --><!-- wp:my-plugin/widget {"count":3} /-->'
+			'<!-- b4 --><!-- wp:my-plugin/widget {"count":3} /-->'
 		);
 		expect(
 			parseOutline( document ).map( ( { ref, name, depth, text } ) => ( {
@@ -102,7 +102,7 @@ describe( 'formatOutline', () => {
 
 	it( 'shows only the top-level blocks when the nested ones are too many', () => {
 		const count = Math.ceil( OUTLINE_LENGTH / 20 );
-		const nested = Array.from( { length: count }, ( _, n ) => paragraph( `c${ n }`, 'Text.' ) );
+		const nested = Array.from( { length: count }, ( _, n ) => paragraph( `b${ n + 3 }`, 'Text.' ) );
 		const outline = formatOutline(
 			doc( paragraph( 'b1', 'Intro.' ), group( 'b2', ...nested ) ),
 			''
@@ -175,7 +175,7 @@ describe( 'readDocument', () => {
 
 	it( 'shows a block too long to read at once without its nested blocks', () => {
 		const quote = ( inner: string ) =>
-			`<!-- ref:b1 --><!-- wp:quote -->\n<blockquote class="wp-block-quote">${ inner }<cite>Someone</cite></blockquote>\n<!-- /wp:quote -->`;
+			`<!-- b1 --><!-- wp:quote -->\n<blockquote class="wp-block-quote">${ inner }<cite>Someone</cite></blockquote>\n<!-- /wp:quote -->`;
 		const huge = quote( paragraph( 'b2', 'x'.repeat( LONG_DOCUMENT ) ) );
 		const result = readDocument( huge, { tool: 'read_blocks', refs: [ 'b1' ] } );
 		expect( result.status === 'done' && result.content ).toContain(

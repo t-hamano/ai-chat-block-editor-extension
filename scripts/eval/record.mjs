@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Adds the results of an evaluation run to `history.jsonl`, one line per
  * run, and prints how the run compares with the last one recorded for
@@ -9,7 +7,9 @@
  * When the evaluation ran each case more than once, as it does by default,
  * each case is recorded once, with the average usage of its runs.
  *
- * Usage: npm run eval -- -o results.json && npm run eval:record [-- results.json]
+ * A run is recorded only when every case passed.
+ *
+ * `npm run eval` records each run with `record()`.
  */
 
 /**
@@ -239,24 +239,36 @@ export function compare( run, earlier ) {
 }
 
 /* eslint-disable no-console -- A command line script reports through the console. */
-if ( import.meta.main ) {
-	const file = path.resolve( process.argv[ 2 ] ?? 'results.json' );
-	if ( ! fs.existsSync( file ) ) {
-		console.error(
-			`${ file } does not exist. Run the evaluation with \`npm run eval -- -o results.json\` first.`
-		);
-		process.exit( 1 );
-	}
+/**
+ * Adds the results in a file to the history, and reports how the run
+ * compares with the last one recorded for the same evaluation set and
+ * model.
+ *
+ * @param {string} file The path of promptfoo's output file.
+ * @throws {Error} When a case failed or ended in an error, or the run is already in the history.
+ */
+export function record( file ) {
 	const git = ( ...args ) => execFileSync( 'git', args, { encoding: 'utf8' } ).trim();
 	const run = summarize( JSON.parse( fs.readFileSync( file, 'utf8' ) ), {
 		commit: git( 'rev-parse', '--short=12', 'HEAD' ),
 		// The history itself changes with every run, so it does not count.
 		dirty: Boolean( git( 'status', '--porcelain', '--', '.', `:!${ HISTORY }` ) ),
 	} );
+	// Only runs where every case passed are compared, so the others are not kept.
+	const failed = run.cases.filter( ( item ) => ! item.pass ).map( ( item ) => item.case );
+	if ( ! run.cases.length || failed.length ) {
+		throw new Error(
+			[
+				`The run is not recorded, since ${
+					run.cases.length ? 'some cases failed or ended in an error' : 'it has no cases'
+				}. Check the results with \`npm run eval:view\`.`,
+				...failed.map( ( name ) => `  - ${ name }` ),
+			].join( '\n' )
+		);
+	}
 	const history = fs.existsSync( HISTORY ) ? readHistory( fs.readFileSync( HISTORY, 'utf8' ) ) : [];
 	if ( run.evalId && history.some( ( earlier ) => earlier.evalId === run.evalId ) ) {
-		console.error( `This run (${ run.evalId }) is already in the history.` );
-		process.exit( 1 );
+		throw new Error( `This run (${ run.evalId }) is already in the history.` );
 	}
 	fs.appendFileSync( HISTORY, JSON.stringify( run ) + '\n' );
 
