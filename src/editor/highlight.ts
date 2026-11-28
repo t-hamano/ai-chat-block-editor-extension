@@ -22,16 +22,20 @@ export const HIGHLIGHT_DURATION = 1000;
 export const HIGHLIGHT_CLASS_NAME = 'blocktune-is-changed';
 
 /**
+ * The class of a block whose changed text is colored. The stylesheet fades
+ * the text's color out with the same animation as the block highlight.
+ */
+export const TEXT_HIGHLIGHT_CLASS_NAME = 'blocktune-has-changed-text';
+
+/**
+ * The name of the stylesheet's animation that fades out both highlights.
+ */
+export const HIGHLIGHT_ANIMATION_NAME = 'blocktune-highlight';
+
+/**
  * The name of the CSS custom highlight that colors the changed text.
  */
 export const TEXT_HIGHLIGHT_NAME = 'blocktune-changed-text';
-
-/**
- * The custom property that fades out the changed text's color. The
- * CSS Custom Highlight API cannot animate, so the property is animated on
- * the block instead, which keeps the style changes inside the block.
- */
-export const TEXT_OPACITY_PROPERTY = '--blocktune-changed-text-opacity';
 
 type BlockState = {
 	// The block editor replaces a block's attributes object only when they
@@ -67,8 +71,6 @@ const previousTexts = new Map< string, string >();
 // highlight registry holds some of it.
 const textRanges = new Map< string, Range >();
 let paintedViews = new Set< Window >();
-// The fade of the changed text's color in each block.
-const fades = new WeakMap< Element, Animation >();
 
 function subscribe( listener: () => void ) {
 	listeners.add( listener );
@@ -282,35 +284,25 @@ function highlightText( clientId: string ): boolean {
 	}
 	textRanges.set( clientId, range );
 	paintTextHighlight();
-	fadeTextHighlight( element );
 	return true;
 }
 
 /**
- * Fades out the changed text's color in the block, from the start. With
- * reduced motion, the color stays the same until the highlight ends.
+ * Starts the highlight's animation over in the block, if it is running,
+ * for a block highlighted again before its highlight ends.
  *
- * @param element The block's element.
+ * Taking the highlight class off and adding it back does not do it on its
+ * own when the browser does not update the styles in between.
+ *
+ * @param clientId The block's client ID.
  */
-function fadeTextHighlight( element: HTMLElement ) {
-	fades.get( element )?.cancel();
-	fades.delete( element );
-	const view = element.ownerDocument.defaultView;
-	if ( ! element.animate || view?.matchMedia?.( '(prefers-reduced-motion: reduce)' ).matches ) {
-		return;
+function restartHighlightAnimation( clientId: string ) {
+	const element = getBlockElement( clientId );
+	for ( const animation of element?.getAnimations?.( { subtree: true } ) ?? [] ) {
+		if ( ( animation as CSSAnimation ).animationName === HIGHLIGHT_ANIMATION_NAME ) {
+			animation.currentTime = 0;
+		}
 	}
-	// The same as the block highlight's animation: it holds, then fades out.
-	fades.set(
-		element,
-		element.animate(
-			[
-				{ [ TEXT_OPACITY_PROPERTY ]: 1 },
-				{ [ TEXT_OPACITY_PROPERTY ]: 1, offset: 0.6 },
-				{ [ TEXT_OPACITY_PROPERTY ]: 0 },
-			],
-			{ duration: HIGHLIGHT_DURATION }
-		)
-	);
 }
 
 /**
@@ -462,8 +454,9 @@ type BlockListBlockProps = {
 };
 
 /**
- * Colors the changed text of the changed blocks. A block whose changed text
- * cannot be found, such as a new block, gets the highlight class instead.
+ * Colors the changed text of the changed blocks, with the text highlight
+ * class for the fade. A block whose changed text cannot be found, such as a
+ * new block, gets the highlight class instead.
  *
  * @param BlockListBlock The block's component in the editor.
  * @return The component with the highlight.
@@ -473,7 +466,7 @@ export function withChangeHighlight< P extends BlockListBlockProps >(
 ) {
 	return function ChangeHighlight( props: P ) {
 		const { clientId, className } = props;
-		const [ hasNoText, setHasNoText ] = useState( false );
+		const [ highlightClassName, setHighlightClassName ] = useState< string | null >( null );
 		const changedAt = useSyncExternalStore( subscribe, () => highlighted.get( clientId ) ?? 0 );
 
 		useEffect( () => {
@@ -487,7 +480,10 @@ export function withChangeHighlight< P extends BlockListBlockProps >(
 					scrollTarget = null;
 					stopScroll = scrollIntoViewIfNeeded( clientId );
 				}
-				setHasNoText( ! highlightText( clientId ) );
+				restartHighlightAnimation( clientId );
+				setHighlightClassName(
+					highlightText( clientId ) ? TEXT_HIGHLIGHT_CLASS_NAME : HIGHLIGHT_CLASS_NAME
+				);
 			} );
 			return () => {
 				window.cancelAnimationFrame( frame );
@@ -495,15 +491,15 @@ export function withChangeHighlight< P extends BlockListBlockProps >(
 				if ( textRanges.delete( clientId ) ) {
 					paintTextHighlight();
 				}
-				setHasNoText( false );
+				setHighlightClassName( null );
 			};
 		}, [ changedAt, clientId ] );
 
 		return createElement( BlockListBlock as ( props: P ) => null, {
 			...props,
 			className:
-				changedAt && hasNoText
-					? [ className, HIGHLIGHT_CLASS_NAME ].filter( Boolean ).join( ' ' )
+				changedAt && highlightClassName
+					? [ className, highlightClassName ].filter( Boolean ).join( ' ' )
 					: className,
 		} );
 	};
