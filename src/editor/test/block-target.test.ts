@@ -567,6 +567,31 @@ describe( 'createBlockTarget', () => {
 			} );
 		} );
 
+		it( 'finds a list with a named item when a list is inserted before it', () => {
+			const item = createBlock( 'test/list-item', {
+				content: 'Item',
+				metadata: { name: 'Named' },
+			} );
+			const list = createBlock( 'test/list', {}, [ item ] );
+			dispatch( blockEditorStore ).resetBlocks( [ list ] );
+			const listMarkup = ( items: string ) =>
+				`<!-- wp:test/list -->\n<ul>${ items }</ul>\n<!-- /wp:test/list -->`;
+			const itemMarkup = ( content: string, attributes = '' ) =>
+				`<!-- wp:test/list-item ${ attributes }-->\n<li>${ content }</li>\n<!-- /wp:test/list-item -->`;
+			const named = listMarkup( itemMarkup( 'Item', '{"metadata":{"name":"Named"}} ' ) );
+
+			expect(
+				createBlockTarget().apply( {
+					action: 'replace_block',
+					ref: getRef( list.clientId ),
+					markup: [ listMarkup( itemMarkup( 'New' ) ), named ].join( '\n\n' ),
+				} )
+			).toMatchObject( { status: 'applied' } );
+			expect(
+				select( blockEditorStore ).getBlocks()[ 1 ].innerBlocks[ 0 ].attributes
+			).toMatchObject( { metadata: { name: 'Named' } } );
+		} );
+
 		it( 'does not change the protected attributes of inner blocks', () => {
 			const item = createBlock( 'test/list-item', { content: 'Item', lock: { remove: true } } );
 			const list = createBlock( 'test/list', {}, [ item ] );

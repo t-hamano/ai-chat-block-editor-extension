@@ -70,11 +70,34 @@ export function isSameBlock( old: Block, block: Block ): boolean {
 }
 
 /**
- * Pairs each new block with a block it replaces that has its name and its
- * protected attributes, in order, so that blocks inserted or removed
- * around a block do not change what it is compared with. Blocks with
- * protected attributes are paired first, so that a block without them
- * does not take their place.
+ * Whether a block or one of its inner blocks has protected attributes.
+ *
+ * @param block The block.
+ * @return Whether it has them.
+ */
+function hasProtected( block: Block ): boolean {
+	return !! findCarried( block ) || block.innerBlocks.some( hasProtected );
+}
+
+/**
+ * Whether a new block can take the place of a block it replaces: it has
+ * its name and its protected attributes, and its inner blocks keep the
+ * protected attributes of the inner blocks they replace.
+ *
+ * @param old   The block in the editor.
+ * @param block The block parsed from the model's markup.
+ * @return Whether it can.
+ */
+function canTakePlace( old: Block, block: Block ): boolean {
+	return isSameBlock( old, block ) && ! findProtectedChange( old.innerBlocks, block.innerBlocks );
+}
+
+/**
+ * Pairs each new block with a block it replaces that it can take the place
+ * of, in order, so that blocks inserted or removed around a block do not
+ * change what it is compared with. Blocks with protected attributes in
+ * them are paired first, so that a block without them does not take their
+ * place.
  *
  * @param before The blocks the edit replaces.
  * @param after  The blocks of the edit.
@@ -85,11 +108,11 @@ function pairBlocks( before: Block[], after: Block[] ): ( Block | undefined )[] 
 	const used = new Set< Block >();
 	let next = 0;
 	after.forEach( ( block, index ) => {
-		if ( ! findCarried( block ) ) {
+		if ( ! hasProtected( block ) ) {
 			return;
 		}
 		const found = before.findIndex(
-			( old, oldIndex ) => oldIndex >= next && isSameBlock( old, block )
+			( old, oldIndex ) => oldIndex >= next && canTakePlace( old, block )
 		);
 		if ( found !== -1 ) {
 			pairs[ index ] = before[ found ];
@@ -101,7 +124,7 @@ function pairBlocks( before: Block[], after: Block[] ): ( Block | undefined )[] 
 		if ( pairs[ index ] ) {
 			return;
 		}
-		const old = before.find( ( item ) => ! used.has( item ) && isSameBlock( item, block ) );
+		const old = before.find( ( item ) => ! used.has( item ) && canTakePlace( item, block ) );
 		if ( old ) {
 			pairs[ index ] = old;
 			used.add( old );
@@ -119,10 +142,9 @@ const explain = ( reason: string ) =>
 
 /**
  * Explains a change of the protected attributes in an edit, if it makes
- * one. A new block that has the name and the protected attributes of a
- * block it replaces takes its place. Other new blocks do not have
- * protected attributes, and do not take the place of a block that has
- * them. Removing such a block is not a change.
+ * one. A new block that can take the place of a block it replaces does.
+ * Other new blocks do not have protected attributes, and do not take the
+ * place of a block that has them. Removing such a block is not a change.
  *
  * @param before The blocks the edit replaces. None when it only inserts.
  * @param after  The blocks of the edit.
@@ -132,23 +154,34 @@ export function findProtectedChange( before: Block[], after: Block[] ): string |
 	const pairs = pairBlocks( before, after );
 	const unpaired = after.filter( ( _, index ) => ! pairs[ index ] );
 	for ( const old of before.filter(
-		( item ) => ! pairs.includes( item ) && findCarried( item )
+		( item ) => ! pairs.includes( item ) && hasProtected( item )
 	) ) {
 		const block = unpaired.find( ( item ) => item.name === old.name );
-		if ( block ) {
+		if ( ! block ) {
+			continue;
+		}
+		const changed = findChanged( old, block );
+		if ( changed ) {
 			return explain(
-				`The edit changes the "${ findChanged( old, block ) }" attribute of a "${ block.name }" block.`
+				`The edit changes the "${ changed }" attribute of a "${ block.name }" block.`
 			);
+		}
+		const inner = findProtectedChange( old.innerBlocks, block.innerBlocks );
+		if ( inner ) {
+			return inner;
 		}
 	}
 	for ( const [ index, block ] of after.entries() ) {
-		const carried = pairs[ index ] ? undefined : findCarried( block );
+		if ( pairs[ index ] ) {
+			continue;
+		}
+		const carried = findCarried( block );
 		if ( carried ) {
 			return explain(
 				`The edit adds a "${ block.name }" block with the "${ carried }" attribute.`
 			);
 		}
-		const inner = findProtectedChange( pairs[ index ]?.innerBlocks ?? [], block.innerBlocks );
+		const inner = findProtectedChange( [], block.innerBlocks );
 		if ( inner ) {
 			return inner;
 		}
