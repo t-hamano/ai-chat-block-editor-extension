@@ -25,11 +25,7 @@ module.exports = async function globalSetup( config ) {
 	} );
 
 	await requestUtils.setupRest();
-	await requestUtils.rest( {
-		method: 'PUT',
-		path: '/wp/v2/plugins/blocktune/blocktune',
-		data: { status: 'active' },
-	} );
+	await requestUtils.activatePlugin( 'blocktune-ai-block-editing-chat' );
 
 	await requestContext.dispose();
 };

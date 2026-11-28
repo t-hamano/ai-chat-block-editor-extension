@@ -52,7 +52,8 @@ function blocktune_e2e_register_routes() {
 				'callback'            => static function ( WP_REST_Request $request ) {
 					update_option( BLOCKTUNE_E2E_ANSWERS, (array) $request->get_param( 'answers' ), false );
 					update_option( BLOCKTUNE_E2E_REQUESTS, array(), false );
-					return new WP_REST_Response( null, 204 );
+					// An empty body would not be JSON, which the tests read every answer as.
+					return true;
 				},
 				'permission_callback' => static function () {
 					return current_user_can( 'manage_options' );
