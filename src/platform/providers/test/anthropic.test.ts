@@ -11,7 +11,7 @@ import apiFetch from '@wordpress/api-fetch';
 /**
  * Internal dependencies
  */
-import type { AiStreamEvent } from '..';
+import type { AiStreamEvent } from '../..';
 import {
 	ANTHROPIC_EFFORT,
 	ANTHROPIC_MODEL,
@@ -21,10 +21,10 @@ import {
 	toAnthropicEvents,
 	toAnthropicMessages,
 } from '../anthropic';
-import { READ_TOOLS } from '../read-tools';
-import { EDIT_TOOL } from '../tools';
-import { readEvents } from '../transport';
-import { streamBody } from './stream-body';
+import { READ_TOOLS } from '../../tools/read-tools';
+import { EDIT_TOOL } from '../../tools/edit-tools';
+import { readEvents } from '../../stream/transport';
+import { streamBody } from '../../stream/test/stream-body';
 
 vi.mock( '@wordpress/api-fetch', () => ( { default: vi.fn() } ) );
 

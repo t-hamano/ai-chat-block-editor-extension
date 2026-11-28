@@ -6,7 +6,7 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import type { AiChatRequest, AiEdit, AiEditResult } from '.';
+import type { AiChatRequest, AiEdit, AiEditResult } from '..';
 import { checkRequestLimit, endToolRequest, needsReply, trackRequestText } from './answer-text';
 import { runRead } from './read-tools';
 

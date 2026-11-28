@@ -1,7 +1,7 @@
 /**
  * Internal dependencies
  */
-import type { AiActivity, AiChatRequest, AiRead, AiReadResult } from '.';
+import type { AiActivity, AiChatRequest, AiRead, AiReadResult } from '..';
 
 /**
  * The tool the model reads blocks of a long document with.

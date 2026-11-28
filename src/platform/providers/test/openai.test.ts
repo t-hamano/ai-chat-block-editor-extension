@@ -11,8 +11,8 @@ import apiFetch from '@wordpress/api-fetch';
 /**
  * Internal dependencies
  */
-import type { AiStreamEvent } from '..';
-import { EDIT_TOOL } from '../tools';
+import type { AiStreamEvent } from '../..';
+import { EDIT_TOOL } from '../../tools/edit-tools';
 import {
 	OPENAI_EDIT_TOOL,
 	OPENAI_READ_TOOLS,
@@ -24,8 +24,8 @@ import {
 	toOpenAiEvents,
 	toOpenAiInput,
 } from '../openai';
-import { readEvents } from '../transport';
-import { streamBody } from './stream-body';
+import { readEvents } from '../../stream/transport';
+import { streamBody } from '../../stream/test/stream-body';
 
 vi.mock( '@wordpress/api-fetch', () => ( { default: vi.fn() } ) );
 

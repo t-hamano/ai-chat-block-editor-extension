@@ -11,8 +11,8 @@ import apiFetch from '@wordpress/api-fetch';
 /**
  * Internal dependencies
  */
-import type { AiStreamEvent } from '..';
-import { EDIT_TOOL } from '../tools';
+import type { AiStreamEvent } from '../..';
+import { EDIT_TOOL } from '../../tools/edit-tools';
 import {
 	FALLBACK_EDIT_TOOL,
 	FALLBACK_READ_TOOLS,
