@@ -53,6 +53,7 @@ By default, the AI assistant picks a provider in the order Anthropic, OpenAI, Go
 
 * Only administrators can use the AI assistant, and only super admins on a multisite network, where the API keys can be shared by every site. There is no setting to allow other roles.
 * Answers stream only for Anthropic, OpenAI, and Google. Other providers run through the AI Client in WordPress and show the answer all at once.
+* Each answer keeps one PHP worker of your server busy until the provider finishes, for up to 5 minutes. On servers that hold streamed answers back, the whole answer comes at once, and a proxy or CDN in front of the site may stop waiting first (often after 60 to 100 seconds). Long answers can then fail with a timeout error.
 * The AI edits post content only. Global Styles, templates, and template parts are out of scope.
 * When a text selection spans more than one block, the whole blocks are edited.
 * Every edit is checked before it is applied, and broken markup is never applied. If the AI fails to write valid markup three times in one answer, the chat shows that the edit could not be made.
