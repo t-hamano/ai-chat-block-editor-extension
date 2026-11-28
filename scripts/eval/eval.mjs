@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Runs the evaluation with promptfoo, saves the results to `results.json`
- * at the root of the repository, and adds the run to `history.jsonl`.
+ * Runs the evaluation with promptfoo and adds the run to `history.jsonl`.
+ * promptfoo writes the results to a temporary file, which is removed
+ * after they are read.
  *
  * The run is recorded only when every case passed. Otherwise, and when
  * promptfoo wrote no results, such as when it was stopped, the command
@@ -16,6 +17,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 /**
@@ -24,7 +26,6 @@ import path from 'node:path';
 import { record } from './record.mjs';
 
 const ROOT = path.resolve( import.meta.dirname, '../..' );
-const RESULTS = path.join( ROOT, 'results.json' );
 
 /* eslint-disable no-console -- A command line script reports through the console. */
 // npm runs this script, and runs promptfoo the same way `npx` does, without a shell.
@@ -34,8 +35,9 @@ if ( ! npm ) {
 	process.exit( 1 );
 }
 
-// Results left from an earlier run must not be recorded as this one.
-fs.rmSync( RESULTS, { force: true } );
+const folder = fs.mkdtempSync( path.join( os.tmpdir(), 'blocktune-eval-' ) );
+const RESULTS = path.join( folder, 'results.json' );
+process.on( 'exit', () => fs.rmSync( folder, { recursive: true, force: true } ) );
 
 const { status, error } = spawnSync(
 	process.execPath,

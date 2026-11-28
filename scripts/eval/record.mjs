@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Adds the results of an evaluation run to `history.jsonl`, one line per
  * run, and prints how the run compares with the last one recorded for
@@ -11,10 +9,7 @@
  *
  * A run is recorded only when every case passed.
  *
- * `npm run eval` records each run itself. This script records the results
- * in a file again, such as when recording them failed.
- *
- * Usage: npm run eval:record [-- results.json]
+ * `npm run eval` records each run with `record()`.
  */
 
 /**
@@ -293,18 +288,4 @@ export function record( file ) {
 			? compare( run, earlier ).join( '\n' )
 			: 'No earlier run of this evaluation set to compare with.'
 	);
-}
-
-if ( import.meta.main ) {
-	const file = path.resolve( process.argv[ 2 ] ?? 'results.json' );
-	if ( ! fs.existsSync( file ) ) {
-		console.error( `${ file } does not exist. Run the evaluation with \`npm run eval\` first.` );
-		process.exit( 1 );
-	}
-	try {
-		record( file );
-	} catch ( error ) {
-		console.error( error.message );
-		process.exit( 1 );
-	}
 }

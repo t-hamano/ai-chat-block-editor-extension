@@ -20,7 +20,7 @@ The editor, the prompt, the document context, and the Anthropic adapter are the 
 
    The model does not answer the same way every time, so each case runs three times, one run after another. To run only some cases, or each case once, add promptfoo's options, such as `npm run eval -- --filter-pattern "outline"` or `npm run eval -- --repeat 1`.
 
-   The results are saved to `results.json` at the root of the repository, which is ignored by Git, and the run is added to the [history](#history).
+   When every case passed, the run is added to the [history](#history).
 
 3. Look at the results, and compare them with earlier runs.
 
@@ -44,7 +44,7 @@ promptfoo keeps every run on your computer, so the viewer can show this run next
 
 2. When every case passed, the run is added to the history after the cases. It prints how the run compares with the last run recorded for the same evaluation set and model, on the cases both runs have.
 
-   When a case failed or ended in an error, the run is not added, and the command ends with an error that lists those cases. It also ends with an error when promptfoo wrote no results, such as when it was stopped. To add the results of `results.json` again, such as when adding them failed, run `npm run eval:record`, or `npm run eval:record -- path/to/results.json` for another file. It adds only runs where every case passed, and not a run already in the history.
+   When a case failed or ended in an error, the run is not added, and the command ends with an error that lists those cases. It also ends with an error when promptfoo wrote no results, such as when it was stopped.
 
    A run of only some cases, with promptfoo's options, is added too. Leave its line out of the commit when it should not be in the history.
 

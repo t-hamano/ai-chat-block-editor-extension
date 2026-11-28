@@ -88,7 +88,6 @@
 		"test:php": "wp-env --config .wp-env.test.json run cli --env-cwd=wp-content/plugins/blocktune vendor/bin/phpunit",
 		"eval": "node scripts/eval/eval.mjs",
 		"eval:view": "npx --yes promptfoo@0.125.1 view",
-		"eval:record": "node scripts/eval/record.mjs",
 		"eval:chart": "node scripts/eval/chart.mjs",
 		"prepare": "husky"
 	},
