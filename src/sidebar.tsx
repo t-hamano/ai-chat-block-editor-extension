@@ -27,7 +27,24 @@ const ai = createAutoPlatform(
 		( selectStore( preferencesStore ).get( 'blocktune', 'model' ) as ModelChoice | null ) ?? null
 );
 
-const { hasApiKey, connectorsUrl } = window.blocktune;
+const { aiSupported, hasApiKey, connectorsUrl } = window.blocktune;
+
+// The assistant can be used only when the site allows AI and has an API key.
+const isUsable = aiSupported && hasApiKey;
+
+// The site can turn AI off, and then every request is refused, so the
+// sidebar says so instead of showing the chat.
+function AiNotSupportedNotice() {
+	return (
+		<div className="blocktune-sidebar__notice">
+			<Notice.Root intent="info">
+				<Notice.Description>
+					{ __( 'AI features are turned off on this site.', 'blocktune' ) }
+				</Notice.Description>
+			</Notice.Root>
+		</div>
+	);
+}
 
 // Without an API key the assistant cannot be used, so the sidebar links to
 // the Connectors screen, where one is set up.
@@ -101,14 +118,15 @@ export default function Sidebar() {
 							size="compact"
 							aria-pressed={ isSettingsOpen }
 							onClick={ () => setIsSettingsOpen( ! isSettingsOpen ) }
-							disabled={ ! hasApiKey }
+							disabled={ ! isUsable }
 						/>
 					</>
 				}
 			>
 				{ isSettingsOpen && <ModelSettings onClose={ () => setIsSettingsOpen( false ) } /> }
-				{ ! isSettingsOpen && ! hasApiKey && <NoConnectorNotice /> }
-				{ ! isSettingsOpen && hasApiKey && (
+				{ ! isSettingsOpen && ! aiSupported && <AiNotSupportedNotice /> }
+				{ ! isSettingsOpen && aiSupported && ! hasApiKey && <NoConnectorNotice /> }
+				{ ! isSettingsOpen && isUsable && (
 					<Chat
 						chat={ chat }
 						isAvailable={ isVisualEditor }

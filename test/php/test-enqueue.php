@@ -53,6 +53,10 @@ class Test_Enqueue extends WP_UnitTestCase {
 		$this->assertTrue( wp_script_is( BLOCKTUNE_NAMESPACE ) );
 		$this->assertTrue( wp_style_is( BLOCKTUNE_NAMESPACE ) );
 		$this->assertStringContainsString(
+			'"aiSupported":true',
+			implode( '', wp_scripts()->get_data( BLOCKTUNE_NAMESPACE, 'before' ) )
+		);
+		$this->assertStringContainsString(
 			'"hasApiKey":true',
 			implode( '', wp_scripts()->get_data( BLOCKTUNE_NAMESPACE, 'before' ) )
 		);
@@ -82,6 +86,28 @@ class Test_Enqueue extends WP_UnitTestCase {
 		);
 		$this->assertStringContainsString(
 			'"providers":[]',
+			implode( '', wp_scripts()->get_data( BLOCKTUNE_NAMESPACE, 'before' ) )
+		);
+	}
+
+	/**
+	 * Tests that the script tells the sidebar when the site does not support AI,
+	 * so it can show a notice instead of the chat.
+	 */
+	public function test_script_reports_when_ai_is_not_supported() {
+		if ( ! file_exists( BLOCKTUNE_PATH . '/build/index.asset.php' ) ) {
+			$this->markTestSkipped( 'The script is only enqueued when the plugin is built.' );
+		}
+
+		$this->set_fake_api_key( 'test-key' );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		add_filter( 'wp_supports_ai', '__return_false' );
+
+		( new Enqueue() )->enqueue_editor_scripts();
+
+		$this->assertTrue( wp_script_is( BLOCKTUNE_NAMESPACE ) );
+		$this->assertStringContainsString(
+			'"aiSupported":false',
 			implode( '', wp_scripts()->get_data( BLOCKTUNE_NAMESPACE, 'before' ) )
 		);
 	}
