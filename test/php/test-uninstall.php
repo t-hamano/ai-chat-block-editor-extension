@@ -77,6 +77,6 @@ class Test_Uninstall extends WP_UnitTestCase {
 
 		$this->uninstall();
 
-		$this->assertSame( array(), get_user_meta( $user_id, $meta_key ) );
+		$this->assertSame( array(), get_user_meta( $user_id, $meta_key, false ) );
 	}
 }
