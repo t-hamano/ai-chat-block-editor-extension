@@ -44,17 +44,14 @@ export function isInDocument(
  * in others.
  *
  * @param blocks The blocks.
- * @param editor The block editor selectors.
  * @return Copies of the blocks.
  */
-export function withoutControlledContent(
-	blocks: Block[],
-	editor: Editor = select( blockEditorStore )
-): Block[] {
-	return blocks.map( ( block ) => ( {
-		...block,
-		innerBlocks: editor.areInnerBlocksControlled( block.clientId )
-			? []
-			: withoutControlledContent( block.innerBlocks, editor ),
-	} ) );
+export function withoutControlledContent( blocks: Block[] ): Block[] {
+	const { areInnerBlocksControlled } = select( blockEditorStore );
+	const copy = ( list: Block[] ): Block[] =>
+		list.map( ( block ) => ( {
+			...block,
+			innerBlocks: areInnerBlocksControlled( block.clientId ) ? [] : copy( block.innerBlocks ),
+		} ) );
+	return copy( blocks );
 }
