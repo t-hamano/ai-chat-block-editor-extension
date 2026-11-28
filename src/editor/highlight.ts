@@ -83,7 +83,6 @@ function subscribe( listener: () => void ) {
  */
 export function takeBlockSnapshot( withText = true ): BlockSnapshot {
 	const { getBlockOrder, getBlockAttributes } = select( blockEditorStore );
-	const canvas = withText ? getCanvasDocument() : null;
 	const snapshot = new Map< string, BlockState >();
 	const walk = ( parent: string ) => {
 		getBlockOrder( parent ).forEach( ( clientId, index ) => {
@@ -91,7 +90,7 @@ export function takeBlockSnapshot( withText = true ): BlockSnapshot {
 				attributes: getBlockAttributes( clientId ),
 				parent,
 				index,
-				text: withText ? ( getBlockElement( clientId, canvas )?.textContent ?? null ) : null,
+				text: withText ? ( getBlockElement( clientId )?.textContent ?? null ) : null,
 			} );
 			walk( clientId );
 		} );
@@ -400,31 +399,16 @@ function announceRemoved( before: BlockSnapshot ) {
 }
 
 /**
- * Finds the document of the editor canvas iframe.
- *
- * @return The document, or null when the canvas is not an iframe.
- */
-function getCanvasDocument(): Document | null {
-	return (
-		document.querySelector< HTMLIFrameElement >( 'iframe[name="editor-canvas"]' )
-			?.contentDocument ?? null
-	);
-}
-
-/**
  * Finds the block's element, in the editor canvas iframe or, when the
  * canvas is not an iframe, in the page.
  *
  * @param clientId The block's client ID.
- * @param canvas   The canvas iframe's document, if already found.
  * @return The element, if the block is rendered.
  */
-function getBlockElement(
-	clientId: string,
-	canvas: Document | null = getCanvasDocument()
-): HTMLElement | null {
+function getBlockElement( clientId: string ): HTMLElement | null {
 	const id = `block-${ clientId }`;
-	return canvas?.getElementById( id ) ?? document.getElementById( id );
+	const canvas = document.querySelector< HTMLIFrameElement >( 'iframe[name="editor-canvas"]' );
+	return canvas?.contentDocument?.getElementById( id ) ?? document.getElementById( id );
 }
 
 function scrollIntoViewIfNeeded( clientId: string ) {
