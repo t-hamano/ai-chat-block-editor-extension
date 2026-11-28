@@ -19,7 +19,7 @@ import { findUniqueText } from '../ai/find-text';
 import type { AiEdit, AiEditResult } from '../platform';
 import { getClientIdByRef, getRef, serializeWithRefs, stripRefs } from './block-refs';
 import { locateText } from './locate-text';
-import { findProtectedChange } from './protected-attributes';
+import { findProtectedChange, isSameBlock } from './protected-attributes';
 import { collectUnsafeHtml } from './unsafe-html';
 import { collectHtml, validateMarkup } from './validate-markup';
 
@@ -28,8 +28,9 @@ function failed( reason: string ): AiEditResult {
 }
 
 /**
- * Whether new blocks have the names and the inner blocks of the blocks
- * they replace, so that only their attributes change.
+ * Whether new blocks have the names, the protected attributes, and the
+ * inner blocks of the blocks they replace, so that only their other
+ * attributes change.
  *
  * @param before The blocks in the editor.
  * @param after  The new blocks.
@@ -41,7 +42,7 @@ function hasSameStructure( before: Block[], after: Block[] ): boolean {
 		before.every(
 			( block, index ) =>
 				block.isValid !== false &&
-				block.name === after[ index ].name &&
+				isSameBlock( block, after[ index ] ) &&
 				hasSameStructure( block.innerBlocks, after[ index ].innerBlocks )
 		)
 	);

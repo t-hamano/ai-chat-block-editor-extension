@@ -518,6 +518,55 @@ describe( 'createBlockTarget', () => {
 			} );
 		} );
 
+		it( 'finds a block with metadata when blocks are inserted or moved around it', () => {
+			const one = createBlock( 'test/paragraph', { content: 'One' } );
+			const named = createBlock( 'test/paragraph', {
+				content: 'Two',
+				metadata: { name: 'Intro' },
+			} );
+			dispatch( blockEditorStore ).resetBlocks( [ one, named ] );
+			dispatch( blockEditorStore ).multiSelect( one.clientId, named.clientId );
+			const withName = ( content: string ) =>
+				`<!-- wp:test/paragraph {"metadata":{"name":"Intro"}} -->\n<p>${ content }</p>\n<!-- /wp:test/paragraph -->`;
+
+			// A paragraph inserted before the named one.
+			expect(
+				createBlockTarget().apply( {
+					action: 'replace',
+					markup: [ paragraph( 'One' ), paragraph( 'New' ), withName( 'Two' ) ].join( '\n\n' ),
+				} )
+			).toMatchObject( { status: 'applied' } );
+			expect( documentNow() ).toBe(
+				[ paragraph( 'One' ), paragraph( 'New' ), withName( 'Two' ) ].join( '\n\n' )
+			);
+		} );
+
+		it( 'moves a block with metadata instead of moving the metadata to another block', () => {
+			const named = createBlock( 'test/paragraph', {
+				content: 'One',
+				metadata: { name: 'Intro' },
+			} );
+			const two = createBlock( 'test/paragraph', { content: 'Two' } );
+			dispatch( blockEditorStore ).resetBlocks( [ named, two ] );
+			dispatch( blockEditorStore ).multiSelect( named.clientId, two.clientId );
+
+			expect(
+				createBlockTarget().apply( {
+					action: 'replace',
+					markup: [
+						paragraph( 'Two' ),
+						'<!-- wp:test/paragraph {"metadata":{"name":"Intro"}} -->\n<p>One</p>\n<!-- /wp:test/paragraph -->',
+					].join( '\n\n' ),
+				} )
+			).toMatchObject( { status: 'applied' } );
+			// The blocks were replaced, not changed in place.
+			expect( select( blockEditorStore ).getBlock( named.clientId ) ).toBeNull();
+			expect( select( blockEditorStore ).getBlocks()[ 1 ].attributes ).toMatchObject( {
+				content: 'One',
+				metadata: { name: 'Intro' },
+			} );
+		} );
+
 		it( 'does not change the protected attributes of inner blocks', () => {
 			const item = createBlock( 'test/list-item', { content: 'Item', lock: { remove: true } } );
 			const list = createBlock( 'test/list', {}, [ item ] );
