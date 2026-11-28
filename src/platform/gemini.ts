@@ -6,10 +6,9 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import type { AiChatRequest, AiEditResult, AiMessage, AiPlatform, AiUsage } from '.';
-import { EDIT_TOOL, describeApplied, toEdit } from './anthropic';
-import { checkRequestLimit, endToolRequest, needsReply, trackRequestText } from './answer-text';
-import { READ_TOOLS, getToolActivity, runRead } from './read-tools';
+import type { AiChatRequest, AiMessage, AiPlatform, AiUsage } from '.';
+import { READ_TOOLS, getToolActivity } from './read-tools';
+import { EDIT_TOOL, describeApplied, runToolLoop } from './tools';
 import { connectionLost, requestAnswer, type AnswerEvent } from './transport';
 
 /**
@@ -23,13 +22,8 @@ export const GEMINI_MODEL = 'gemini-3.1-pro-preview';
 const MAX_OUTPUT_TOKENS = 64000;
 
 /**
- * How many failed edits the model may try again in one answer.
- */
-const MAX_FAILED_EDITS = 3;
-
-/**
  * The edit tool, as a function declaration of Google's Gemini API. It is
- * made from the Anthropic tool, so every provider gets the same tool.
+ * made from the shared tool, so every provider gets the same tool.
  */
 export const GEMINI_EDIT_TOOL = {
 	name: EDIT_TOOL.name,
@@ -294,57 +288,6 @@ export async function readGeminiStream(
 }
 
 /**
- * Applies the edits the model asked for, runs its reads, and builds the
- * responses to send back.
- *
- * @param answer  The answer.
- * @param onEvent Applies each edit.
- * @param read    Reads the document.
- * @return The responses, how many calls failed, and whether a response
- *         must go back to the model.
- */
-function runTools(
-	answer: GeminiAnswer,
-	onEvent: AiChatRequest[ 'onEvent' ],
-	read: AiChatRequest[ 'read' ]
-) {
-	let failures = 0;
-	let replied = false;
-	const results = answer.calls.map( ( { functionCall } ): GeminiPart => {
-		const { id, name = '', args } = functionCall ?? {};
-		const found = runRead( name, args, read );
-		if ( found ) {
-			replied = true;
-			if ( found.status === 'failed' ) {
-				failures++;
-			}
-			const response =
-				found.status === 'failed' ? { error: found.reason } : { output: found.content };
-			return { functionResponse: { ...( id ? { id } : {} ), name, response } };
-		}
-		const edit = name === EDIT_TOOL.name ? toEdit( args ) : null;
-		const result: AiEditResult = edit
-			? ( onEvent( { type: 'edit', edit } ) ?? { status: 'dropped' } )
-			: {
-					status: 'failed',
-					reason: `Call ${ EDIT_TOOL.name } with arguments that match its parameters.`,
-				};
-		replied ||= needsReply( result );
-		let response: Record< string, unknown >;
-		if ( result.status === 'failed' ) {
-			failures++;
-			response = { error: result.reason };
-		} else if ( result.status === 'applied' ) {
-			response = { output: describeApplied( result.refs, result.autoFix ) };
-		} else {
-			response = { output: 'The selected blocks no longer exist, so the edit was not applied.' };
-		}
-		return { functionResponse: { ...( id ? { id } : {} ), name, response } };
-	} );
-	return { results, failures, replied };
-}
-
-/**
  * Connects the AI assistant to Google's Gemini through the plugin's relay,
  * which adds the site's API key on the server.
  *
@@ -354,44 +297,48 @@ function runTools(
  */
 export function createGeminiPlatform( getPostId: () => number, model = GEMINI_MODEL ): AiPlatform {
 	return {
-		async chat( { system, messages, onEvent, read, signal } ) {
+		chat( { system, messages, onEvent, read, signal } ) {
 			const contents = toGeminiContents( messages );
-			const answerText = trackRequestText( onEvent );
-			let failures = 0;
-			let requests = 0;
-			for (;;) {
-				const answer = await readGeminiStream(
-					requestAnswer( {
-						provider: 'google',
-						postId: getPostId(),
-						body: buildGeminiBody( system, contents, model ),
-						signal,
-						readError: readGeminiErrorMessage,
-						// The whole answer has the shape of one piece of a streamed one.
-						toEvents: ( whole ) => [ { event: 'message', data: whole } ],
+			return runToolLoop(
+				{
+					readAnswer: ( onAnswerEvent ) =>
+						readGeminiStream(
+							requestAnswer( {
+								provider: 'google',
+								postId: getPostId(),
+								body: buildGeminiBody( system, contents, model ),
+								signal,
+								readError: readGeminiErrorMessage,
+								// The whole answer has the shape of one piece of a streamed one.
+								toEvents: ( whole ) => [ { event: 'message', data: whole } ],
+							} ),
+							onAnswerEvent
+						),
+					getCalls: ( answer ) =>
+						answer.calls.length
+							? answer.calls.map( ( { functionCall } ) => {
+									const { id, name = '', args } = functionCall ?? {};
+									return { id, name, input: args };
+								} )
+							: null,
+					toResult: ( call, { text, failed } ): GeminiPart => ( {
+						functionResponse: {
+							...( call.id ? { id: call.id } : {} ),
+							name: call.name ?? '',
+							response: failed ? { error: text } : { output: text },
+						},
 					} ),
-					answerText.onEvent
-				);
-				const text = answerText.take();
-				if ( ! answer.calls.length ) {
-					return;
-				}
-				const tools = runTools( answer, onEvent, read );
-				if ( endToolRequest( text, tools.replied, onEvent ) ) {
-					return;
-				}
-				failures += tools.failures;
-				if ( failures > MAX_FAILED_EDITS ) {
-					throw new Error( __( 'The edit could not be made.', 'blocktune' ) );
-				}
-				checkRequestLimit( ++requests );
-				// The answer goes back unchanged, with its thought signatures, so
-				// the model goes on from where it stopped.
-				contents.push(
-					{ role: 'model', parts: answer.parts },
-					{ role: 'user', parts: tools.results }
-				);
-			}
+					// The answer goes back unchanged, with its thought signatures, so
+					// the model goes on from where it stopped.
+					append: ( answer, results ) => {
+						contents.push(
+							{ role: 'model', parts: answer.parts },
+							{ role: 'user', parts: results }
+						);
+					},
+				},
+				{ onEvent, read }
+			);
 		},
 	};
 }

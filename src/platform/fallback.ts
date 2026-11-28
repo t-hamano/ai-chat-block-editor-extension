@@ -7,19 +7,13 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import type { AiChatRequest, AiEditResult, AiMessage, AiPlatform } from '.';
-import { EDIT_TOOL, describeApplied, toEdit } from './anthropic';
-import { checkRequestLimit, endToolRequest, needsReply, trackRequestText } from './answer-text';
-import { READ_TOOLS, runRead } from './read-tools';
-
-/**
- * How many failed edits the model may try again in one answer.
- */
-const MAX_FAILED_EDITS = 3;
+import type { AiChatRequest, AiMessage, AiPlatform } from '.';
+import { READ_TOOLS } from './read-tools';
+import { EDIT_TOOL, describeApplied, runToolLoop } from './tools';
 
 /**
  * The edit tool, as a function declaration of the AI Client. It is made
- * from the Anthropic tool, so every provider gets the same tool.
+ * from the shared tool, so every provider gets the same tool.
  */
 export const FALLBACK_EDIT_TOOL = {
 	name: EDIT_TOOL.name,
@@ -162,59 +156,6 @@ export function readFallbackAnswer(
 }
 
 /**
- * Applies the edits the model asked for, runs its reads, and builds the
- * responses to send back.
- *
- * @param calls   The function call parts.
- * @param onEvent Applies each edit.
- * @param read    Reads the document.
- * @return The responses, how many calls failed, and whether a response
- *         must go back to the model.
- */
-function runTools(
-	calls: FallbackPart[],
-	onEvent: AiChatRequest[ 'onEvent' ],
-	read: AiChatRequest[ 'read' ]
-) {
-	let failures = 0;
-	let replied = false;
-	const results = calls.map( ( part ): FallbackPart => {
-		const call = part.functionCall ?? {};
-		const found = runRead( call.name, call.args, read );
-		if ( found ) {
-			replied = true;
-			if ( found.status === 'failed' ) {
-				failures++;
-			}
-			const response = found.status === 'failed' ? found.reason : found.content;
-			return { functionResponse: { id: call.id, name: call.name, response } };
-		}
-		const edit = call.name === EDIT_TOOL.name ? toEdit( call.args ) : null;
-		let result: AiEditResult;
-		if ( ! edit ) {
-			result = {
-				status: 'failed',
-				reason: `Call ${ EDIT_TOOL.name } with arguments that match its parameters.`,
-			};
-		} else {
-			result = onEvent( { type: 'edit', edit } ) ?? { status: 'dropped' };
-		}
-		replied ||= needsReply( result );
-		let text: string;
-		if ( result.status === 'failed' ) {
-			failures++;
-			text = result.reason;
-		} else if ( result.status === 'applied' ) {
-			text = describeApplied( result.refs, result.autoFix );
-		} else {
-			text = 'The selected blocks no longer exist, so the edit was not applied.';
-		}
-		return { functionResponse: { id: call.id, name: call.name, response: text } };
-	} );
-	return { results, failures, replied };
-}
-
-/**
  * Connects the AI assistant to whichever provider the AI Client in
  * WordPress has set up, through the plugin's fallback route. The AI Client
  * adds the key on the server.
@@ -232,57 +173,58 @@ export function createFallbackPlatform(
 	models: [ string, string ][] = []
 ): AiPlatform {
 	return {
-		async chat( { system, messages, onEvent, read, signal } ) {
+		chat( { system, messages, onEvent, read, signal } ) {
 			const conversation = toFallbackMessages( messages );
-			const answerText = trackRequestText( onEvent );
-			let failures = 0;
-			let requests = 0;
-			for (;;) {
-				let answer: FallbackAnswer;
-				try {
-					answer = await apiFetch< FallbackAnswer >( {
-						path: '/blocktune/v1/fallback',
-						method: 'POST',
-						data: {
-							post_id: getPostId(),
-							system,
-							messages: conversation,
-							tools: [ FALLBACK_EDIT_TOOL, ...FALLBACK_READ_TOOLS ],
-							models,
-						},
-						signal,
-					} );
-				} catch ( error ) {
-					if ( ( error as Error )?.name === 'AbortError' ) {
-						throw error;
-					}
-					// apiFetch rejects with the parsed error, `{ code, message }`.
-					const message = ( error as { message?: unknown } )?.message;
-					throw new Error(
-						typeof message === 'string' && message
-							? message
-							: __( 'The answer could not be loaded.', 'blocktune' )
-					);
-				}
-
-				const calls = readFallbackAnswer( answer, answerText.onEvent );
-				const text = answerText.take();
-				if ( ! calls.length ) {
-					return;
-				}
-				const tools = runTools( calls, onEvent, read );
-				if ( endToolRequest( text, tools.replied, onEvent ) ) {
-					return;
-				}
-				failures += tools.failures;
-				if ( failures > MAX_FAILED_EDITS ) {
-					throw new Error( __( 'The edit could not be made.', 'blocktune' ) );
-				}
-				checkRequestLimit( ++requests );
-				// The model's message goes back unchanged, with its reasoning, so
-				// the model goes on from where it stopped.
-				conversation.push( answer.message, { role: 'user', parts: tools.results } );
-			}
+			return runToolLoop(
+				{
+					readAnswer: async ( onAnswerEvent ) => {
+						let answer: FallbackAnswer;
+						try {
+							answer = await apiFetch< FallbackAnswer >( {
+								path: '/blocktune/v1/fallback',
+								method: 'POST',
+								data: {
+									post_id: getPostId(),
+									system,
+									messages: conversation,
+									tools: [ FALLBACK_EDIT_TOOL, ...FALLBACK_READ_TOOLS ],
+									models,
+								},
+								signal,
+							} );
+						} catch ( error ) {
+							if ( ( error as Error )?.name === 'AbortError' ) {
+								throw error;
+							}
+							// apiFetch rejects with the parsed error, `{ code, message }`.
+							const message = ( error as { message?: unknown } )?.message;
+							throw new Error(
+								typeof message === 'string' && message
+									? message
+									: __( 'The answer could not be loaded.', 'blocktune' )
+							);
+						}
+						const calls = readFallbackAnswer( answer, onAnswerEvent );
+						return { message: answer.message, calls };
+					},
+					getCalls: ( { calls } ) =>
+						calls.length
+							? calls.map( ( part ) => {
+									const call = part.functionCall ?? {};
+									return { id: call.id, name: call.name, input: call.args };
+								} )
+							: null,
+					toResult: ( call, { text } ): FallbackPart => ( {
+						functionResponse: { id: call.id, name: call.name, response: text },
+					} ),
+					// The model's message goes back unchanged, with its reasoning, so
+					// the model goes on from where it stopped.
+					append: ( answer, results ) => {
+						conversation.push( answer.message, { role: 'user', parts: results } );
+					},
+				},
+				{ onEvent, read }
+			);
 		},
 	};
 }
