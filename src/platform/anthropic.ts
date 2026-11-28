@@ -6,9 +6,9 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import type { AiChatRequest, AiEdit, AiEditResult, AiMessage, AiPlatform, AiUsage } from '.';
-import { checkRequestLimit, endToolRequest, needsReply, trackRequestText } from './answer-text';
-import { READ_TOOLS, getToolActivity, runRead } from './read-tools';
+import type { AiChatRequest, AiMessage, AiPlatform, AiUsage } from '.';
+import { READ_TOOLS, getToolActivity } from './read-tools';
+import { EDIT_TOOL, describeApplied, readErrorMessage, runToolLoop } from './tools';
 import { connectionLost, requestAnswer, type AnswerEvent } from './transport';
 
 /**
@@ -22,82 +22,11 @@ export const ANTHROPIC_MODEL = 'claude-sonnet-5-5';
 const MAX_TOKENS = 64000;
 
 /**
- * How many failed edits the model may try again in one answer.
- */
-const MAX_FAILED_EDITS = 3;
-
-/**
- * The tool the model edits the document with.
- */
-export const EDIT_TOOL = {
-	name: 'edit_blocks',
-	description: [
-		'Edits the document in the block editor. Call it once for each change.',
-		'"replace" replaces the selected blocks with the markup. "insert_after" without "ref" inserts the markup after the selected blocks, or at the end of the document when nothing is selected.',
-		'With "ref", the reference ID of a block in the document, "replace_block" replaces that block, inner blocks included, "insert_before" and "insert_after" insert the markup before or after it, and "delete_block" removes it. "append" adds the markup to the end of the document.',
-		'"replace_text" replaces the "find" text, which must appear only once in the document, with the markup, for small changes such as a word or a sentence.',
-	].join( ' ' ),
-	// Long markup arrives as it is written, instead of all at once at the end.
-	eager_input_streaming: true,
-	input_schema: {
-		type: 'object',
-		properties: {
-			action: {
-				type: 'string',
-				enum: [
-					'replace',
-					'insert_after',
-					'replace_block',
-					'insert_before',
-					'delete_block',
-					'append',
-					'replace_text',
-				],
-			},
-			ref: {
-				type: 'string',
-				description:
-					'The reference ID of the block to edit, such as "b12", from the <!-- ref:b12 --> before it.',
-			},
-			find: {
-				type: 'string',
-				description:
-					'For "replace_text", the markup to replace, copied exactly from the document. It may be text inside a block, or whole blocks.',
-			},
-			markup: {
-				type: 'string',
-				description:
-					'The new content, as block markup. For "replace_text", what replaces "find". Empty for "delete_block".',
-			},
-		},
-		required: [ 'action' ],
-	},
-};
-
-/**
  * A content block of a message, as Anthropic's Messages API has it.
  */
 type ContentBlock = { type: string; [ key: string ]: unknown };
 
 type AnthropicMessage = { role: 'user' | 'assistant'; content: ContentBlock[] };
-
-const APPLIED = 'The edit was applied.';
-
-/**
- * Tells the model its edit was applied, and the reference IDs of the blocks
- * it added, so it can edit them again, and what was fixed in its markup, so
- * it does not write it the same way again.
- *
- * @param refs    The reference IDs of the added blocks.
- * @param autoFix What the automatic fix changed.
- * @return The result.
- */
-export function describeApplied( refs: string[] | undefined, autoFix?: string ): string {
-	const applied = refs?.length
-		? `${ APPLIED } The reference IDs of the new blocks are ${ refs.join( ', ' ) }.`
-		: APPLIED;
-	return autoFix ? `${ applied }\n\n${ autoFix }` : applied;
-}
 
 /**
  * Converts the conversation into Anthropic's messages.
@@ -181,59 +110,6 @@ export function buildAnthropicBody(
 		tools: [ EDIT_TOOL, ...READ_TOOLS ],
 		messages,
 	};
-}
-
-/**
- * Reads the edit from the input of an `edit_blocks` call.
- *
- * @param input The input.
- * @return The edit, or `null` when the input does not match the tool.
- */
-export function toEdit( input: unknown ): AiEdit | null {
-	const { action, markup = '', ref, find } = ( input ?? {} ) as Record< string, unknown >;
-	if ( typeof markup !== 'string' || ( ref !== undefined && typeof ref !== 'string' ) ) {
-		return null;
-	}
-	switch ( action ) {
-		case 'replace':
-		case 'append':
-			return markup ? { action, markup } : null;
-		case 'insert_after':
-			if ( ! markup ) {
-				return null;
-			}
-			return ref ? { action, ref, markup } : { action, markup };
-		case 'replace_block':
-		case 'insert_before':
-			return ref && markup ? { action, ref, markup } : null;
-		case 'delete_block':
-			return ref ? { action, ref, markup: '' } : null;
-		case 'replace_text':
-			// An empty markup removes the text.
-			return typeof find === 'string' && find ? { action, find, markup } : null;
-	}
-	return null;
-}
-
-/**
- * Finds a readable message in an error response from the relay or from
- * Anthropic, or from OpenAI, which answers errors in the same shape.
- *
- * @param response The error response.
- * @return The message.
- */
-export async function readErrorMessage( response: Response ): Promise< string > {
-	try {
-		const body = await response.json();
-		// Anthropic: `{ type: 'error', error: { message } }`. WordPress: `{ code, message }`.
-		const message = body?.error?.message ?? body?.message;
-		if ( typeof message === 'string' && message ) {
-			return message;
-		}
-	} catch {
-		// Not JSON, so fall through to the status.
-	}
-	return `${ response.status } ${ response.statusText }`.trim();
 }
 
 /**
@@ -411,64 +287,10 @@ export function toAnthropicEvents( answer: any ): AnswerEvent[] {
 }
 
 /**
- * Applies the edits the model asked for, runs its reads, and builds the
- * results to send back.
- *
- * @param answer  The answer.
- * @param onEvent Applies each edit.
- * @param read    Reads the document.
- * @return The results, how many calls failed, and whether a result must
- *         go back to the model.
+ * What the model is told when its call of the edit tool does not match the
+ * tool.
  */
-function runTools(
-	answer: AnthropicAnswer,
-	onEvent: AiChatRequest[ 'onEvent' ],
-	read: AiChatRequest[ 'read' ]
-) {
-	let failures = 0;
-	let replied = false;
-	const results = answer.content
-		.filter( ( block ) => block.type === 'tool_use' )
-		.map( ( block ) => {
-			const id = block.id as string;
-			const invalid = answer.invalidInputs.get( id );
-			const found = invalid === undefined ? runRead( block.name, block.input, read ) : null;
-			if ( found ) {
-				replied = true;
-				if ( found.status === 'failed' ) {
-					failures++;
-					return { type: 'tool_result', tool_use_id: id, is_error: true, content: found.reason };
-				}
-				return { type: 'tool_result', tool_use_id: id, content: found.content };
-			}
-			const edit = block.name === EDIT_TOOL.name ? toEdit( block.input ) : null;
-			let result: AiEditResult;
-			if ( invalid !== undefined ) {
-				result = { status: 'failed', reason: JSON.stringify( { INVALID_JSON: invalid } ) };
-			} else if ( ! edit ) {
-				result = {
-					status: 'failed',
-					reason: `Call ${ EDIT_TOOL.name } with "action" set to one of ${ EDIT_TOOL.input_schema.properties.action.enum.join( ', ' ) }, "markup" set to block markup, for "replace_block", "insert_before", and "delete_block", "ref" set to the reference ID of a block, and for "replace_text", "find" set to the text to replace.`,
-				};
-			} else {
-				result = onEvent( { type: 'edit', edit } ) ?? { status: 'dropped' };
-			}
-			replied ||= needsReply( result );
-			if ( result.status === 'failed' ) {
-				failures++;
-				return { type: 'tool_result', tool_use_id: id, is_error: true, content: result.reason };
-			}
-			return {
-				type: 'tool_result',
-				tool_use_id: id,
-				content:
-					result.status === 'applied'
-						? describeApplied( result.refs, result.autoFix )
-						: 'The selected blocks no longer exist, so the edit was not applied.',
-			};
-		} );
-	return { results, failures, replied };
-}
+const INVALID_EDIT = `Call ${ EDIT_TOOL.name } with "action" set to one of ${ EDIT_TOOL.input_schema.properties.action.enum.join( ', ' ) }, "markup" set to block markup, for "replace_block", "insert_before", and "delete_block", "ref" set to the reference ID of a block, and for "replace_text", "find" set to the text to replace.`;
 
 /**
  * Connects the AI assistant to Anthropic through the plugin's relay, which
@@ -483,43 +305,54 @@ export function createAnthropicPlatform(
 	model = ANTHROPIC_MODEL
 ): AiPlatform {
 	return {
-		async chat( { system, messages, onEvent, read, signal } ) {
+		chat( { system, messages, onEvent, read, signal } ) {
 			const conversation = toAnthropicMessages( messages );
-			const answerText = trackRequestText( onEvent );
-			let failures = 0;
-			let requests = 0;
-			for (;;) {
-				const answer = await readAnthropicStream(
-					requestAnswer( {
-						provider: 'anthropic',
-						postId: getPostId(),
-						body: buildAnthropicBody( system, conversation, model ),
-						signal,
-						readError: readErrorMessage,
-						toEvents: toAnthropicEvents,
+			return runToolLoop(
+				{
+					readAnswer: ( onAnswerEvent ) =>
+						readAnthropicStream(
+							requestAnswer( {
+								provider: 'anthropic',
+								postId: getPostId(),
+								body: buildAnthropicBody( system, conversation, model ),
+								signal,
+								readError: readErrorMessage,
+								toEvents: toAnthropicEvents,
+							} ),
+							onAnswerEvent
+						),
+					getCalls: ( answer ) =>
+						answer.stopReason === 'tool_use'
+							? answer.content
+									.filter( ( block ) => block.type === 'tool_use' )
+									.map( ( block ) => {
+										const invalid = answer.invalidInputs.get( block.id as string );
+										return {
+											id: block.id as string,
+											name: block.name as string,
+											input: invalid ?? block.input,
+											invalid: invalid !== undefined,
+										};
+									} )
+							: null,
+					toResult: ( call, { text, failed } ) => ( {
+						type: 'tool_result',
+						tool_use_id: call.id,
+						...( failed ? { is_error: true } : {} ),
+						content: text,
 					} ),
-					answerText.onEvent
-				);
-				const text = answerText.take();
-				if ( answer.stopReason !== 'tool_use' ) {
-					return;
-				}
-				const tools = runTools( answer, onEvent, read );
-				if ( endToolRequest( text, tools.replied, onEvent ) ) {
-					return;
-				}
-				failures += tools.failures;
-				if ( failures > MAX_FAILED_EDITS ) {
-					throw new Error( __( 'The edit could not be made.', 'blocktune' ) );
-				}
-				checkRequestLimit( ++requests );
-				// The answer goes back unchanged, with its thinking, so the model
-				// goes on from where it stopped.
-				conversation.push(
-					{ role: 'assistant', content: answer.content },
-					{ role: 'user', content: tools.results }
-				);
-			}
+					// The answer goes back unchanged, with its thinking, so the model
+					// goes on from where it stopped.
+					append: ( answer, results ) => {
+						conversation.push(
+							{ role: 'assistant', content: answer.content },
+							{ role: 'user', content: results }
+						);
+					},
+					invalidEdit: INVALID_EDIT,
+				},
+				{ onEvent, read }
+			);
 		},
 	};
 }

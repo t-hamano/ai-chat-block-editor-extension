@@ -14,15 +14,14 @@ import apiFetch from '@wordpress/api-fetch';
 import type { AiStreamEvent } from '..';
 import {
 	ANTHROPIC_MODEL,
-	EDIT_TOOL,
 	buildAnthropicBody,
 	createAnthropicPlatform,
 	readAnthropicStream,
 	toAnthropicEvents,
 	toAnthropicMessages,
-	toEdit,
 } from '../anthropic';
 import { READ_TOOLS } from '../read-tools';
+import { EDIT_TOOL } from '../tools';
 import { readEvents } from '../transport';
 import { streamBody } from './stream-body';
 
@@ -56,27 +55,6 @@ describe( 'buildAnthropicBody', () => {
 			tools: [ EDIT_TOOL, ...READ_TOOLS ],
 			messages,
 		} );
-	} );
-} );
-
-describe( 'toEdit', () => {
-	it( 'reads a text replacement, which may remove the text', () => {
-		expect( toEdit( { action: 'replace_text', find: 'old', markup: 'new' } ) ).toEqual( {
-			action: 'replace_text',
-			find: 'old',
-			markup: 'new',
-		} );
-		expect( toEdit( { action: 'replace_text', find: 'old' } ) ).toEqual( {
-			action: 'replace_text',
-			find: 'old',
-			markup: '',
-		} );
-	} );
-
-	it( 'needs the text to replace', () => {
-		expect( toEdit( { action: 'replace_text', markup: 'new' } ) ).toBeNull();
-		expect( toEdit( { action: 'replace_text', find: '', markup: 'new' } ) ).toBeNull();
-		expect( toEdit( { action: 'replace_text', find: 1, markup: 'new' } ) ).toBeNull();
 	} );
 } );
 

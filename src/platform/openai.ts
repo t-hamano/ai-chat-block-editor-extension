@@ -6,10 +6,9 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import type { AiChatRequest, AiEditResult, AiMessage, AiPlatform, AiUsage } from '.';
-import { EDIT_TOOL, describeApplied, readErrorMessage, toEdit } from './anthropic';
-import { checkRequestLimit, endToolRequest, needsReply, trackRequestText } from './answer-text';
-import { READ_TOOLS, getToolActivity, runRead } from './read-tools';
+import type { AiChatRequest, AiMessage, AiPlatform, AiUsage } from '.';
+import { READ_TOOLS, getToolActivity } from './read-tools';
+import { EDIT_TOOL, describeApplied, readErrorMessage, runToolLoop } from './tools';
 import { connectionLost, requestAnswer, type AnswerEvent } from './transport';
 
 /**
@@ -23,13 +22,8 @@ export const OPENAI_MODEL = 'gpt-6.1-sol';
 const MAX_OUTPUT_TOKENS = 64000;
 
 /**
- * How many failed edits the model may try again in one answer.
- */
-const MAX_FAILED_EDITS = 3;
-
-/**
  * The edit tool, as a function of OpenAI's Responses API. It is made from
- * the Anthropic tool, so both providers always get the same tool.
+ * the shared tool, so every provider gets the same tool.
  */
 export const OPENAI_EDIT_TOOL = {
 	type: 'function',
@@ -241,70 +235,6 @@ export function toOpenAiEvents( answer: any ): AnswerEvent[] {
 }
 
 /**
- * Applies the edits the model asked for, runs its reads, and builds the
- * outputs to send back.
- *
- * @param answer  The answer.
- * @param onEvent Applies each edit.
- * @param read    Reads the document.
- * @return The outputs, how many calls failed, and whether an output must
- *         go back to the model.
- */
-function runTools(
-	answer: OpenAiAnswer,
-	onEvent: AiChatRequest[ 'onEvent' ],
-	read: AiChatRequest[ 'read' ]
-) {
-	let failures = 0;
-	let replied = false;
-	const results = answer.calls.map( ( call ) => {
-		let input: unknown;
-		let invalid = false;
-		try {
-			input = JSON.parse( call.arguments as string );
-		} catch {
-			invalid = true;
-		}
-		const found = invalid ? null : runRead( call.name, input, read );
-		if ( found ) {
-			replied = true;
-			if ( found.status === 'failed' ) {
-				failures++;
-			}
-			return {
-				type: 'function_call_output',
-				call_id: call.call_id,
-				output: found.status === 'failed' ? found.reason : found.content,
-			};
-		}
-		const edit = ! invalid && call.name === EDIT_TOOL.name ? toEdit( input ) : null;
-		let result: AiEditResult;
-		if ( invalid ) {
-			result = { status: 'failed', reason: JSON.stringify( { INVALID_JSON: call.arguments } ) };
-		} else if ( ! edit ) {
-			result = {
-				status: 'failed',
-				reason: `Call ${ EDIT_TOOL.name } with arguments that match its parameters.`,
-			};
-		} else {
-			result = onEvent( { type: 'edit', edit } ) ?? { status: 'dropped' };
-		}
-		replied ||= needsReply( result );
-		let text: string;
-		if ( result.status === 'failed' ) {
-			failures++;
-			text = result.reason;
-		} else if ( result.status === 'applied' ) {
-			text = describeApplied( result.refs, result.autoFix );
-		} else {
-			text = 'The selected blocks no longer exist, so the edit was not applied.';
-		}
-		return { type: 'function_call_output', call_id: call.call_id, output: text };
-	} );
-	return { results, failures, replied };
-}
-
-/**
  * Connects the AI assistant to OpenAI through the plugin's relay, which adds
  * the site's API key on the server.
  *
@@ -314,40 +244,54 @@ function runTools(
  */
 export function createOpenAiPlatform( getPostId: () => number, model = OPENAI_MODEL ): AiPlatform {
 	return {
-		async chat( { system, messages, onEvent, read, signal } ) {
+		chat( { system, messages, onEvent, read, signal } ) {
 			const input = toOpenAiInput( messages );
-			const answerText = trackRequestText( onEvent );
-			let failures = 0;
-			let requests = 0;
-			for (;;) {
-				const answer = await readOpenAiStream(
-					requestAnswer( {
-						provider: 'openai',
-						postId: getPostId(),
-						body: buildOpenAiBody( system, input, model ),
-						signal,
-						readError: readErrorMessage,
-						toEvents: toOpenAiEvents,
+			return runToolLoop(
+				{
+					readAnswer: ( onAnswerEvent ) =>
+						readOpenAiStream(
+							requestAnswer( {
+								provider: 'openai',
+								postId: getPostId(),
+								body: buildOpenAiBody( system, input, model ),
+								signal,
+								readError: readErrorMessage,
+								toEvents: toOpenAiEvents,
+							} ),
+							onAnswerEvent
+						),
+					getCalls: ( answer ) =>
+						answer.calls.length
+							? answer.calls.map( ( call ) => {
+									try {
+										return {
+											id: call.call_id as string,
+											name: call.name as string,
+											input: JSON.parse( call.arguments as string ),
+										};
+									} catch {
+										return {
+											id: call.call_id as string,
+											name: call.name as string,
+											input: call.arguments,
+											invalid: true,
+										};
+									}
+								} )
+							: null,
+					toResult: ( call, { text } ) => ( {
+						type: 'function_call_output',
+						call_id: call.id,
+						output: text,
 					} ),
-					answerText.onEvent
-				);
-				const text = answerText.take();
-				if ( ! answer.calls.length ) {
-					return;
-				}
-				const tools = runTools( answer, onEvent, read );
-				if ( endToolRequest( text, tools.replied, onEvent ) ) {
-					return;
-				}
-				failures += tools.failures;
-				if ( failures > MAX_FAILED_EDITS ) {
-					throw new Error( __( 'The edit could not be made.', 'blocktune' ) );
-				}
-				checkRequestLimit( ++requests );
-				// The output goes back unchanged, with its reasoning, so the model
-				// goes on from where it stopped.
-				input.push( ...answer.output, ...tools.results );
-			}
+					// The output goes back unchanged, with its reasoning, so the model
+					// goes on from where it stopped.
+					append: ( answer, results ) => {
+						input.push( ...answer.output, ...results );
+					},
+				},
+				{ onEvent, read }
+			);
 		},
 	};
 }

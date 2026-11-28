@@ -12,7 +12,7 @@ import apiFetch from '@wordpress/api-fetch';
  * Internal dependencies
  */
 import type { AiStreamEvent } from '..';
-import { EDIT_TOOL } from '../anthropic';
+import { EDIT_TOOL } from '../tools';
 import {
 	GEMINI_EDIT_TOOL,
 	GEMINI_READ_TOOLS,
