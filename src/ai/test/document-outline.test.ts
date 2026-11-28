@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
  */
 import {
 	LONG_DOCUMENT,
+	OUTLINE_LENGTH,
 	formatOutline,
 	isLongDocument,
 	parseOutline,
@@ -75,6 +76,42 @@ describe( 'formatOutline', () => {
 				'b1 core/group',
 				`  b2 core/paragraph: ${ long.slice( 0, 80 ).trimEnd() }…`,
 				'b3 core/paragraph: Short.',
+				'</outline>',
+			].join( '\n' )
+		);
+	} );
+
+	it( 'shows less of the leading text when the outline is too long', () => {
+		const text = 'word '.repeat( 20 );
+		const count = Math.ceil( OUTLINE_LENGTH / 80 );
+		const blocks = Array.from( { length: count }, ( _, n ) => paragraph( `b${ n }`, text ) );
+		const outline = formatOutline( doc( ...blocks ), '' );
+		expect( outline ).toContain( `b0 core/paragraph: ${ text.slice( 0, 40 ).trimEnd() }…\n` );
+		expect( outline.length ).toBeLessThanOrEqual( OUTLINE_LENGTH + 40 );
+	} );
+
+	it( 'shows no leading text when even shorter text is too long', () => {
+		const count = Math.ceil( OUTLINE_LENGTH / 40 );
+		const blocks = Array.from( { length: count }, ( _, n ) =>
+			paragraph( `b${ n }`, 'word '.repeat( 20 ) )
+		);
+		const outline = formatOutline( doc( ...blocks ), '' );
+		expect( outline ).toContain( '\nb0 core/paragraph\nb1 core/paragraph\n' );
+		expect( outline.length ).toBeLessThanOrEqual( OUTLINE_LENGTH + 40 );
+	} );
+
+	it( 'shows only the top-level blocks when the nested ones are too many', () => {
+		const count = Math.ceil( OUTLINE_LENGTH / 20 );
+		const nested = Array.from( { length: count }, ( _, n ) => paragraph( `c${ n }`, 'Text.' ) );
+		const outline = formatOutline(
+			doc( paragraph( 'b1', 'Intro.' ), group( 'b2', ...nested ) ),
+			''
+		);
+		expect( outline ).toBe(
+			[
+				'<outline>',
+				'b1 core/paragraph',
+				`b2 core/group (${ count } nested blocks)`,
 				'</outline>',
 			].join( '\n' )
 		);
