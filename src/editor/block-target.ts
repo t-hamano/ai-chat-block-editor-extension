@@ -420,14 +420,10 @@ export function createBlockTarget(
 			if ( ! canRemoveBlocks( [ clientId ] ) ) {
 				return failed( `The block "${ ref }" is locked, so it cannot be removed.` );
 			}
-			dispatch( blockEditorStore ).removeBlocks( [ clientId ], false );
-			// The editor can ask the user to confirm the removal first, as for
-			// the Post Content block in a template, and keep the block until then.
-			if ( getBlock( clientId ) ) {
-				return failed(
-					`The editor asked the user to confirm the removal of the block "${ ref }", since removing it can make content disappear, so the block was not removed yet. Tell the user that the block is removed only if they confirm it in the dialog.`
-				);
-			}
+			// Replaced with nothing, since `removeBlocks` keeps some blocks,
+			// such as Post Content in a template, until the user confirms the
+			// removal in a dialog. The user can undo the edit instead.
+			dispatch( blockEditorStore ).replaceBlocks( [ clientId ], [] );
 			clientIds = clientIds.filter( ( id ) => id !== clientId );
 			return { status: 'applied', refs: [] };
 		}

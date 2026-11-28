@@ -520,8 +520,8 @@ describe( 'createBlockTarget', () => {
 			expect( select( blockEditorStore ).getBlock( id ) ).not.toBeNull();
 		} );
 
-		it( 'does not report a block as removed while the user is asked to confirm it', () => {
-			const [ first ] = setUp( 'One', 'Two' );
+		it( 'removes a block that the editor would ask the user to confirm the removal of', () => {
+			const [ first, second ] = setUp( 'One', 'Two' );
 			// The editor keeps the block and asks the user, as it does for the
 			// Post Content block in a template.
 			const removeBlocks = vi
@@ -531,11 +531,8 @@ describe( 'createBlockTarget', () => {
 			try {
 				expect(
 					createBlockTarget().apply( { action: 'delete_block', ref: getRef( first ), markup: '' } )
-				).toEqual( {
-					status: 'failed',
-					reason: expect.stringContaining( 'asked the user to confirm the removal' ),
-				} );
-				expect( removeBlocks ).toHaveBeenCalled();
+				).toEqual( { status: 'applied', refs: [] } );
+				expect( select( blockEditorStore ).getBlockOrder() ).toEqual( [ second ] );
 			} finally {
 				removeBlocks.mockRestore();
 			}
