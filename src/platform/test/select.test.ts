@@ -77,7 +77,10 @@ describe( 'chooseModel', () => {
 
 	it( 'chooses another model that can chat when the recommended ones were retired', () => {
 		expect(
-			chooseModel( openai, list( 'gpt-4.1', 'text-embedding-3-large', 'gpt-image-2', 'gpt-7' ) )
+			chooseModel(
+				openai,
+				list( 'gpt-4.1', 'text-embedding-3-large', 'gpt-image-2', 'gpt-7-chat-latest', 'gpt-7' )
+			)
 		).toBe( 'gpt-7' );
 		expect( chooseModel( anthropic, list( 'claude-3-opus', 'claude-sonnet-6' ) ) ).toBe(
 			'claude-sonnet-6'

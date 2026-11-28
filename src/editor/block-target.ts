@@ -21,6 +21,8 @@ import { getClientIdByRef, getRef, serializeWithRefs, stripRefs } from './block-
 import { locateText } from './locate-text';
 import { findProtectedChange, isSameBlock } from './protected-attributes';
 import { collectUnsafeHtml } from './unsafe-html';
+import type { SeenBlocks } from './seen-blocks';
+import { createSeenBlocks } from './seen-blocks';
 import { collectHtml, validateMarkup } from './validate-markup';
 
 /**
@@ -99,9 +101,11 @@ function collectAttributeChanges(
  *
  * Each edit is one undo step.
  *
+ * @param seen The blocks as the model saw them, when another target shares
+ *             them.
  * @return The edit target.
  */
-export function createBlockTarget(): EditTarget {
+export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): EditTarget {
 	const editor = () => select( blockEditorStore );
 	// The blocks the edits are for. A replacement takes their place.
 	let clientIds = editor().getSelectedBlockClientIds();
@@ -149,11 +153,82 @@ export function createBlockTarget(): EditTarget {
 		return blocks;
 	}
 
+	/**
+	 * Checks that the blocks can go where they are inserted, and that each
+	 * of their inner blocks can go inside its parent.
+	 *
+	 * The store only checks blocks whose parent is already in the document,
+	 * so the inner blocks are checked with the same rules from block.json.
+	 *
+	 * @param blocks       The new blocks.
+	 * @param rootClientId The parent the blocks are inserted into.
+	 * @return Why a block cannot be inserted, or `null`.
+	 */
 	function canInsert( blocks: Block[], rootClientId: string | undefined ): string | null {
-		const notAllowed = blocks.find(
-			( block ) => ! editor().canInsertBlockType( block.name, rootClientId )
-		);
-		return notAllowed ? explainNotAllowed( notAllowed.name, rootClientId ) : null;
+		const { canInsertBlockType, getBlockName, getBlockParents } = editor();
+		const rootName = rootClientId ? getBlockName( rootClientId ) : null;
+		const notAllowed = blocks.find( ( block ) => ! canInsertBlockType( block.name, rootClientId ) );
+		if ( notAllowed ) {
+			return explainNotAllowed( notAllowed.name, rootName );
+		}
+		// The names of the blocks around the new blocks, nearest first.
+		const ancestors = rootClientId
+			? [ rootClientId, ...getBlockParents( rootClientId, true ) ]
+					.map( ( id ) => getBlockName( id ) )
+					.filter( ( name ) => name !== null )
+			: [];
+		for ( const block of blocks ) {
+			const reason = canInsertInner( block, [ block.name, ...ancestors ] );
+			if ( reason ) {
+				return reason;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Checks that each inner block of a new block can go inside it, with
+	 * the rules the store uses for blocks in the document.
+	 *
+	 * @param block     The new block.
+	 * @param ancestors The names of the block and the blocks around it, nearest first.
+	 * @return Why an inner block cannot go inside its parent, or `null`.
+	 */
+	function canInsertInner( block: Block, ancestors: string[] ): string | null {
+		const { allowedBlockTypes } = editor().getSettings();
+		const parentType = getBlockType( block.name );
+		// Blocks can also limit their inner blocks with an attribute.
+		const parentAllowed: unknown = block.attributes.allowedBlocks ?? parentType?.allowedBlocks;
+		for ( const inner of block.innerBlocks ) {
+			const type = getBlockType( inner.name );
+			const isAllowedType = Array.isArray( allowedBlockTypes )
+				? allowedBlockTypes.includes( inner.name )
+				: allowedBlockTypes !== false;
+			const isAllowedByParent = Array.isArray( parentAllowed )
+				? parentAllowed.includes( inner.name )
+				: null;
+			const isAllowedParent = type?.parent?.length ? type.parent.includes( block.name ) : null;
+			const hasAllowedAncestor =
+				! type?.ancestor?.length || ancestors.some( ( name ) => type.ancestor?.includes( name ) );
+			const isAllowed =
+				!! type &&
+				isAllowedType &&
+				hasAllowedAncestor &&
+				( ( isAllowedByParent === null && isAllowedParent === null ) ||
+					isAllowedByParent === true ||
+					isAllowedParent === true );
+			if ( ! isAllowed ) {
+				return explainNotAllowed( inner.name, block.name, {
+					isInner: true,
+					allowedBlocks: parentAllowed,
+				} );
+			}
+			const reason = canInsertInner( inner, [ inner.name, ...ancestors ] );
+			if ( reason ) {
+				return reason;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -161,13 +236,27 @@ export function createBlockTarget(): EditTarget {
 	 * can go from its block.json and the block.json of the parent, so that
 	 * the model can find a place it can go.
 	 *
-	 * @param name         The name of the block.
-	 * @param rootClientId The parent the block was inserted into.
+	 * @param name                  The name of the block.
+	 * @param rootName              The name of the parent the block was inserted into.
+	 * @param options               Options.
+	 * @param options.isInner       Whether the block is an inner block of the new markup.
+	 * @param options.allowedBlocks The blocks the parent accepts, when not those of its block.json.
 	 * @return The explanation.
 	 */
-	function explainNotAllowed( name: string, rootClientId: string | undefined ): string {
+	function explainNotAllowed(
+		name: string,
+		rootName: string | null,
+		{
+			isInner = false,
+			allowedBlocks = rootName ? getBlockType( rootName )?.allowedBlocks : undefined,
+		}: { isInner?: boolean; allowedBlocks?: unknown } = {}
+	): string {
 		const quote = ( names: string[] ) => names.map( ( item ) => `"${ item }"` ).join( ' or ' );
-		const reasons = [ `The "${ name }" block is not allowed here.` ];
+		const reasons = [
+			isInner
+				? `The "${ name }" block is not allowed inside the "${ rootName }" block.`
+				: `The "${ name }" block is not allowed here.`,
+		];
 		const { parent, ancestor } = getBlockType( name ) ?? {};
 		if ( parent?.length ) {
 			reasons.push( `It can only be placed directly inside ${ quote( parent ) }.` );
@@ -175,9 +264,12 @@ export function createBlockTarget(): EditTarget {
 		if ( ancestor?.length ) {
 			reasons.push( `It can only be placed somewhere inside ${ quote( ancestor ) }.` );
 		}
-		const rootName = rootClientId ? editor().getBlockName( rootClientId ) : null;
-		const allowedBlocks = rootName ? getBlockType( rootName )?.allowedBlocks : undefined;
-		if ( rootName && allowedBlocks?.length && ! allowedBlocks.includes( name ) ) {
+		if (
+			rootName &&
+			Array.isArray( allowedBlocks ) &&
+			allowedBlocks.length &&
+			! allowedBlocks.includes( name )
+		) {
 			reasons.push(
 				`The parent "${ rootName }" block only accepts ${ quote( allowedBlocks ) } inside it.`
 			);
@@ -237,6 +329,25 @@ export function createBlockTarget(): EditTarget {
 	}
 
 	/**
+	 * Fails when the user changed one of the blocks, or their inner blocks,
+	 * since the model last saw them, so that the edit does not undo what the
+	 * user changed.
+	 *
+	 * @param ids The client IDs of the blocks.
+	 * @return Why the blocks cannot be edited now, or `null`.
+	 */
+	function checkUnchanged( ids: string[] ): AiEditResult | null {
+		const changed = seen.findChanged( ids );
+		if ( ! changed ) {
+			return null;
+		}
+		const ref = getRef( changed );
+		return failed(
+			`The user changed the block "${ ref }" after you last read it, so the edit was not applied, to keep what the user changed. Read the block again with "read_blocks", and edit it from what it is now.`
+		);
+	}
+
+	/**
 	 * Applies an edit of the block a reference ID points at.
 	 *
 	 * @param edit The edit.
@@ -250,6 +361,12 @@ export function createBlockTarget(): EditTarget {
 			return failed(
 				`There is no block with the reference ID "${ ref }" in the document. Use a reference ID from the latest document.`
 			);
+		}
+		if ( edit.action === 'delete_block' || edit.action === 'replace_block' ) {
+			const changed = checkUnchanged( [ clientId ] );
+			if ( changed ) {
+				return changed;
+			}
 		}
 		if ( edit.action === 'delete_block' ) {
 			if ( ! canRemoveBlocks( [ clientId ] ) ) {
@@ -391,6 +508,90 @@ export function createBlockTarget(): EditTarget {
 		return applied( blocks );
 	}
 
+	/**
+	 * Applies the model's edit.
+	 *
+	 * @param edit The edit.
+	 * @return What became of the edit.
+	 */
+	function applyEdit( edit: AiEdit ): AiEditResult {
+		if ( edit.action === 'replace_text' ) {
+			return replaceText( edit.find, edit.markup );
+		}
+		// `replace` and `append` do not point at a block, so a `ref` with them is ignored.
+		if ( edit.action !== 'replace' && edit.action !== 'append' && edit.ref !== undefined ) {
+			return applyToRef( edit, edit.ref );
+		}
+		if ( edit.action !== 'replace' && edit.action !== 'insert_after' && edit.action !== 'append' ) {
+			return failed( `The "${ edit.action }" action needs the "ref" of a block.` );
+		}
+
+		const { getBlock, getBlockIndex, getBlockRootClientId, getBlocksByClientId } = editor();
+		const isAppend = edit.action === 'append';
+		if ( ! isAppend && clientIds.some( ( clientId ) => ! getBlock( clientId ) ) ) {
+			return { status: 'dropped' };
+		}
+		if ( anchor && ! getBlock( anchor ) ) {
+			anchor = clientIds[ clientIds.length - 1 ];
+		}
+
+		const blocks = readBlocks( edit.markup );
+		if ( typeof blocks === 'string' ) {
+			return failed( blocks );
+		}
+
+		const isReplace = edit.action === 'replace';
+		if ( isReplace && ! clientIds.length ) {
+			return failed(
+				'Nothing is selected, so there is nothing to replace. Use "replace_block" with the reference ID of the block to replace, or "append" to add blocks to the end of the document.'
+			);
+		}
+		const changed = isReplace && checkUnchanged( clientIds );
+		if ( changed ) {
+			return changed;
+		}
+		const replaced = isReplace
+			? getBlocksByClientId( clientIds ).filter( ( block ) => block !== null )
+			: [];
+		const protectedChange = findProtectedChange( replaced, blocks );
+		if ( protectedChange ) {
+			return failed( protectedChange );
+		}
+		if ( isReplace && hasSameStructure( replaced, blocks ) ) {
+			return updateInPlace( replaced, blocks );
+		}
+		const notReplaceable = isReplace && checkReplaceable( clientIds );
+		if ( notReplaceable ) {
+			return notReplaceable;
+		}
+		const rootClientId =
+			anchor && ! isAppend ? ( getBlockRootClientId( anchor ) ?? undefined ) : undefined;
+		const notAllowed = canInsert( blocks, rootClientId );
+		if ( notAllowed ) {
+			return failed( notAllowed );
+		}
+
+		const actions = dispatch( blockEditorStore );
+		const last = blocks[ blocks.length - 1 ].clientId;
+		if ( isAppend ) {
+			actions.insertBlocks( blocks, undefined, undefined, false );
+		} else if ( isReplace ) {
+			if ( ! anchor || clientIds.includes( anchor ) ) {
+				anchor = last;
+			}
+			// The new blocks are selected, without taking the focus from the chat.
+			actions.replaceBlocks( clientIds, blocks, undefined, null );
+			clientIds = blocks.map( ( block ) => block.clientId );
+		} else {
+			// Without an anchor, the blocks go to the end of the document.
+			const index = anchor ? getBlockIndex( anchor ) + 1 : undefined;
+			// Keep the selection, and the focus in the chat.
+			actions.insertBlocks( blocks, index, rootClientId, false );
+			anchor = last;
+		}
+		return applied( blocks );
+	}
+
 	return {
 		getContext: () => ( {
 			document: getDocument(),
@@ -401,82 +602,7 @@ export function createBlockTarget(): EditTarget {
 			),
 		} ),
 		getDocument,
-		apply( edit ) {
-			if ( edit.action === 'replace_text' ) {
-				return replaceText( edit.find, edit.markup );
-			}
-			// `replace` and `append` do not point at a block, so a `ref` with them is ignored.
-			if ( edit.action !== 'replace' && edit.action !== 'append' && edit.ref !== undefined ) {
-				return applyToRef( edit, edit.ref );
-			}
-			if (
-				edit.action !== 'replace' &&
-				edit.action !== 'insert_after' &&
-				edit.action !== 'append'
-			) {
-				return failed( `The "${ edit.action }" action needs the "ref" of a block.` );
-			}
-
-			const { getBlock, getBlockIndex, getBlockRootClientId, getBlocksByClientId } = editor();
-			const isAppend = edit.action === 'append';
-			if ( ! isAppend && clientIds.some( ( clientId ) => ! getBlock( clientId ) ) ) {
-				return { status: 'dropped' };
-			}
-			if ( anchor && ! getBlock( anchor ) ) {
-				anchor = clientIds[ clientIds.length - 1 ];
-			}
-
-			const blocks = readBlocks( edit.markup );
-			if ( typeof blocks === 'string' ) {
-				return failed( blocks );
-			}
-
-			const isReplace = edit.action === 'replace';
-			if ( isReplace && ! clientIds.length ) {
-				return failed(
-					'Nothing is selected, so there is nothing to replace. Use "replace_block" with the reference ID of the block to replace, or "append" to add blocks to the end of the document.'
-				);
-			}
-			const replaced = isReplace
-				? getBlocksByClientId( clientIds ).filter( ( block ) => block !== null )
-				: [];
-			const protectedChange = findProtectedChange( replaced, blocks );
-			if ( protectedChange ) {
-				return failed( protectedChange );
-			}
-			if ( isReplace && hasSameStructure( replaced, blocks ) ) {
-				return updateInPlace( replaced, blocks );
-			}
-			const notReplaceable = isReplace && checkReplaceable( clientIds );
-			if ( notReplaceable ) {
-				return notReplaceable;
-			}
-			const rootClientId =
-				anchor && ! isAppend ? ( getBlockRootClientId( anchor ) ?? undefined ) : undefined;
-			const notAllowed = canInsert( blocks, rootClientId );
-			if ( notAllowed ) {
-				return failed( notAllowed );
-			}
-
-			const actions = dispatch( blockEditorStore );
-			const last = blocks[ blocks.length - 1 ].clientId;
-			if ( isAppend ) {
-				actions.insertBlocks( blocks, undefined, undefined, false );
-			} else if ( isReplace ) {
-				if ( ! anchor || clientIds.includes( anchor ) ) {
-					anchor = last;
-				}
-				// The new blocks are selected, without taking the focus from the chat.
-				actions.replaceBlocks( clientIds, blocks, undefined, null );
-				clientIds = blocks.map( ( block ) => block.clientId );
-			} else {
-				// Without an anchor, the blocks go to the end of the document.
-				const index = anchor ? getBlockIndex( anchor ) + 1 : undefined;
-				// Keep the selection, and the focus in the chat.
-				actions.insertBlocks( blocks, index, rootClientId, false );
-				anchor = last;
-			}
-			return applied( blocks );
-		},
+		markRead: seen.markRead,
+		apply: ( edit ) => seen.track( () => applyEdit( edit ) ),
 	};
 }

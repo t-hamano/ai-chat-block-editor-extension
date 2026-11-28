@@ -67,10 +67,12 @@ export const PROVIDERS: Provider[] = [
 		name: 'OpenAI',
 		usageUrl: 'https://platform.openai.com/usage',
 		recommended: [ OPENAI_MODEL, 'gpt-6-sol', 'gpt-5' ],
-		// OpenAI also lists models for images, audio, and search.
+		// OpenAI also lists models for images, audio, and search, and the
+		// models ChatGPT uses, which cannot write as many tokens as the
+		// adapters ask for.
 		canChat: ( model ) =>
 			/^gpt-(?:[5-9]|\d{2,})/.test( model ) &&
-			! /image|audio|realtime|tts|transcribe|search/.test( model ),
+			! /image|audio|realtime|tts|transcribe|search|chat/.test( model ),
 		affordable: ( model ) => /-sol\b/.test( model ),
 		create: createOpenAiPlatform,
 	},

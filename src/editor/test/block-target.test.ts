@@ -78,6 +78,14 @@ beforeAll( () => {
 			createElement( RawHTML, { children: attributes.content as string } ),
 	} );
 	setFreeformContentHandlerName( 'core/freeform' );
+	registerBlockType( 'test/group', {
+		apiVersion: 3,
+		title: 'Group',
+		category: 'design',
+		attributes: {},
+		edit: () => null,
+		save: () => createElement( 'div', {}, createElement( InnerBlocks.Content ) ),
+	} );
 } );
 
 const classic = ( content: string ) => `<!-- wp:freeform -->\n${ content }\n<!-- /wp:freeform -->`;
@@ -276,6 +284,36 @@ describe( 'createBlockTarget', () => {
 				'The "test/paragraph" block is not allowed here. The parent "test/list" block only accepts "test/list-item" inside it.',
 		} );
 		expect( documentNow() ).toBe( before );
+	} );
+
+	it( 'checks where the inner blocks of the markup go', () => {
+		const [ first ] = setUp( 'One' );
+		const before = documentNow();
+		const target = createBlockTarget();
+		const group = ( inner: string ) =>
+			`<!-- wp:test/group -->\n<div>${ inner }</div>\n<!-- /wp:test/group -->`;
+		const list = ( inner: string ) =>
+			`<!-- wp:test/list -->\n<ul>${ inner }</ul>\n<!-- /wp:test/list -->`;
+		const item = '<!-- wp:test/list-item -->\n<li>Item</li>\n<!-- /wp:test/list-item -->';
+		const footnote = '<!-- wp:test/footnote -->\n<small></small>\n<!-- /wp:test/footnote -->';
+
+		const reasons = [ list( paragraph( 'New' ) ), group( item ), group( group( footnote ) ) ].map(
+			( markup ) => {
+				const result = target.apply( { action: 'replace_block', ref: getRef( first ), markup } );
+				return result.status === 'failed' ? result.reason : result.status;
+			}
+		);
+		expect( reasons ).toEqual( [
+			'The "test/paragraph" block is not allowed inside the "test/list" block. The parent "test/list" block only accepts "test/list-item" inside it.',
+			'The "test/list-item" block is not allowed inside the "test/group" block. It can only be placed directly inside "test/list".',
+			'The "test/footnote" block is not allowed inside the "test/group" block. It can only be placed somewhere inside "test/list".',
+		] );
+		expect( documentNow() ).toBe( before );
+
+		expect( target.apply( { action: 'append', markup: group( list( item ) ) } ) ).toMatchObject( {
+			status: 'applied',
+		} );
+		expect( documentNow() ).toBe( `${ before }\n\n${ group( list( item ) ) }` );
 	} );
 
 	it( 'strips reference IDs from the markup', () => {
@@ -674,6 +712,113 @@ describe( 'createBlockTarget', () => {
 				status: 'failed',
 				reason: expect.stringContaining( 'the "lock" attribute of a "test/list-item" block' ),
 			} );
+		} );
+	} );
+
+	describe( 'changes the user makes while the answer streams', () => {
+		const listItem = ( content: string ) =>
+			`<!-- wp:test/list-item -->\n<li>${ content }</li>\n<!-- /wp:test/list-item -->`;
+		const list = ( ...items: string[] ) =>
+			`<!-- wp:test/list -->\n<ul>${ items.map( listItem ).join( '' ) }</ul>\n<!-- /wp:test/list -->`;
+		const changedBy = ( clientId: string ) => ( {
+			status: 'failed',
+			reason: expect.stringContaining( `The user changed the block "${ getRef( clientId ) }"` ),
+		} );
+
+		it( 'does not replace a selected block the user changed, until the model reads it', () => {
+			const [ first ] = setUp( 'One' );
+			dispatch( blockEditorStore ).selectBlock( first );
+			const target = createBlockTarget();
+			dispatch( blockEditorStore ).updateBlockAttributes( first, { content: 'Mine' } );
+
+			expect( target.apply( { action: 'replace', markup: paragraph( 'New' ) } ) ).toEqual(
+				changedBy( first )
+			);
+			expect( documentNow() ).toBe( paragraph( 'Mine' ) );
+
+			target.markRead( [ getRef( first ) ] );
+			expect( target.apply( { action: 'replace', markup: paragraph( 'New' ) } ) ).toMatchObject( {
+				status: 'applied',
+			} );
+			expect( documentNow() ).toBe( paragraph( 'New' ) );
+		} );
+
+		it( 'does not replace or delete a block whose inner blocks the user changed', () => {
+			const item = createBlock( 'test/list-item', { content: 'Item' } );
+			const block = createBlock( 'test/list', {}, [ item ] );
+			dispatch( blockEditorStore ).resetBlocks( [ block ] );
+			const target = createBlockTarget();
+			dispatch( blockEditorStore ).updateBlockAttributes( item.clientId, { content: 'Mine' } );
+			const ref = getRef( block.clientId );
+
+			expect( target.apply( { action: 'replace_block', ref, markup: list( 'New' ) } ) ).toEqual(
+				changedBy( item.clientId )
+			);
+			expect( target.apply( { action: 'delete_block', ref, markup: '' } ) ).toEqual(
+				changedBy( item.clientId )
+			);
+			expect( documentNow() ).toBe( list( 'Mine' ) );
+		} );
+
+		it( 'notices blocks the user added inside a block', () => {
+			const item = createBlock( 'test/list-item', { content: 'Item' } );
+			const block = createBlock( 'test/list', {}, [ item ] );
+			dispatch( blockEditorStore ).resetBlocks( [ block ] );
+			const target = createBlockTarget();
+			dispatch( blockEditorStore ).replaceInnerBlocks( block.clientId, [
+				item,
+				createBlock( 'test/list-item', { content: 'Added' } ),
+			] );
+
+			expect(
+				target.apply( {
+					action: 'replace_block',
+					ref: getRef( block.clientId ),
+					markup: list( 'New' ),
+				} )
+			).toEqual( changedBy( block.clientId ) );
+		} );
+
+		it( 'goes on editing the blocks the model changed, and the ones the user did not', () => {
+			const item = createBlock( 'test/list-item', { content: 'Item' } );
+			const block = createBlock( 'test/list', {}, [ item ] );
+			const other = createBlock( 'test/paragraph', { content: 'Other' } );
+			dispatch( blockEditorStore ).resetBlocks( [ block, other ] );
+			const target = createBlockTarget();
+			dispatch( blockEditorStore ).updateBlockAttributes( other.clientId, { content: 'Mine' } );
+			const replace = ( ref: string, markup: string ) => {
+				const result = target.apply( { action: 'replace_block', ref, markup } );
+				expect( result ).toMatchObject( { status: 'applied' } );
+				return ( result as { refs: string[] } ).refs[ 0 ];
+			};
+
+			// In place, then with other inner blocks, then an inner block
+			// alone, and then the block that holds it.
+			let ref = replace( getRef( block.clientId ), list( 'One' ) );
+			ref = replace( ref, list( 'Two', 'Three' ) );
+			const [ newItem ] = select( blockEditorStore ).getBlocks()[ 0 ].innerBlocks;
+			replace( getRef( newItem.clientId ), listItem( 'Four' ) );
+			replace( ref, list( 'Five' ) );
+
+			expect( documentNow() ).toBe( [ list( 'Five' ), paragraph( 'Mine' ) ].join( '\n\n' ) );
+		} );
+
+		it( 'keeps a block the user changed as changed after the model replaces text in it', () => {
+			const [ first ] = setUp( 'One two' );
+			const target = createBlockTarget();
+			dispatch( blockEditorStore ).updateBlockAttributes( first, { content: 'One two three' } );
+
+			expect(
+				target.apply( { action: 'replace_text', find: 'two', markup: 'four' } )
+			).toMatchObject( { status: 'applied' } );
+			expect( documentNow() ).toBe( paragraph( 'One four three' ) );
+			expect(
+				target.apply( {
+					action: 'replace_block',
+					ref: getRef( first ),
+					markup: paragraph( 'New' ),
+				} )
+			).toEqual( changedBy( first ) );
 		} );
 	} );
 } );
