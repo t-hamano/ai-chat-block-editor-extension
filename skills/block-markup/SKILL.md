@@ -25,7 +25,7 @@ The document is WordPress block markup: the HTML that the block editor saves, wi
 
 - Separate top-level blocks with one blank line.
 - Every piece of content belongs to a block. HTML outside block delimiters becomes a Classic block (`core/freeform`), and the edit is rejected.
-- Use core blocks that the site information allows, and blocks from other plugins only when they are in the document or in the site information. A block that is not registered on the site is rejected.
+- Use core blocks, and blocks from other plugins only when they are in the document or in the site information. A block that is not registered on the site is rejected.
 - A block that the server renders and that saves nothing, such as `core/latest-posts`, is one self-closing delimiter with attributes only, without HTML: `<!-- wp:latest-posts {"postsToShow":3} /-->`.
 - Do not write `core/html` blocks. Write the content as core blocks that the user can edit.
 - Do not write `core/freeform` (Classic) or `core/missing` blocks, scripts, styles, embedded frames or objects, event handler attributes such as `onclick`, or `javascript:` URLs. The edit is rejected. Such HTML that is already in the document may stay as it is.
@@ -73,9 +73,9 @@ The editor rebuilds each block from its attributes and compares the result with 
 
 ## Site information
 
-`<site-info>` says which core blocks users can insert, and lists the blocks from plugins as in their `block.json`, with attributes that supports add, such as `className`, `style`, `textColor`, and `align`, the block styles of each block, for `className` as `is-style-<name>`, and the `theme.json` settings, merged from WordPress, the theme, and the user.
+`<site-info>` lists the core blocks users can insert, without the `core/` prefix; the blocks from plugins, as in their `block.json`, with attributes that supports add, such as `className`, `style`, `textColor`, and `align`; the block styles of each block, for `className` as `is-style-<name>`; and the `theme.json` settings, merged from WordPress, the theme, and the user.
 
-- Presets are grouped by origin: `default` from WordPress, `theme`, and `custom` from the user. Use each preset by its slug:
+- Each preset list has the presets that users can choose, from WordPress, the theme, and the user. Use each preset by its slug:
 
 | Setting | In the block |
 | --- | --- |

@@ -10,7 +10,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
  */
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { registerCoreBlocks } from '@wordpress/block-library';
-import { getBlockTypes, registerBlockStyle, registerBlockType } from '@wordpress/blocks';
+import { registerBlockStyle, registerBlockType } from '@wordpress/blocks';
 import { dispatch } from '@wordpress/data';
 
 /**
@@ -18,11 +18,15 @@ import { dispatch } from '@wordpress/data';
  */
 import { getSiteInfo } from '../site-info';
 
+const black = { slug: 'black', name: 'Black', color: '#000000' };
+const base = { slug: 'base', name: 'Base', color: '#ffffff' };
+
 const features = {
 	color: {
 		palette: {
-			default: [ { slug: 'black', name: 'Black', color: '#000000' } ],
-			theme: [ { slug: 'base', name: 'Base', color: '#ffffff' } ],
+			default: [ black, { slug: 'white', name: 'White', color: '#ffffff' } ],
+			theme: [ base, { slug: 'accent', name: 'Accent', color: '#ff0000' } ],
+			custom: [ { slug: 'accent', name: 'My accent', color: '#00ff00' } ],
 		},
 		gradients: {
 			default: [ { slug: 'dawn', name: 'Dawn', gradient: 'linear-gradient(#000,#fff)' } ],
@@ -42,18 +46,8 @@ const features = {
 		},
 	},
 	blocks: {
-		'core/heading': {
-			color: {
-				custom: false,
-				palette: { default: [ { slug: 'black', name: 'Black', color: '#000000' } ] },
-			},
-		},
-		'core/button': {
-			color: {
-				defaultPalette: true,
-				palette: { default: [ { slug: 'black', name: 'Black', color: '#000000' } ] },
-			},
-		},
+		'core/heading': { color: { custom: false } },
+		'core/button': { color: { palette: { theme: [ black ] } } },
 		'core/quote': { color: { defaultPalette: true } },
 	},
 };
@@ -98,21 +92,10 @@ beforeAll( () => {
 } );
 
 describe( 'getSiteInfo', () => {
-	it( 'says all core blocks can be inserted when the editor allows them all', () => {
-		expect( section( getSiteInfo(), 'Core blocks' ) ).toBe( 'All of them.' );
-	} );
-
-	it( 'lists the core blocks left out, by name, when they are fewer', () => {
-		const names = getBlockTypes()
-			.filter( ( { supports } ) => supports?.inserter !== false )
-			.map( ( { name } ) => name )
-			.filter( ( name ) => name !== 'core/quote' && name !== 'core/verse' );
-		dispatch( blockEditorStore ).updateSettings( { allowedBlockTypes: names } );
-		try {
-			expect( section( getSiteInfo(), 'Core blocks' ) ).toBe( 'All except: quote, verse' );
-		} finally {
-			dispatch( blockEditorStore ).updateSettings( { allowedBlockTypes: true } );
-		}
+	it( 'lists core blocks by name', () => {
+		const names = section( getSiteInfo(), 'Core blocks' ).split( ', ' );
+		expect( names ).toContain( 'paragraph' );
+		expect( names ).not.toContain( 'core/paragraph' );
 	} );
 
 	it( 'describes blocks from plugins as in their block.json', () => {
@@ -140,28 +123,37 @@ describe( 'getSiteInfo', () => {
 
 	it( 'passes the theme.json settings', () => {
 		const settings = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
-		expect( settings.color.palette.theme ).toEqual( features.color.palette.theme );
-		expect( settings.color.defaultPalette ).toBe( false );
-		expect( settings.blocks[ 'core/heading' ].color.custom ).toBe( false );
+		expect( settings.blocks[ 'core/heading' ] ).toEqual( { color: { custom: false } } );
 	} );
 
-	it( 'leaves out the presets of WordPress that a setting turns off', () => {
-		const settings = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
-		expect( settings.color.palette.default ).toBeUndefined();
-		// The block's settings fall back to the global ones, unless they have their own.
-		expect( settings.blocks[ 'core/heading' ].color.palette.default ).toBeUndefined();
-		expect( settings.blocks[ 'core/button' ].color.palette.default ).toHaveLength( 1 );
-		// A block that offers them keeps the ones it inherits from the global settings.
-		expect( settings.blocks[ 'core/quote' ].color.palette.default ).toEqual(
-			features.color.palette.default
-		);
-		// Only the setting that turns them off leaves them out.
-		expect( settings.color.gradients.default ).toHaveLength( 1 );
+	it( 'puts the presets of every origin in one list, as the editor offers them', () => {
+		const { color } = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
+		// WordPress's palette is turned off, and the user's accent replaces the theme's.
+		expect( color.palette ).toEqual( [
+			base,
+			{ slug: 'accent', name: 'My accent', color: '#00ff00' },
+		] );
+		expect( color.gradients ).toEqual( features.color.gradients.default );
+		// The setting is applied, so it is left out.
+		expect( color.defaultPalette ).toBeUndefined();
+	} );
+
+	it( 'merges the presets of a block, with what it takes from the global settings', () => {
+		const { blocks } = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
+		// The block's own theme presets, and the user's from the global settings.
+		expect( blocks[ 'core/button' ].color.palette ).toEqual( [
+			black,
+			{ slug: 'accent', name: 'My accent', color: '#00ff00' },
+		] );
+		// A block that offers WordPress's presets gets them with the global ones.
+		expect(
+			blocks[ 'core/quote' ].color.palette.map( ( { slug }: { slug: string } ) => slug )
+		).toEqual( [ 'black', 'white', 'base', 'accent' ] );
 	} );
 
 	it( 'leaves out the font files of font families', () => {
-		const settings = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
-		expect( settings.typography.fontFamilies.theme ).toEqual( [
+		const { typography } = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
+		expect( typography.fontFamilies ).toEqual( [
 			{ slug: 'manrope', name: 'Manrope', fontFamily: 'Manrope, sans-serif' },
 		] );
 	} );
@@ -172,7 +164,7 @@ describe( 'getSiteInfo', () => {
 		} );
 		try {
 			const text = getSiteInfo();
-			expect( section( text, 'Core blocks' ) ).toBe( 'Only: paragraph' );
+			expect( section( text, 'Core blocks' ) ).toBe( 'paragraph' );
 			expect( JSON.parse( section( text, 'Block styles' ) ) ).toEqual( {
 				'my-plugin/card': [ 'outlined' ],
 			} );

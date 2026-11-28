@@ -38,100 +38,105 @@ function describeBlock( blockType: BlockMetadata ) {
 
 type Settings = Record< string, any >;
 
+type Preset = { slug?: string; [ key: string ]: unknown };
+
 /**
- * The preset lists of `theme.json` that WordPress also offers its own
- * presets in, with the setting that turns those off.
+ * The preset lists of `theme.json`, with the setting that turns off the
+ * presets of WordPress in them, when there is one.
  */
-const DEFAULT_PRESETS = [
+const PRESETS = [
 	[ 'color', 'palette', 'defaultPalette' ],
 	[ 'color', 'gradients', 'defaultGradients' ],
 	[ 'color', 'duotone', 'defaultDuotone' ],
 	[ 'typography', 'fontSizes', 'defaultFontSizes' ],
+	[ 'typography', 'fontFamilies', null ],
 	[ 'spacing', 'spacingSizes', 'defaultSpacingSizes' ],
 	[ 'shadow', 'presets', 'defaultPresets' ],
 	[ 'dimensions', 'aspectRatios', 'defaultAspectRatios' ],
 ] as const;
 
 /**
- * Leaves out of one level of the settings what the model cannot use: the
- * presets of WordPress that a setting turns off, which the editor keeps
- * but does not offer, and the font files of each font family, since a
- * block uses a font family only by its slug.
- *
- * @param settings The settings of the level.
- * @param global   The global settings, which a block's settings fall back
- *                 to.
- * @return The settings without them.
+ * Where presets come from, in the order WordPress applies them: a preset
+ * of a later origin replaces one of an earlier origin with the same slug.
  */
-function trimLevel( settings: Settings, global: Settings ): Settings {
-	const result = { ...settings };
-	for ( const [ section, list, flag ] of DEFAULT_PRESETS ) {
-		const presets = result[ section ]?.[ list ];
-		const offersDefault = result[ section ]?.[ flag ] ?? global[ section ]?.[ flag ];
-		if ( presets?.default && offersDefault === false ) {
-			const { default: _, ...others } = presets;
-			result[ section ] = { ...result[ section ], [ list ]: others };
+const ORIGINS = [ 'default', 'theme', 'custom' ] as const;
+
+/**
+ * Puts the presets of the origins in one list, as the editor offers them:
+ * the presets of WordPress only when the setting does not turn them off,
+ * and for a slug in more than one origin, the preset of the later origin.
+ * A font family keeps only what a block uses it by, without its font
+ * files.
+ *
+ * @param byOrigin      The presets by origin.
+ * @param offersDefault Whether the presets of WordPress are offered.
+ * @return The presets.
+ */
+function mergePresets(
+	byOrigin: Partial< Record< ( typeof ORIGINS )[ number ], Preset[] > >,
+	offersDefault: boolean
+): Preset[] {
+	const presets = new Map< string, Preset >();
+	for ( const origin of ORIGINS ) {
+		if ( origin === 'default' && ! offersDefault ) {
+			continue;
+		}
+		for ( const { fontFace: _, ...preset } of byOrigin[ origin ] ?? [] ) {
+			presets.set( preset.slug ?? JSON.stringify( preset ), preset );
 		}
 	}
-	const families = result.typography?.fontFamilies;
-	if ( families && typeof families === 'object' ) {
-		result.typography = {
-			...result.typography,
-			fontFamilies: Object.fromEntries(
-				Object.entries( families ).map( ( [ origin, items ] ) => [
-					origin,
-					Array.isArray( items ) ? items.map( ( { fontFace: _, ...family } ) => family ) : items,
-				] )
-			),
+	return [ ...presets.values() ];
+}
+
+/**
+ * Turns the preset lists of one level of the settings into the presets
+ * the editor offers there. A block takes each origin and setting from the
+ * global settings when it has none of its own, so it gets its own list
+ * only when it has presets or such a setting of its own. The settings
+ * that turn off the presets of WordPress are applied, so they are left
+ * out.
+ *
+ * @param settings The settings of the level.
+ * @param global   The global settings, or `null` for the global level.
+ * @return The settings with the merged lists.
+ */
+function mergeLevel( settings: Settings, global: Settings | null ): Settings {
+	const result = { ...settings };
+	for ( const [ section, list, flag ] of PRESETS ) {
+		const own = settings[ section ]?.[ list ];
+		const ownFlag = flag ? settings[ section ]?.[ flag ] : undefined;
+		if ( own === undefined && ( ! global || ownFlag === undefined ) ) {
+			continue;
+		}
+		const inherited = global?.[ section ]?.[ list ] ?? {};
+		const byOrigin = Object.fromEntries(
+			ORIGINS.map( ( origin ) => [ origin, own?.[ origin ] ?? inherited[ origin ] ] )
+		);
+		const offersDefault = ( ownFlag ?? ( flag && global?.[ section ]?.[ flag ] ) ) !== false;
+		const { [ flag ?? '' ]: _, ...rest } = result[ section ];
+		result[ section ] = {
+			...rest,
+			[ list ]: Array.isArray( own ) ? own : mergePresets( byOrigin, offersDefault ),
 		};
 	}
 	return result;
 }
 
 /**
- * Gives a block the presets of WordPress it inherits from the global
- * settings, when the block offers them but the global settings do not, so
- * they stay in the block's settings once the global ones leave them out.
- *
- * @param blockSettings The settings of the block.
- * @param global        The global settings.
- * @return The block's settings.
- */
-function inheritDefaults( blockSettings: Settings, global: Settings ): Settings {
-	const result = { ...blockSettings };
-	for ( const [ section, list, flag ] of DEFAULT_PRESETS ) {
-		const inherited = global[ section ]?.[ list ]?.default;
-		if (
-			inherited &&
-			global[ section ]?.[ flag ] === false &&
-			result[ section ]?.[ flag ] === true &&
-			! result[ section ]?.[ list ]?.default
-		) {
-			result[ section ] = {
-				...result[ section ],
-				[ list ]: { ...result[ section ]?.[ list ], default: inherited },
-			};
-		}
-	}
-	return result;
-}
-
-/**
- * Leaves out of the `theme.json` settings what the model cannot use, at
- * the top level and in the settings of each block.
+ * Gives the model the `theme.json` settings with each preset list as the
+ * presets the editor offers, at the top level and in the settings of each
+ * block. The block markup refers to a preset only by its slug, so where
+ * it comes from does not matter.
  *
  * @param settings The settings, as the editor has them.
  * @return The settings for the model.
  */
-function trimSettings( settings: Settings ): Settings {
-	const result = trimLevel( settings, settings );
+function mergeSettings( settings: Settings ): Settings {
+	const result = mergeLevel( settings, null );
 	if ( settings.blocks && typeof settings.blocks === 'object' ) {
 		result.blocks = Object.fromEntries(
 			Object.entries( settings.blocks as Record< string, Settings > ).map(
-				( [ name, blockSettings ] ) => [
-					name,
-					trimLevel( inheritDefaults( blockSettings, settings ), settings ),
-				]
+				( [ name, blockSettings ] ) => [ name, mergeLevel( blockSettings, settings ) ]
 			)
 		);
 	}
@@ -139,45 +144,27 @@ function trimSettings( settings: Settings ): Settings {
 }
 
 /**
- * Says which core blocks users can insert. Core blocks are the same on
- * every site and known to the model, so most sites allow all of them, and
- * the shorter of the blocks left out and the blocks allowed is listed, by
- * name.
- *
- * @param allowed The names of the core blocks users can insert.
- * @param others  The names of the other core blocks.
- * @return The text.
- */
-function describeCoreBlocks( allowed: string[], others: string[] ): string {
-	if ( ! others.length ) {
-		return 'All of them.';
-	}
-	return others.length <= allowed.length
-		? `All except: ${ others.join( ', ' ) }`
-		: `Only: ${ allowed.join( ', ' ) }`;
-}
-
-/**
- * Describes the site for the model: the core blocks users can insert, the
- * blocks from plugins and the block styles of the blocks users can insert,
- * and the `theme.json` settings without what the model cannot use. The
- * skill explains how to read it.
+ * Describes the site for the model: the blocks users can insert, their
+ * block styles, and the `theme.json` settings with the presets the editor
+ * offers.
+ * Core blocks are the same on every site and known to the model, so they
+ * are listed by name. The skill explains how to read the rest.
  *
  * @return The site information.
  */
 export function getSiteInfo(): string {
 	const settings = select( blockEditorStore ).getSettings() as Record< string, unknown >;
 	const allowedBlockTypes = settings.allowedBlockTypes;
-	const isAllowed = ( blockType: BlockType ) =>
-		allowedBlockTypes !== false &&
-		( ! Array.isArray( allowedBlockTypes ) || allowedBlockTypes.includes( blockType.name ) );
-	const insertable = ( getBlockTypes() as BlockMetadata[] )
+	const blockTypes = ( getBlockTypes() as BlockMetadata[] )
 		.filter( ( blockType ) => blockType.supports?.inserter !== false )
+		.filter(
+			( blockType ) =>
+				allowedBlockTypes !== false &&
+				( ! Array.isArray( allowedBlockTypes ) || allowedBlockTypes.includes( blockType.name ) )
+		)
 		.sort( ( a, b ) => a.name.localeCompare( b.name ) );
-	const blockTypes = insertable.filter( isAllowed );
 
 	const isCore = ( blockType: BlockType ) => blockType.name.startsWith( 'core/' );
-	const coreName = ( { name }: BlockType ) => name.slice( 'core/'.length );
 	const { getBlockStyles } = select( blocksStore );
 	const styles = Object.fromEntries(
 		blockTypes.flatMap( ( { name } ) => {
@@ -187,16 +174,13 @@ export function getSiteInfo(): string {
 			return names.length ? [ [ name, names ] ] : [];
 		} )
 	);
-	const core = insertable.filter( isCore );
+	const core = blockTypes.filter( isCore ).map( ( { name } ) => name.slice( 'core/'.length ) );
 	const plugins = blockTypes.filter( ( blockType ) => ! isCore( blockType ) ).map( describeBlock );
 
 	return [
 		'## Core blocks',
 		'',
-		describeCoreBlocks(
-			core.filter( isAllowed ).map( coreName ),
-			core.filter( ( blockType ) => ! isAllowed( blockType ) ).map( coreName )
-		),
+		core.join( ', ' ),
 		'',
 		'## Blocks from plugins',
 		'',
@@ -208,6 +192,6 @@ export function getSiteInfo(): string {
 		'',
 		'## theme.json settings',
 		'',
-		JSON.stringify( trimSettings( ( settings.__experimentalFeatures ?? {} ) as Settings ) ),
+		JSON.stringify( mergeSettings( ( settings.__experimentalFeatures ?? {} ) as Settings ) ),
 	].join( '\n' );
 }
