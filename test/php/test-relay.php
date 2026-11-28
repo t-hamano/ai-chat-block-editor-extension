@@ -482,6 +482,7 @@ class Test_Relay extends WP_UnitTestCase {
 		$response = $this->chat();
 
 		$this->assertSame( 503, $response->get_status() );
+		$this->assertSame( 'Prompt execution was prevented by a filter.', $response->as_error()->get_error_message() );
 		$this->assertNull( $this->sent );
 	}
 
@@ -494,6 +495,7 @@ class Test_Relay extends WP_UnitTestCase {
 		$response = $this->chat();
 
 		$this->assertSame( 503, $response->get_status() );
+		$this->assertSame( 'AI features are not supported in this environment.', $response->as_error()->get_error_message() );
 		$this->assertNull( $this->sent );
 	}
 }
