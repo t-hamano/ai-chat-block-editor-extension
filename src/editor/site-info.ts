@@ -89,6 +89,34 @@ function trimLevel( settings: Settings, global: Settings ): Settings {
 }
 
 /**
+ * Gives a block the presets of WordPress it inherits from the global
+ * settings, when the block offers them but the global settings do not, so
+ * they stay in the block's settings once the global ones leave them out.
+ *
+ * @param blockSettings The settings of the block.
+ * @param global        The global settings.
+ * @return The block's settings.
+ */
+function inheritDefaults( blockSettings: Settings, global: Settings ): Settings {
+	const result = { ...blockSettings };
+	for ( const [ section, list, flag ] of DEFAULT_PRESETS ) {
+		const inherited = global[ section ]?.[ list ]?.default;
+		if (
+			inherited &&
+			global[ section ]?.[ flag ] === false &&
+			result[ section ]?.[ flag ] === true &&
+			! result[ section ]?.[ list ]?.default
+		) {
+			result[ section ] = {
+				...result[ section ],
+				[ list ]: { ...result[ section ]?.[ list ], default: inherited },
+			};
+		}
+	}
+	return result;
+}
+
+/**
  * Leaves out of the `theme.json` settings what the model cannot use, at
  * the top level and in the settings of each block.
  *
@@ -100,7 +128,10 @@ function trimSettings( settings: Settings ): Settings {
 	if ( settings.blocks && typeof settings.blocks === 'object' ) {
 		result.blocks = Object.fromEntries(
 			Object.entries( settings.blocks as Record< string, Settings > ).map(
-				( [ name, blockSettings ] ) => [ name, trimLevel( blockSettings, settings ) ]
+				( [ name, blockSettings ] ) => [
+					name,
+					trimLevel( inheritDefaults( blockSettings, settings ), settings ),
+				]
 			)
 		);
 	}

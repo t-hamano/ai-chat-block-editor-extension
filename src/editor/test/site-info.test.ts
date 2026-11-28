@@ -54,6 +54,7 @@ const features = {
 				palette: { default: [ { slug: 'black', name: 'Black', color: '#000000' } ] },
 			},
 		},
+		'core/quote': { color: { defaultPalette: true } },
 	},
 };
 
@@ -150,6 +151,10 @@ describe( 'getSiteInfo', () => {
 		// The block's settings fall back to the global ones, unless they have their own.
 		expect( settings.blocks[ 'core/heading' ].color.palette.default ).toBeUndefined();
 		expect( settings.blocks[ 'core/button' ].color.palette.default ).toHaveLength( 1 );
+		// A block that offers them keeps the ones it inherits from the global settings.
+		expect( settings.blocks[ 'core/quote' ].color.palette.default ).toEqual(
+			features.color.palette.default
+		);
 		// Only the setting that turns them off leaves them out.
 		expect( settings.color.gradients.default ).toHaveLength( 1 );
 	} );
