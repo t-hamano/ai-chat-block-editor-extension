@@ -108,6 +108,36 @@ describe( 'createSelectionTarget', () => {
 		expect( documentNow() ).toBe( paragraph( 'One two' ) );
 	} );
 
+	it( 'rejects HTML that can run code for the selected text', () => {
+		const [ id ] = setUp( 'One two' );
+		selectText( id, 0, 3 );
+		const target = createSelectionTarget();
+
+		for ( const markup of [
+			'<script>run()</script>',
+			'<img src="x" onerror="run()">',
+			'<a href="javascript:run()">New</a>',
+			'<style>body{}</style>',
+		] ) {
+			expect( target.apply( { action: 'replace', markup } ) ).toMatchObject( {
+				status: 'failed',
+				reason: expect.stringContaining( 'HTML that you cannot write' ),
+			} );
+		}
+		expect( documentNow() ).toBe( paragraph( 'One two' ) );
+	} );
+
+	it( 'keeps HTML that can run code that the text already has', () => {
+		const link = '<a href="javascript:run()">two</a>';
+		const [ id ] = setUp( `One ${ link }` );
+		selectText( id, 0, 7 );
+
+		expect(
+			createSelectionTarget().apply( { action: 'replace', markup: `New ${ link }` } )
+		).toHaveProperty( 'status', 'applied' );
+		expect( documentNow() ).toBe( paragraph( `New ${ link }` ) );
+	} );
+
 	it( 'inserts blocks after the block that holds the text', () => {
 		const [ id ] = setUp( 'One two', 'Three' );
 		selectText( id, 0, 3 );

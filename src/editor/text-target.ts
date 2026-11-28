@@ -12,6 +12,7 @@ import type { EditTarget } from '../ai/edit-target';
 import type { AiEditResult } from '../platform';
 import { getRef, stripRefs } from './block-refs';
 import { createBlockTarget } from './block-target';
+import { explainUnsafeHtml, findUnsafeHtml } from './unsafe-html';
 
 /**
  * Tags that start a new block of content, which a text range inside one
@@ -109,6 +110,15 @@ export function createTextTarget( selection: TextSelection ): EditTarget {
 				status: 'failed',
 				reason:
 					'The selection is text inside a block, so "replace" takes inline HTML only, such as text with <strong>, <em>, or <a>, without block comments or tags such as <p>. To change the whole block, use "replace_block" with its reference ID.',
+			};
+		}
+		// HTML that can run code is kept only when the text already has it.
+		const existing = new Set( findUnsafeHtml( html ).map( ( { snippet } ) => snippet ) );
+		const unsafe = findUnsafeHtml( inline ).filter( ( { snippet } ) => ! existing.has( snippet ) );
+		if ( unsafe.length ) {
+			return {
+				status: 'failed',
+				reason: explainUnsafeHtml( 'The replacement', unsafe ),
 			};
 		}
 		if ( ! select( blockEditorStore ).canEditBlock( clientId ) ) {
