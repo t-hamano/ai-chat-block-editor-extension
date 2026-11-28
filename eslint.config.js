@@ -101,4 +101,12 @@ module.exports = [
 		...config,
 		files: [ 'src/**/test/**/*.{ts,tsx}' ],
 	} ) ),
+	...defaultConfig.configs[ 'test-playwright' ].map( ( config ) => ( {
+		...config,
+		files: [ 'test/e2e/**/*.js', 'test/e2e/**/*.ts' ],
+		rules: {
+			...config.rules,
+			'react-hooks/rules-of-hooks': 'off',
+		},
+	} ) ),
 ];
