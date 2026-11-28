@@ -17,6 +17,13 @@ import { connectionLost, requestAnswer, type AnswerEvent } from './transport';
 export const OPENAI_MODEL = 'gpt-6.1-sol';
 
 /**
+ * How hard the model reasons on an answer. Editing blocks does not need the
+ * provider's default of `medium`, and a lower effort answers faster and
+ * costs less. Every model the plugin chooses takes it.
+ */
+export const OPENAI_EFFORT = 'low';
+
+/**
  * The edit tool, as a function of OpenAI's Responses API. It is made from
  * the shared tool, so every provider gets the same tool.
  */
@@ -100,6 +107,7 @@ export function buildOpenAiBody( system: string, input: OpenAiItem[], model = OP
 		input,
 		store: false,
 		include: [ 'reasoning.encrypted_content' ],
+		reasoning: { effort: OPENAI_EFFORT },
 	};
 }
 

@@ -205,6 +205,59 @@ class Test_Relay extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests that the effort is passed on.
+	 *
+	 * @dataProvider data_efforts
+	 *
+	 * @param string $provider The provider ID.
+	 * @param array  $body     The request body.
+	 * @param string $field    The field that sets the effort.
+	 */
+	public function test_effort_is_passed_on( $provider, $body, $field ) {
+		$this->set_fake_api_key( 'openai-key', Blocktune_Fake_OpenAI_Provider::class );
+
+		$response = $this->chat(
+			array(
+				'provider' => $provider,
+				'body'     => $body,
+			)
+		);
+
+		$this->assertSame( 200, $response->get_status() );
+
+		$sent = json_decode( $this->sent['args']['body'], true );
+		$this->assertSame( $body[ $field ], $sent[ $field ] );
+	}
+
+	/**
+	 * Bodies that set the effort.
+	 *
+	 * @return array
+	 */
+	public static function data_efforts() {
+		return array(
+			'Anthropic' => array(
+				'anthropic',
+				array(
+					'model'         => 'test-model',
+					'messages'      => array(),
+					'output_config' => array( 'effort' => 'medium' ),
+				),
+				'output_config',
+			),
+			'OpenAI'    => array(
+				'openai',
+				array(
+					'model'     => 'test-model',
+					'input'     => array(),
+					'reasoning' => array( 'effort' => 'low' ),
+				),
+				'reasoning',
+			),
+		);
+	}
+
+	/**
 	 * Tests that a body that asks for more than the editor sends is rejected.
 	 *
 	 * @dataProvider data_invalid_bodies
@@ -234,7 +287,7 @@ class Test_Relay extends WP_UnitTestCase {
 	 */
 	public static function data_invalid_bodies() {
 		return array(
-			'unknown field'         => array(
+			'unknown field'           => array(
 				'anthropic',
 				array(
 					'model'    => 'test-model',
@@ -242,7 +295,7 @@ class Test_Relay extends WP_UnitTestCase {
 					'metadata' => array(),
 				),
 			),
-			'Anthropic server tool' => array(
+			'Anthropic server tool'   => array(
 				'anthropic',
 				array(
 					'model'    => 'test-model',
@@ -255,7 +308,7 @@ class Test_Relay extends WP_UnitTestCase {
 					'messages' => array(),
 				),
 			),
-			'OpenAI built-in tool'  => array(
+			'OpenAI built-in tool'    => array(
 				'openai',
 				array(
 					'model' => 'test-model',
@@ -263,7 +316,7 @@ class Test_Relay extends WP_UnitTestCase {
 					'input' => array(),
 				),
 			),
-			'Google search tool'    => array(
+			'Google search tool'      => array(
 				'google',
 				array(
 					'model'    => 'gemini-test',
@@ -271,7 +324,15 @@ class Test_Relay extends WP_UnitTestCase {
 					'contents' => array(),
 				),
 			),
-			'Google candidates'     => array(
+			'Anthropic output format' => array(
+				'anthropic',
+				array(
+					'model'         => 'test-model',
+					'messages'      => array(),
+					'output_config' => array( 'format' => array( 'type' => 'json_schema' ) ),
+				),
+			),
+			'Google candidates'       => array(
 				'google',
 				array(
 					'model'            => 'gemini-test',

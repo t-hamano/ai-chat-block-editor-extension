@@ -13,11 +13,13 @@ import apiFetch from '@wordpress/api-fetch';
  */
 import type { AiStreamEvent } from '..';
 import {
+	ANTHROPIC_EFFORT,
 	ANTHROPIC_MODEL,
 	buildAnthropicBody,
 	createAnthropicPlatform,
 	readAnthropicStream,
 	toAnthropicEvents,
+	takesEffort,
 	toAnthropicMessages,
 } from '../anthropic';
 import { READ_TOOLS } from '../read-tools';
@@ -53,7 +55,29 @@ describe( 'buildAnthropicBody', () => {
 			system: [ { type: 'text', text: 'Be brief.', cache_control: { type: 'ephemeral' } } ],
 			tools: [ EDIT_TOOL, ...READ_TOOLS ],
 			messages,
+			output_config: { effort: ANTHROPIC_EFFORT },
 		} );
+	} );
+
+	it( 'leaves the effort out for a model that does not take one', () => {
+		const body = buildAnthropicBody( 'Be brief.', [], 'claude-sonnet-4-5-20250929' );
+		expect( body ).not.toHaveProperty( 'output_config' );
+	} );
+} );
+
+describe( 'takesEffort', () => {
+	it.each( [
+		[ 'claude-sonnet-5-5', true ],
+		[ 'claude-sonnet-5', true ],
+		[ 'claude-opus-5-5', true ],
+		[ 'claude-opus-4-5-20251101', true ],
+		[ 'claude-sonnet-4-6', true ],
+		[ 'claude-sonnet-4-5-20250929', false ],
+		[ 'claude-opus-4-1-20250805', false ],
+		[ 'claude-sonnet-4-20250514', false ],
+		[ 'claude-haiku-4-5', false ],
+	] )( '%s: %s', ( model, expected ) => {
+		expect( takesEffort( model ) ).toBe( expected );
 	} );
 } );
 

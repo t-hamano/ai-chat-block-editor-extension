@@ -16,6 +16,7 @@ import { EDIT_TOOL } from '../tools';
 import {
 	OPENAI_EDIT_TOOL,
 	OPENAI_READ_TOOLS,
+	OPENAI_EFFORT,
 	OPENAI_MODEL,
 	buildOpenAiBody,
 	createOpenAiPlatform,
@@ -69,6 +70,7 @@ describe( 'buildOpenAiBody', () => {
 			input,
 			store: false,
 			include: [ 'reasoning.encrypted_content' ],
+			reasoning: { effort: OPENAI_EFFORT },
 		} );
 	} );
 } );

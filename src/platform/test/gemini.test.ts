@@ -17,10 +17,12 @@ import {
 	GEMINI_EDIT_TOOL,
 	GEMINI_READ_TOOLS,
 	GEMINI_MODEL,
+	GEMINI_THINKING_LEVEL,
 	buildGeminiBody,
 	createGeminiPlatform,
 	readGeminiErrorMessage,
 	readGeminiStream,
+	takesThinkingLevel,
 	toGeminiContents,
 } from '../gemini';
 import { readEvents } from '../transport';
@@ -68,9 +70,24 @@ describe( 'buildGeminiBody', () => {
 			contents,
 			tools: [ { functionDeclarations: [ GEMINI_EDIT_TOOL, ...GEMINI_READ_TOOLS ] } ],
 			generationConfig: {
-				thinkingConfig: { includeThoughts: true },
+				thinkingConfig: { includeThoughts: true, thinkingLevel: GEMINI_THINKING_LEVEL },
 			},
 		} );
+	} );
+
+	it( 'leaves the thinking level out for a model that does not take one', () => {
+		const body = buildGeminiBody( 'Be brief.', [], 'gemini-2.5-pro' );
+		expect( body.generationConfig.thinkingConfig ).toEqual( { includeThoughts: true } );
+	} );
+} );
+
+describe( 'takesThinkingLevel', () => {
+	it.each( [
+		[ 'gemini-3.1-pro-preview', true ],
+		[ 'gemini-3-flash-preview', true ],
+		[ 'gemini-2.5-pro', false ],
+	] )( '%s: %s', ( model, expected ) => {
+		expect( takesThinkingLevel( model ) ).toBe( expected );
 	} );
 } );
 
