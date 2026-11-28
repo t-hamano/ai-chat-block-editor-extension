@@ -62,7 +62,7 @@ The API key stays on your site and is never sent to the browser. Every edit is c
 ## Limitations
 
 * Only administrators can use the AI assistant, and only super admins on a multisite network. There is no setting to allow other roles.
-* The AI edits the blocks of the post, page, template, template part, or pattern you are editing. Global Styles, and the content of template parts, synced patterns, and navigation menus placed inside it, are out of scope. Edit those in their own editor.
+* The AI edits the blocks of the post, page, template, template part, or pattern you are editing. Global Styles, and the content of template parts, synced patterns, and navigation menus placed inside it, are out of scope. To edit them with the AI, open them in their own editor, for example with **Edit** in the toolbar of a template part, and ask there.
 * The AI does not search the web, read other web pages, or add new images or files. It works from what you send and what the model already knows.
 * Long posts (over about 60,000 characters of block markup) are sent as an outline, so the AI may miss context it did not read.
 * Each answer keeps one PHP worker busy for up to 5 minutes. On servers or proxies that hold streamed answers back, long answers can fail with a timeout error.
