@@ -49,6 +49,32 @@ Each edit is a single undo step, so you can take it back with the editor's Undo 
 
 By default, the AI assistant picks a provider in the order Anthropic, OpenAI, Google, and uses a recommended model from that provider. The recommended models balance quality and price, such as Claude Sonnet for Anthropic, so the most expensive models are used only when you choose them. With the recommended models of Anthropic, OpenAI, and Google, the model also thinks less before it answers than the provider's default, so it answers faster and costs less. Other models keep the provider's default. To choose them yourself, press the gear icon at the top right of the sidebar. Only providers with an API key and their models are listed. The choice is saved for each user.
 
+## How it works
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Editor as Block editor (browser)
+    participant Site as Your site (REST API)
+    participant AI as AI provider
+
+    User->>Editor: Type a request and press Send
+    Editor->>Site: Request with the selection or the whole post as block markup
+    Site->>AI: Add the API key and pass it on
+    AI-->>Site: Stream the answer, with edits and reads
+    Site-->>Editor: Pass the stream on
+    loop While the AI edits or reads
+        Editor->>Editor: Check and apply each edit, or read the blocks it asks for
+        Editor->>Site: Send the results back
+        Site->>AI: Pass them on
+        AI-->>Site: Stream the next answer
+        Site-->>Editor: Pass the stream on
+    end
+    Editor-->>User: Answer in the chat, changed blocks outlined
+```
+
+The API key stays on your site and is never sent to the browser. Every edit is checked and applied in the browser, and when an edit fails, the reason goes back to the AI so it can try again.
+
 ## Limitations
 
 * Only administrators can use the AI assistant, and only super admins on a multisite network, where the API keys can be shared by every site. There is no setting to allow other roles.
