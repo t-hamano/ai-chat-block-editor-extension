@@ -22,6 +22,7 @@
 	"files": [
 		"classes",
 		"src",
+		"!src/**/test",
 		"skills",
 		"build",
 		"blocktune.php",
