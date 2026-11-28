@@ -42,6 +42,9 @@ type BlockState = {
 	index: number;
 	// The block's text in the canvas, if it is rendered.
 	text: string | null;
+	// Whether the block is the one selected block. The block editor scrolls
+	// to a block when it becomes selected.
+	selected: boolean;
 };
 
 /**
@@ -80,7 +83,9 @@ function subscribe( listener: () => void ) {
  * @return The snapshot.
  */
 export function takeBlockSnapshot(): BlockSnapshot {
-	const { getBlockOrder, getBlockAttributes } = select( blockEditorStore );
+	const { getBlockOrder, getBlockAttributes, getSelectedBlockClientId } =
+		select( blockEditorStore );
+	const selected = getSelectedBlockClientId();
 	const snapshot = new Map< string, BlockState >();
 	const walk = ( parent: string ) => {
 		getBlockOrder( parent ).forEach( ( clientId, index ) => {
@@ -89,6 +94,7 @@ export function takeBlockSnapshot(): BlockSnapshot {
 				parent,
 				index,
 				text: getBlockElement( clientId )?.textContent ?? null,
+				selected: clientId === selected,
 			} );
 			walk( clientId );
 		} );
@@ -300,13 +306,17 @@ function fadeTextHighlight( view: Window ) {
  * when it is off-screen. A block highlighted again stays highlighted for
  * the full time from now.
  *
- * @param clientIds The blocks to highlight, in document order.
- * @param texts     The text of the blocks before the edit, by client ID,
- *                  to color the text that changed.
+ * @param clientIds      The blocks to highlight, in document order.
+ * @param texts          The text of the blocks before the edit, by client ID,
+ *                       to color the text that changed.
+ * @param options        Options.
+ * @param options.scroll Whether to scroll to the first block. Without it,
+ *                       the view stays where it is.
  */
 export function highlightBlocks(
 	clientIds: string[],
-	texts: ReadonlyMap< string, string > = new Map()
+	texts: ReadonlyMap< string, string > = new Map(),
+	{ scroll = true }: { scroll?: boolean } = {}
 ) {
 	if ( ! clientIds.length ) {
 		return;
@@ -334,7 +344,7 @@ export function highlightBlocks(
 			}, HIGHLIGHT_DURATION )
 		);
 	}
-	scrollTarget = clientIds[ 0 ];
+	scrollTarget = scroll ? clientIds[ 0 ] : null;
 	highlighted = next;
 	listeners.forEach( ( listener ) => listener() );
 }
@@ -342,6 +352,10 @@ export function highlightBlocks(
 /**
  * Highlights the blocks and the text that changed since the snapshot, and
  * announces the change to screen readers.
+ *
+ * When the edit selected another block, such as the blocks that replaced
+ * the selected ones, the block editor scrolls to that block itself, so the
+ * view is left to it.
  *
  * @param before The snapshot taken before the edit.
  */
@@ -358,7 +372,9 @@ export function highlightChanges( before: BlockSnapshot ) {
 			texts.set( clientId, text );
 		}
 	}
-	highlightBlocks( clientIds, texts );
+	const selected = select( blockEditorStore ).getSelectedBlockClientId();
+	const isNewlySelected = !! selected && ! before.get( selected )?.selected;
+	highlightBlocks( clientIds, texts, { scroll: ! isNewlySelected } );
 	speak(
 		sprintf(
 			/* translators: %d: The number of blocks. */
@@ -406,16 +422,37 @@ function getBlockElement( clientId: string ): HTMLElement | null {
 	return canvas?.contentDocument?.getElementById( id ) ?? document.getElementById( id );
 }
 
-function scrollIntoViewIfNeeded( clientId: string ) {
+/**
+ * Scrolls to the block when it is off-screen, as the block editor scrolls
+ * to a block that becomes selected: smoothly, or at once with reduced
+ * motion.
+ *
+ * The observer tells whether the block is visible also when the editor
+ * scrolls in a container of its own instead of the window, as it does
+ * when the canvas is not an iframe.
+ *
+ * @param clientId The block's client ID.
+ * @return Stops waiting to scroll.
+ */
+function scrollIntoViewIfNeeded( clientId: string ): () => void {
 	const element = getBlockElement( clientId );
-	const view = element?.ownerDocument.defaultView;
-	if ( ! element || ! view ) {
-		return;
+	const view = element?.ownerDocument.defaultView as ( Window & typeof globalThis ) | null;
+	if ( ! element || ! view?.IntersectionObserver ) {
+		return () => {};
 	}
-	const { top, bottom } = element.getBoundingClientRect();
-	if ( bottom <= 0 || top >= view.innerHeight ) {
-		element.scrollIntoView( { block: 'center', behavior: 'smooth' } );
-	}
+	const observer = new view.IntersectionObserver( ( [ entry ] ) => {
+		// The first report tells whether the block is visible now.
+		observer.disconnect();
+		if ( entry && ! entry.isIntersecting ) {
+			const reduceMotion = view.matchMedia?.( '(prefers-reduced-motion: reduce)' ).matches;
+			element.scrollIntoView( {
+				block: 'center',
+				behavior: reduceMotion ? 'instant' : 'smooth',
+			} );
+		}
+	} );
+	observer.observe( element );
+	return () => observer.disconnect();
 }
 
 type BlockListBlockProps = {
@@ -442,16 +479,18 @@ export function withChangeHighlight< P extends BlockListBlockProps >(
 			if ( ! changedAt ) {
 				return;
 			}
+			let stopScroll = () => {};
 			// Wait for the canvas to lay out the new block.
 			const frame = window.requestAnimationFrame( () => {
 				if ( scrollTarget === clientId ) {
 					scrollTarget = null;
-					scrollIntoViewIfNeeded( clientId );
+					stopScroll = scrollIntoViewIfNeeded( clientId );
 				}
 				setHasNoText( ! highlightText( clientId ) );
 			} );
 			return () => {
 				window.cancelAnimationFrame( frame );
+				stopScroll();
 				if ( textRanges.delete( clientId ) ) {
 					paintTextHighlight();
 				}

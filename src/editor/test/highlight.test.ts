@@ -11,7 +11,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { createBlock, registerBlockType } from '@wordpress/blocks';
 import { speak } from '@wordpress/a11y';
-import { dispatch } from '@wordpress/data';
+import { dispatch, select } from '@wordpress/data';
 import { createElement, createRoot, flushSync } from '@wordpress/element';
 
 /**
@@ -162,7 +162,7 @@ describe( 'highlightChanges', () => {
 				}
 			}
 		);
-		// The test page has no layout, so every block looks off-screen.
+		// The test page has no layout, so it cannot scroll.
 		Element.prototype.scrollIntoView = vi.fn();
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
@@ -284,5 +284,101 @@ describe( 'highlightChanges', () => {
 		setUp();
 		highlightChanges( takeBlockSnapshot() );
 		expect( speak ).not.toHaveBeenCalled();
+	} );
+
+	describe( 'scrolling', () => {
+		/**
+		 * Makes the observer report whether the block is visible, as the
+		 * browser does once it starts observing.
+		 *
+		 * @param isIntersecting Whether the block is visible.
+		 */
+		function stubVisibility( isIntersecting: boolean ) {
+			vi.stubGlobal(
+				'IntersectionObserver',
+				class {
+					callback: ( entries: { isIntersecting: boolean }[] ) => void;
+					constructor( callback: ( entries: { isIntersecting: boolean }[] ) => void ) {
+						this.callback = callback;
+					}
+					observe() {
+						this.callback( [ { isIntersecting } ] );
+					}
+					disconnect() {}
+				}
+			);
+		}
+
+		/**
+		 * Changes the first block's text, and highlights the change.
+		 *
+		 * @param options          Options.
+		 * @param options.selected Whether the block is selected before the edit.
+		 */
+		function editFirstBlock( { selected = false } = {} ) {
+			const { one } = setUp();
+			if ( selected ) {
+				dispatch( blockEditorStore ).selectBlock( one, null );
+			}
+			render( one, 'One' );
+			const before = takeBlockSnapshot();
+			dispatch( blockEditorStore ).updateBlockAttributes( one, { content: 'Ones' } );
+			render( one, 'Ones' );
+			flushSync( () => highlightChanges( before ) );
+			flushSync( () => vi.advanceTimersByTime( 16 ) );
+		}
+
+		beforeEach( () => {
+			dispatch( blockEditorStore ).clearSelectedBlock();
+		} );
+
+		it( 'scrolls to the changed block when it is off-screen', () => {
+			stubVisibility( false );
+			editFirstBlock();
+			expect( Element.prototype.scrollIntoView ).toHaveBeenCalledWith( {
+				block: 'center',
+				behavior: 'smooth',
+			} );
+		} );
+
+		it( 'does not scroll to a changed block that is on screen', () => {
+			stubVisibility( true );
+			editFirstBlock();
+			expect( Element.prototype.scrollIntoView ).not.toHaveBeenCalled();
+		} );
+
+		it( 'jumps to the changed block with reduced motion', () => {
+			stubVisibility( false );
+			vi.stubGlobal( 'matchMedia', ( query: string ) => ( {
+				matches: query === '(prefers-reduced-motion: reduce)',
+			} ) );
+			editFirstBlock();
+			expect( Element.prototype.scrollIntoView ).toHaveBeenCalledWith( {
+				block: 'center',
+				behavior: 'instant',
+			} );
+		} );
+
+		it( 'scrolls when the edit keeps the selection', () => {
+			stubVisibility( false );
+			editFirstBlock( { selected: true } );
+			expect( Element.prototype.scrollIntoView ).toHaveBeenCalled();
+		} );
+
+		it( 'leaves the scrolling to the block editor when the edit selects another block', () => {
+			stubVisibility( false );
+			const { one } = setUp();
+			dispatch( blockEditorStore ).selectBlock( one, null );
+			render( one, 'One' );
+			const before = takeBlockSnapshot();
+			const text = createBlock( 'test/text', { content: 'Ones' } );
+			dispatch( blockEditorStore ).replaceBlocks( [ one ], [ text ], undefined, null );
+			render( text.clientId, 'Ones' );
+			flushSync( () => highlightChanges( before ) );
+			flushSync( () => vi.advanceTimersByTime( 16 ) );
+
+			expect( select( blockEditorStore ).getSelectedBlockClientId() ).toBe( text.clientId );
+			expect( Element.prototype.scrollIntoView ).not.toHaveBeenCalled();
+		} );
 	} );
 } );
