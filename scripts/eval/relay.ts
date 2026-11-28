@@ -10,7 +10,7 @@ import { addUsage, countRetries, readAnswerUsage, readStreamUsage, type Usage } 
 
 /**
  * Where the plugin's relay sends Anthropic's requests, as in
- * `classes/class-relay.php`.
+ * `classes/class-providers.php`.
  */
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 
