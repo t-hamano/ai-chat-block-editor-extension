@@ -93,8 +93,9 @@ class Models {
 			);
 		}
 
-		// The key is part of the name, so a new key gets its own list.
-		$cache_key = BLOCKTUNE_NAMESPACE . '_models_' . md5( $provider_id . $api_key );
+		// The key is part of the name, so a new key gets its own list. It is hashed
+		// with the site salts, so the name cannot be used to check a guessed key.
+		$cache_key = BLOCKTUNE_NAMESPACE . '_models_' . wp_hash( $provider_id . $api_key );
 		$models    = get_transient( $cache_key );
 
 		if ( is_array( $models ) ) {
