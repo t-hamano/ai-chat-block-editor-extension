@@ -314,8 +314,6 @@ function runTools(
  */
 export function createOpenAiPlatform( getPostId: () => number, model = OPENAI_MODEL ): AiPlatform {
 	return {
-		// The sidebar only loads when the site has a key.
-		hasApiKey: async () => true,
 		async chat( { system, messages, onEvent, read, signal } ) {
 			const input = toOpenAiInput( messages );
 			const answerText = trackRequestText( onEvent );

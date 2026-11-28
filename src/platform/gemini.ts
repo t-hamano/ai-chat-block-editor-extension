@@ -354,8 +354,6 @@ function runTools(
  */
 export function createGeminiPlatform( getPostId: () => number, model = GEMINI_MODEL ): AiPlatform {
 	return {
-		// The sidebar only loads when the site has a key.
-		hasApiKey: async () => true,
 		async chat( { system, messages, onEvent, read, signal } ) {
 			const contents = toGeminiContents( messages );
 			const answerText = trackRequestText( onEvent );

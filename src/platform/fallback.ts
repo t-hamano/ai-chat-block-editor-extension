@@ -232,8 +232,6 @@ export function createFallbackPlatform(
 	models: [ string, string ][] = []
 ): AiPlatform {
 	return {
-		// The sidebar only loads when the site can answer.
-		hasApiKey: async () => true,
 		async chat( { system, messages, onEvent, read, signal } ) {
 			const conversation = toFallbackMessages( messages );
 			const answerText = trackRequestText( onEvent );

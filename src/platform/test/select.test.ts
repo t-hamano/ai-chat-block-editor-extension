@@ -211,7 +211,7 @@ describe( 'listProviderOptions', () => {
 describe( 'createAutoPlatform', () => {
 	it( 'chooses once, when the first message is sent', async () => {
 		const chat = vi.fn();
-		vi.mocked( createGeminiPlatform ).mockReturnValue( { hasApiKey: vi.fn(), chat } );
+		vi.mocked( createGeminiPlatform ).mockReturnValue( { chat } );
 		mockModels( { google: list( 'gemini-4-pro' ) } );
 
 		const ai = createAutoPlatform( getPostId );
@@ -229,7 +229,7 @@ describe( 'createAutoPlatform', () => {
 
 	it( 'chooses again when the user chooses another model', async () => {
 		const chat = vi.fn();
-		vi.mocked( createOpenAiPlatform ).mockReturnValue( { hasApiKey: vi.fn(), chat } );
+		vi.mocked( createOpenAiPlatform ).mockReturnValue( { chat } );
 		mockModels( { openai: list( 'gpt-7', 'gpt-6' ) } );
 
 		let choice = { provider: 'openai', model: 'gpt-7' };
@@ -248,7 +248,7 @@ describe( 'createAutoPlatform', () => {
 
 	it( 'chooses again when the choice could not be made', async () => {
 		const chat = vi.fn();
-		vi.mocked( createGeminiPlatform ).mockReturnValue( { hasApiKey: vi.fn(), chat } );
+		vi.mocked( createGeminiPlatform ).mockReturnValue( { chat } );
 		mockModels( { anthropic: { code: 'fetch_error' } } );
 
 		const ai = createAutoPlatform( getPostId );
