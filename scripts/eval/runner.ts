@@ -29,7 +29,7 @@ import {
 import { buildMessageContext } from '../../src/ai/document-context';
 import { readDocument } from '../../src/ai/document-outline';
 import { buildSystemPrompt } from '../../src/ai/prompt';
-import { createAnthropicPlatform } from '../../src/platform/anthropic';
+import { createAnthropicPlatform } from '../../src/platform/providers/anthropic';
 import { collectHtml, validateMarkup } from '../../src/editor/validate-markup';
 import { getSiteInfo } from '../../src/editor/site-info';
 import { createSelectionTarget } from '../../src/editor/text-target';

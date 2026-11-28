@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 /**
  * Internal dependencies
  */
-import { describeApplied, toEdit } from '../tools';
+import { describeApplied, toEdit } from '../edit-tools';
 
 describe( 'describeApplied', () => {
 	it( 'tells the model the edit was applied, with the IDs of the new blocks', () => {

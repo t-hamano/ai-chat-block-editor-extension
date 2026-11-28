@@ -7,9 +7,9 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import type { AiChatRequest, AiMessage, AiPlatform } from '.';
-import { READ_TOOLS } from './read-tools';
-import { EDIT_TOOL, describeApplied, runToolLoop } from './tools';
+import type { AiChatRequest, AiMessage, AiPlatform } from '..';
+import { READ_TOOLS } from '../tools/read-tools';
+import { EDIT_TOOL, describeApplied, runToolLoop } from '../tools/edit-tools';
 
 /**
  * The edit tool, as a function declaration of the AI Client. It is made

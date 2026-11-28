@@ -7,10 +7,10 @@ import apiFetch from '@wordpress/api-fetch';
  * Internal dependencies
  */
 import type { AiPlatform } from '.';
-import { ANTHROPIC_MODEL, createAnthropicPlatform } from './anthropic';
-import { createFallbackPlatform } from './fallback';
-import { GEMINI_MODEL, createGeminiPlatform } from './gemini';
-import { OPENAI_MODEL, createOpenAiPlatform } from './openai';
+import { ANTHROPIC_MODEL, createAnthropicPlatform } from './providers/anthropic';
+import { createFallbackPlatform } from './providers/fallback';
+import { GEMINI_MODEL, createGeminiPlatform } from './providers/gemini';
+import { OPENAI_MODEL, createOpenAiPlatform } from './providers/openai';
 
 /**
  * A provider the plugin streams answers from.

@@ -6,10 +6,10 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import type { AiChatRequest, AiMessage, AiPlatform, AiUsage } from '.';
-import { READ_TOOLS, getToolActivity } from './read-tools';
-import { EDIT_TOOL, describeApplied, readErrorMessage, runToolLoop } from './tools';
-import { connectionLost, requestAnswer, type AnswerEvent } from './transport';
+import type { AiChatRequest, AiMessage, AiPlatform, AiUsage } from '..';
+import { READ_TOOLS, getToolActivity } from '../tools/read-tools';
+import { EDIT_TOOL, describeApplied, readErrorMessage, runToolLoop } from '../tools/edit-tools';
+import { connectionLost, requestAnswer, type AnswerEvent } from '../stream/transport';
 
 /**
  * The model that answers when no other model is chosen.

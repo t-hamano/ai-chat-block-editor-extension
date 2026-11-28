@@ -11,10 +11,10 @@ import apiFetch from '@wordpress/api-fetch';
 /**
  * Internal dependencies
  */
-import { createAnthropicPlatform } from '../anthropic';
-import { createFallbackPlatform } from '../fallback';
-import { createGeminiPlatform } from '../gemini';
-import { createOpenAiPlatform } from '../openai';
+import { createAnthropicPlatform } from '../providers/anthropic';
+import { createFallbackPlatform } from '../providers/fallback';
+import { createGeminiPlatform } from '../providers/gemini';
+import { createOpenAiPlatform } from '../providers/openai';
 import {
 	PROVIDERS,
 	chooseModel,
@@ -24,19 +24,19 @@ import {
 } from '../select';
 
 vi.mock( '@wordpress/api-fetch', () => ( { default: vi.fn() } ) );
-vi.mock( '../anthropic', async ( importOriginal ) => ( {
+vi.mock( '../providers/anthropic', async ( importOriginal ) => ( {
 	...( await importOriginal< object >() ),
 	createAnthropicPlatform: vi.fn( () => ( { name: 'anthropic' } ) ),
 } ) );
-vi.mock( '../openai', async ( importOriginal ) => ( {
+vi.mock( '../providers/openai', async ( importOriginal ) => ( {
 	...( await importOriginal< object >() ),
 	createOpenAiPlatform: vi.fn( () => ( { name: 'openai' } ) ),
 } ) );
-vi.mock( '../gemini', async ( importOriginal ) => ( {
+vi.mock( '../providers/gemini', async ( importOriginal ) => ( {
 	...( await importOriginal< object >() ),
 	createGeminiPlatform: vi.fn( () => ( { name: 'google' } ) ),
 } ) );
-vi.mock( '../fallback', () => ( {
+vi.mock( '../providers/fallback', () => ( {
 	createFallbackPlatform: vi.fn( () => ( { name: 'fallback' } ) ),
 } ) );
 

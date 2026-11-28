@@ -6,7 +6,7 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import type { AiChatRequest, AiEditResult } from '.';
+import type { AiChatRequest, AiEditResult } from '..';
 
 /**
  * Keeps the text of each request of an answer.
