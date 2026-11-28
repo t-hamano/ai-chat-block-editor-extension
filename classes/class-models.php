@@ -52,7 +52,7 @@ class Models {
 				'args'                => array(
 					'provider' => array(
 						'type'     => 'string',
-						'enum'     => array_keys( Relay::PROVIDERS ),
+						'enum'     => Providers::ids(),
 						'required' => true,
 					),
 				),
@@ -119,7 +119,7 @@ class Models {
 	 * @return array|WP_Error The models, each with an `id` and a `name`.
 	 */
 	private static function fetch( string $provider_id, string $api_key ) {
-		$provider = Relay::PROVIDERS[ $provider_id ];
+		$provider = Providers::LIST[ $provider_id ];
 
 		$response = wp_remote_get(
 			$provider['models'],

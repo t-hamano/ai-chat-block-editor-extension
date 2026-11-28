@@ -63,7 +63,7 @@ class Api_Key {
 	public static function connected_providers(): array {
 		return array_values(
 			array_filter(
-				array_keys( Relay::PROVIDERS ),
+				Providers::ids(),
 				static function ( $provider_id ) {
 					return '' !== self::get( $provider_id );
 				}
