@@ -31,16 +31,15 @@ type Props = {
  * @param props.onClose Called when the user goes back to the chat.
  */
 export function ModelSettings( { onClose }: Props ) {
+	const [ providers, setProviders ] = useState< ProviderOption[] | null >( null );
+	const [ hasError, setHasError ] = useState( false );
+	const { set } = useDispatch( preferencesStore );
 	// Preferences are kept in the user's meta, so the choice follows the
 	// user to other posts and browsers. `null` means automatic.
 	const choice = useSelect(
 		( select ) => select( preferencesStore ).get( 'blocktune', 'model' ) as ModelChoice | null,
 		[]
 	);
-	const { set } = useDispatch( preferencesStore );
-	const setModelChoice = ( value: ModelChoice | null ) => set( 'blocktune', 'model', value );
-	const [ providers, setProviders ] = useState< ProviderOption[] | null >( null );
-	const [ hasError, setHasError ] = useState( false );
 
 	useEffect( () => {
 		let isCurrent = true;
@@ -52,6 +51,8 @@ export function ModelSettings( { onClose }: Props ) {
 			isCurrent = false;
 		};
 	}, [] );
+
+	const setModelChoice = ( value: ModelChoice | null ) => set( 'blocktune', 'model', value );
 
 	const automatic: Item = {
 		label: __( 'Automatic', 'blocktune' ),

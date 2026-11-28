@@ -59,6 +59,10 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 		undefined,
 		createConversation
 	);
+	const messagesRef = useRef( conversation.messages );
+	const controllerRef = useRef< AbortController | null >( null );
+	// Reads the document when the answer being streamed ends.
+	const readDocumentRef = useRef< ( () => string | undefined ) | null >( null );
 	// The text of an answer arrives in many small pieces. They are joined and
 	// added once per frame, so the chat does not render for each piece.
 	const pendingTextRef = useRef( '' );
@@ -94,14 +98,6 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 		},
 		[ flushText ]
 	);
-	const messagesRef = useRef( conversation.messages );
-	// Keep the latest messages for the callbacks, which run after rendering.
-	useLayoutEffect( () => {
-		messagesRef.current = conversation.messages;
-	} );
-	const controllerRef = useRef< AbortController | null >( null );
-	// Reads the document when the answer being streamed ends.
-	const readDocumentRef = useRef< ( () => string | undefined ) | null >( null );
 
 	const send = useCallback(
 		( text: string ) => {
@@ -259,6 +255,11 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 		dropText();
 		dispatchNow( { type: 'RESET' } );
 	}, [ dropText ] );
+
+	// Keep the latest messages for the callbacks, which run after rendering.
+	useLayoutEffect( () => {
+		messagesRef.current = conversation.messages;
+	} );
 
 	// Abandon the answer when the editor closes, so its late edits do not
 	// reach a document that is gone.

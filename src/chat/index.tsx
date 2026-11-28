@@ -212,15 +212,15 @@ export function Chat( { chat, isAvailable, documentRoot, draft, onDraftChange: s
 		}
 	}, [ conversation ] );
 
-	const onScroll = ( event: React.UIEvent< HTMLDivElement > ) => {
-		const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
-		isAtBottomRef.current = scrollHeight - clientHeight - scrollTop <= 1;
-	};
-
 	const isLong =
 		! isResponding && getConversationTokens( conversation.messages ) > CONVERSATION_TOKEN_LIMIT;
 
 	const canSend = isAvailable && !! draft.trim() && ! isResponding && ! isSelectionOutside;
+
+	const onScroll = ( event: React.UIEvent< HTMLDivElement > ) => {
+		const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+		isAtBottomRef.current = scrollHeight - clientHeight - scrollTop <= 1;
+	};
 
 	const submit = () => {
 		if ( canSend ) {
