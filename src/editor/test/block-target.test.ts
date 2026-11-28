@@ -9,9 +9,15 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
  * WordPress dependencies
  */
 import { InnerBlocks, store as blockEditorStore } from '@wordpress/block-editor';
-import { createBlock, registerBlockType, serialize } from '@wordpress/blocks';
+import { RawHTML, createElement } from '@wordpress/element';
+import {
+	createBlock,
+	parse,
+	registerBlockType,
+	serialize,
+	setFreeformContentHandlerName,
+} from '@wordpress/blocks';
 import { dispatch, select } from '@wordpress/data';
-import { createElement } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -62,6 +68,16 @@ beforeAll( () => {
 		edit: () => null,
 		save: () => createElement( 'small' ),
 	} );
+	registerBlockType( 'core/freeform', {
+		apiVersion: 3,
+		title: 'Classic',
+		category: 'text',
+		attributes: { content: { type: 'string', source: 'raw' } },
+		edit: () => null,
+		save: ( { attributes } ) =>
+			createElement( RawHTML, { children: attributes.content as string } ),
+	} );
+	setFreeformContentHandlerName( 'core/freeform' );
 	registerBlockType( 'test/group', {
 		apiVersion: 3,
 		title: 'Group',
@@ -71,6 +87,8 @@ beforeAll( () => {
 		save: () => createElement( 'div', {}, createElement( InnerBlocks.Content ) ),
 	} );
 } );
+
+const classic = ( content: string ) => `<!-- wp:freeform -->\n${ content }\n<!-- /wp:freeform -->`;
 
 function setUp( ...contents: string[] ) {
 	const blocks = contents.map( ( content ) => createBlock( 'test/paragraph', { content } ) );
@@ -395,6 +413,54 @@ describe( 'createBlockTarget', () => {
 			} )
 		).toMatchObject( { status: 'failed' } );
 		expect( documentNow() ).toBe( paragraph( 'One' ) );
+	} );
+
+	it( 'does not change Classic blocks with a text replacement', () => {
+		const group = ( content: string ) =>
+			`<!-- wp:test/list -->\n<ul>${ content }</ul>\n<!-- /wp:test/list -->`;
+		const content = [
+			'<p>Top classic</p>',
+			paragraph( 'One' ),
+			group( classic( '<p>Nested classic</p>' ) ),
+		].join( '\n\n' );
+		dispatch( blockEditorStore ).resetBlocks( parse( content ) );
+		const before = documentNow();
+		const target = createBlockTarget();
+		const rejected = {
+			status: 'failed',
+			reason: expect.stringContaining( 'Classic blocks must be kept exactly as they are' ),
+		};
+
+		// A word in a Classic block, at the top level or nested.
+		expect( target.apply( { action: 'replace_text', find: 'Top', markup: 'First' } ) ).toEqual(
+			rejected
+		);
+		expect( target.apply( { action: 'replace_text', find: 'Nested', markup: 'Inner' } ) ).toEqual(
+			rejected
+		);
+		// A whole Classic block made into another block.
+		expect(
+			target.apply( {
+				action: 'replace_text',
+				find: '<p>Top classic</p>',
+				markup: paragraph( 'Top classic' ),
+			} )
+		).toEqual( rejected );
+		// A range that takes in a Classic block, and its parent.
+		expect(
+			target.apply( {
+				action: 'replace_text',
+				find: '<ul><!-- wp:freeform -->',
+				markup: '<ul>',
+			} )
+		).toEqual( rejected );
+		expect( documentNow() ).toBe( before );
+
+		// Text next to a Classic block can still change.
+		expect( target.apply( { action: 'replace_text', find: 'One', markup: 'Two' } ) ).toMatchObject(
+			{ status: 'applied' }
+		);
+		expect( documentNow() ).toBe( before.replace( '<p>One</p>', '<p>Two</p>' ) );
 	} );
 
 	describe( 'locked blocks', () => {
