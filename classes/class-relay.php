@@ -59,8 +59,9 @@ class Relay {
 				'max_tokens',
 				'cache_control',
 				'system',
-				'tools' => array( array( 'name', 'description', 'eager_input_streaming', 'input_schema' ) ),
+				'tools'         => array( array( 'name', 'description', 'eager_input_streaming', 'input_schema' ) ),
 				'messages',
+				'output_config' => array( 'effort' ),
 			),
 			'max_tokens' => array( 'max_tokens' ),
 		),
@@ -74,7 +75,7 @@ class Relay {
 				'model',
 				'max_output_tokens',
 				'instructions',
-				'tools' => array(
+				'tools'     => array(
 					array(
 						'type' => 'function',
 						'name',
@@ -86,6 +87,7 @@ class Relay {
 				'input',
 				'store',
 				'include',
+				'reasoning' => array( 'effort' ),
 			),
 			'max_tokens' => array( 'max_output_tokens' ),
 		),

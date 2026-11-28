@@ -47,7 +47,7 @@ Each edit is a single undo step, so you can take it back with the editor's Undo 
 
 ### Choosing the provider and model
 
-By default, the AI assistant picks a provider in the order Anthropic, OpenAI, Google, and uses a recommended model from that provider. The recommended models balance quality and price, such as Claude Sonnet for Anthropic, so the most expensive models are used only when you choose them. To choose them yourself, press the gear icon at the top right of the sidebar. Only providers with an API key and their models are listed. The choice is saved for each user.
+By default, the AI assistant picks a provider in the order Anthropic, OpenAI, Google, and uses a recommended model from that provider. The recommended models balance quality and price, such as Claude Sonnet for Anthropic, so the most expensive models are used only when you choose them. With the recommended models of Anthropic, OpenAI, and Google, the model also thinks less before it answers than the provider's default, so it answers faster and costs less. Other models keep the provider's default. To choose them yourself, press the gear icon at the top right of the sidebar. Only providers with an API key and their models are listed. The choice is saved for each user.
 
 ## Limitations
 

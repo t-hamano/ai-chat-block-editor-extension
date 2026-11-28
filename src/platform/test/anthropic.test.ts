@@ -13,6 +13,7 @@ import apiFetch from '@wordpress/api-fetch';
  */
 import type { AiStreamEvent } from '..';
 import {
+	ANTHROPIC_EFFORT,
 	ANTHROPIC_MODEL,
 	buildAnthropicBody,
 	createAnthropicPlatform,
@@ -53,7 +54,13 @@ describe( 'buildAnthropicBody', () => {
 			system: [ { type: 'text', text: 'Be brief.', cache_control: { type: 'ephemeral' } } ],
 			tools: [ EDIT_TOOL, ...READ_TOOLS ],
 			messages,
+			output_config: { effort: ANTHROPIC_EFFORT },
 		} );
+	} );
+
+	it( 'leaves the effort out for other models', () => {
+		const body = buildAnthropicBody( 'Be brief.', [], 'claude-sonnet-5' );
+		expect( body ).not.toHaveProperty( 'output_config' );
 	} );
 } );
 

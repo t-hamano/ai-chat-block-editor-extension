@@ -17,6 +17,14 @@ import { connectionLost, requestAnswer, type AnswerEvent } from './transport';
 export const GEMINI_MODEL = 'gemini-3.1-pro-preview';
 
 /**
+ * How much the model thinks on an answer. Editing blocks does not need the
+ * provider's default of `high`, and a lower level answers faster and costs
+ * less. It is only sent to `GEMINI_MODEL`, because the levels other models
+ * take differ, and a model rejects one it does not take.
+ */
+export const GEMINI_THINKING_LEVEL = 'low';
+
+/**
  * The edit tool, as a function declaration of Google's Gemini API. It is
  * made from the shared tool, so every provider gets the same tool.
  */
@@ -117,7 +125,10 @@ export function buildGeminiBody( system: string, contents: GeminiContent[], mode
 		tools: [ { functionDeclarations: [ GEMINI_EDIT_TOOL, ...GEMINI_READ_TOOLS ] } ],
 		generationConfig: {
 			// Summaries of the thoughts arrive, so the user sees that the model is thinking.
-			thinkingConfig: { includeThoughts: true },
+			thinkingConfig: {
+				includeThoughts: true,
+				...( model === GEMINI_MODEL && { thinkingLevel: GEMINI_THINKING_LEVEL } ),
+			},
 		},
 	};
 }

@@ -65,7 +65,7 @@ Each answer in the chat shows how many tokens it used. For the exact usage and c
 
 = Which AI providers and models can I use? =
 
-Anthropic, OpenAI, and Google are fully supported. Other providers work too, if their provider plugin supports the AI Client in WordPress. To choose the provider and model, open the Chat settings in the sidebar. By default, the first connected provider among Anthropic, OpenAI, and Google is used.
+Anthropic, OpenAI, and Google are fully supported. Other providers work too, if their provider plugin supports the AI Client in WordPress. To choose the provider and model, open the Chat settings in the sidebar. By default, the first connected provider among Anthropic, OpenAI, and Google is used, with a recommended model that balances quality and price. With these recommended models, the model thinks less before it answers than the provider's default, so it answers faster and costs less. Other models keep the provider's default.
 
 = Where is my API key stored? =
 

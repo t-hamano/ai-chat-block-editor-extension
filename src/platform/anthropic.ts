@@ -17,6 +17,14 @@ import { connectionLost, requestAnswer, type AnswerEvent } from './transport';
 export const ANTHROPIC_MODEL = 'claude-sonnet-5-5';
 
 /**
+ * How hard the model works on an answer. Editing blocks does not need the
+ * provider's default of `high`, and a lower effort answers faster and costs
+ * less. It is only sent to `ANTHROPIC_MODEL`, because the efforts other
+ * models take differ, and a model rejects one it does not take.
+ */
+export const ANTHROPIC_EFFORT = 'medium';
+
+/**
  * A content block of a message, as Anthropic's Messages API has it.
  */
 type ContentBlock = { type: string; [ key: string ]: unknown };
@@ -82,6 +90,7 @@ const CACHE_CONTROL = { type: 'ephemeral' } as const;
  * Builds the body of a request to Anthropic's Messages API.
  *
  * The relay sets the token limit of the answer, so the body leaves it out.
+ * The effort is only set for `ANTHROPIC_MODEL`.
  *
  * The prompt is cached at two points. The marker on the system prompt
  * caches the tool and the system prompt, which stay the same in every
@@ -105,6 +114,7 @@ export function buildAnthropicBody(
 		system: [ { type: 'text', text: system, cache_control: CACHE_CONTROL } ],
 		tools: [ EDIT_TOOL, ...READ_TOOLS ],
 		messages,
+		...( model === ANTHROPIC_MODEL && { output_config: { effort: ANTHROPIC_EFFORT } } ),
 	};
 }
 

@@ -17,6 +17,7 @@ import {
 	GEMINI_EDIT_TOOL,
 	GEMINI_READ_TOOLS,
 	GEMINI_MODEL,
+	GEMINI_THINKING_LEVEL,
 	buildGeminiBody,
 	createGeminiPlatform,
 	readGeminiErrorMessage,
@@ -68,9 +69,14 @@ describe( 'buildGeminiBody', () => {
 			contents,
 			tools: [ { functionDeclarations: [ GEMINI_EDIT_TOOL, ...GEMINI_READ_TOOLS ] } ],
 			generationConfig: {
-				thinkingConfig: { includeThoughts: true },
+				thinkingConfig: { includeThoughts: true, thinkingLevel: GEMINI_THINKING_LEVEL },
 			},
 		} );
+	} );
+
+	it( 'leaves the thinking level out for other models', () => {
+		const body = buildGeminiBody( 'Be brief.', [], 'gemini-3-flash-preview' );
+		expect( body.generationConfig.thinkingConfig ).toEqual( { includeThoughts: true } );
 	} );
 } );
 

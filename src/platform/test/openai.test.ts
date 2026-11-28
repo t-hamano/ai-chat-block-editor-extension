@@ -16,6 +16,7 @@ import { EDIT_TOOL } from '../tools';
 import {
 	OPENAI_EDIT_TOOL,
 	OPENAI_READ_TOOLS,
+	OPENAI_EFFORT,
 	OPENAI_MODEL,
 	buildOpenAiBody,
 	createOpenAiPlatform,
@@ -69,7 +70,13 @@ describe( 'buildOpenAiBody', () => {
 			input,
 			store: false,
 			include: [ 'reasoning.encrypted_content' ],
+			reasoning: { effort: OPENAI_EFFORT },
 		} );
+	} );
+
+	it( 'leaves the effort out for other models', () => {
+		const body = buildOpenAiBody( 'Be brief.', [], 'gpt-6-sol' );
+		expect( body ).not.toHaveProperty( 'reasoning' );
 	} );
 } );
 

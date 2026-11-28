@@ -17,6 +17,14 @@ import { connectionLost, requestAnswer, type AnswerEvent } from './transport';
 export const OPENAI_MODEL = 'gpt-6.1-sol';
 
 /**
+ * How hard the model reasons on an answer. Editing blocks does not need the
+ * provider's default of `medium`, and a lower effort answers faster and
+ * costs less. It is only sent to `OPENAI_MODEL`, because the efforts other
+ * models take differ, and a model rejects one it does not take.
+ */
+export const OPENAI_EFFORT = 'low';
+
+/**
  * The edit tool, as a function of OpenAI's Responses API. It is made from
  * the shared tool, so every provider gets the same tool.
  */
@@ -85,7 +93,8 @@ export function toOpenAiInput( messages: AiMessage[] ): OpenAiItem[] {
  * The relay sets the token limit of the answer, so the body leaves it out.
  *
  * Nothing is stored at OpenAI, so the reasoning comes back encrypted, to be
- * sent again while the model goes on with the same answer.
+ * sent again while the model goes on with the same answer. The effort is only
+ * set for `OPENAI_MODEL`.
  *
  * @param system The system prompt.
  * @param input  The input items.
@@ -100,6 +109,7 @@ export function buildOpenAiBody( system: string, input: OpenAiItem[], model = OP
 		input,
 		store: false,
 		include: [ 'reasoning.encrypted_content' ],
+		...( model === OPENAI_MODEL && { reasoning: { effort: OPENAI_EFFORT } } ),
 	};
 }
 
