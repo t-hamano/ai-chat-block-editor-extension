@@ -3,7 +3,7 @@
 /**
  * External dependencies
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * WordPress dependencies
@@ -518,6 +518,27 @@ describe( 'createBlockTarget', () => {
 				createBlockTarget().apply( { action: 'delete_block', ref: getRef( id ), markup: '' } )
 			).toEqual( { status: 'failed', reason: expect.stringContaining( 'cannot be removed' ) } );
 			expect( select( blockEditorStore ).getBlock( id ) ).not.toBeNull();
+		} );
+
+		it( 'does not report a block as removed while the user is asked to confirm it', () => {
+			const [ first ] = setUp( 'One', 'Two' );
+			// The editor keeps the block and asks the user, as it does for the
+			// Post Content block in a template.
+			const removeBlocks = vi
+				.spyOn( dispatch( blockEditorStore ), 'removeBlocks' )
+				.mockImplementation( async () => {} );
+
+			try {
+				expect(
+					createBlockTarget().apply( { action: 'delete_block', ref: getRef( first ), markup: '' } )
+				).toEqual( {
+					status: 'failed',
+					reason: expect.stringContaining( 'asked the user to confirm the removal' ),
+				} );
+				expect( removeBlocks ).toHaveBeenCalled();
+			} finally {
+				removeBlocks.mockRestore();
+			}
 		} );
 
 		it( 'edits the content of blocks in a template that is locked', () => {
