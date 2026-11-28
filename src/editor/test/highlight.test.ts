@@ -18,10 +18,11 @@ import { createElement, createRoot, flushSync } from '@wordpress/element';
  * Internal dependencies
  */
 import {
+	HIGHLIGHT_ANIMATION_NAME,
 	HIGHLIGHT_CLASS_NAME,
 	HIGHLIGHT_DURATION,
+	TEXT_HIGHLIGHT_CLASS_NAME,
 	TEXT_HIGHLIGHT_NAME,
-	TEXT_OPACITY_PROPERTY,
 	createTextRange,
 	diffText,
 	findChangedBlocks,
@@ -138,7 +139,6 @@ describe( 'highlightChanges', () => {
 	let container: HTMLDivElement;
 	let root: ReturnType< typeof createRoot >;
 	let highlights: Map< string, { ranges: Range[] } >;
-	let animate: ReturnType< typeof vi.fn< Element[ 'animate' ] > >;
 	let scrollIntoView: ReturnType< typeof vi.fn< Element[ 'scrollIntoView' ] > >;
 
 	function render( clientId: string, text: string ) {
@@ -174,9 +174,6 @@ describe( 'highlightChanges', () => {
 		// The test page has no layout, so it cannot scroll.
 		scrollIntoView = vi.fn();
 		view.Element.prototype.scrollIntoView = scrollIntoView;
-		// The test page cannot animate, so the fade is only recorded.
-		animate = vi.fn( () => ( { cancel: vi.fn() } ) as unknown as Animation );
-		view.Element.prototype.animate = animate;
 		container = view.document.createElement( 'div' );
 		view.document.body.appendChild( container );
 		root = createRoot( container );
@@ -221,22 +218,12 @@ describe( 'highlightChanges', () => {
 		flushSync( () => highlightChanges( before ) );
 		flushSync( () => vi.advanceTimersByTime( 16 ) );
 
-		expect( container.querySelector( 'p' )?.className ).not.toContain( HIGHLIGHT_CLASS_NAME );
+		expect( container.querySelector( 'p' )?.className ).toBe( TEXT_HIGHLIGHT_CLASS_NAME );
 		expect( highlights.get( TEXT_HIGHLIGHT_NAME )?.ranges[ 0 ].toString() ).toBe( ' more' );
-
-		expect( animate ).toHaveBeenCalledTimes( 1 );
-		expect( animate.mock.contexts[ 0 ] ).toBe( container.querySelector( 'p' ) );
-		expect( animate ).toHaveBeenCalledWith(
-			[
-				{ [ TEXT_OPACITY_PROPERTY ]: 1 },
-				{ [ TEXT_OPACITY_PROPERTY ]: 1, offset: 0.6 },
-				{ [ TEXT_OPACITY_PROPERTY ]: 0 },
-			],
-			{ duration: HIGHLIGHT_DURATION }
-		);
 
 		flushSync( () => vi.advanceTimersByTime( HIGHLIGHT_DURATION ) );
 		expect( highlights.has( TEXT_HIGHLIGHT_NAME ) ).toBe( false );
+		expect( container.querySelector( 'p' )?.className ).not.toContain( TEXT_HIGHLIGHT_CLASS_NAME );
 	} );
 
 	it( 'restarts the fade of the changed text when the block changes again', () => {
@@ -246,8 +233,11 @@ describe( 'highlightChanges', () => {
 		dispatch( blockEditorStore ).updateBlockAttributes( one, { content: 'One more' } );
 		render( one, 'One more' );
 		flushSync( () => highlightChanges( before ) );
-		flushSync( () => vi.advanceTimersByTime( 16 ) );
-		const first = animate.mock.results[ 0 ].value as Animation;
+		flushSync( () => vi.advanceTimersByTime( HIGHLIGHT_DURATION / 2 ) );
+		// The test page cannot animate, so the running animations are made up.
+		const fade = { animationName: HIGHLIGHT_ANIMATION_NAME, currentTime: HIGHLIGHT_DURATION / 2 };
+		const other = { animationName: 'other', currentTime: HIGHLIGHT_DURATION / 2 };
+		view.Element.prototype.getAnimations = () => [ fade, other ] as unknown as Animation[];
 
 		before = takeBlockSnapshot();
 		dispatch( blockEditorStore ).updateBlockAttributes( one, { content: 'One more time' } );
@@ -255,8 +245,10 @@ describe( 'highlightChanges', () => {
 		flushSync( () => highlightChanges( before ) );
 		flushSync( () => vi.advanceTimersByTime( 16 ) );
 
-		expect( first.cancel ).toHaveBeenCalled();
-		expect( animate ).toHaveBeenCalledTimes( 2 );
+		expect( fade.currentTime ).toBe( 0 );
+		expect( other.currentTime ).toBe( HIGHLIGHT_DURATION / 2 );
+		expect( container.querySelector( 'p' )?.className ).toBe( TEXT_HIGHLIGHT_CLASS_NAME );
+		expect( highlights.get( TEXT_HIGHLIGHT_NAME )?.ranges[ 0 ].toString() ).toBe( ' time' );
 	} );
 
 	it( 'compares a replaced block with the block it replaced', () => {

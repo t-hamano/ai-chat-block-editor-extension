@@ -2,8 +2,30 @@
 // `index.css`, which is loaded into the canvas iframe on
 // `enqueue_block_assets`, apart from the sidebar styles in `style-index.css`.
 
-// The same overlay as the block editor draws on multi-selected blocks,
-// faded out over the same time as `HIGHLIGHT_DURATION`.
+// The opacity of the highlight color, animated by `blocktune-highlight`.
+// Registered so that it can be animated, and inherited so that the changed
+// text in a block sees it.
+@property --blocktune-highlight-opacity {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 1;
+}
+
+// Holds the highlight color, then fades it out by the end of
+// `HIGHLIGHT_DURATION`.
+@keyframes blocktune-highlight {
+
+	0%,
+	60% {
+		--blocktune-highlight-opacity: 1;
+	}
+
+	100% {
+		--blocktune-highlight-opacity: 0;
+	}
+}
+
+// The same overlay as the block editor draws on multi-selected blocks.
 .wp-block.blocktune-is-changed::after {
 	content: "";
 	position: absolute;
@@ -13,42 +35,29 @@
 	right: 0;
 	bottom: 0;
 	left: 0;
-	animation: blocktune-changed 1s ease-out forwards;
+	background-color: rgba(var(--wp-admin-theme-color--rgb), calc(0.4 * var(--blocktune-highlight-opacity, 1)));
+	animation: blocktune-highlight 1s ease-out forwards;
 }
 
-@keyframes blocktune-changed {
-
-	0%,
-	60% {
-		background-color: rgba(var(--wp-admin-theme-color--rgb), 0.4);
-	}
-
-	100% {
-		background-color: transparent;
-	}
+// The block whose changed text is colored. The animation runs on the block,
+// since the CSS Custom Highlight API cannot animate, and the changed text
+// inherits the opacity from it.
+.wp-block.blocktune-has-changed-text {
+	animation: blocktune-highlight 1s ease-out forwards;
 }
 
-// With reduced motion, the overlay stays the same color until the
-// highlight ends, without fading.
+// With reduced motion, the color stays the same until the highlight ends,
+// without fading.
 @media (prefers-reduced-motion: reduce) {
 
-	.wp-block.blocktune-is-changed::after {
+	.wp-block.blocktune-is-changed::after,
+	.wp-block.blocktune-has-changed-text {
 		animation: none;
-		background-color: rgba(var(--wp-admin-theme-color--rgb), 0.4);
 	}
-}
-
-// Registered so that the script can animate it, and inherited so that the
-// changed text in the block sees it.
-@property --blocktune-changed-text-opacity {
-	syntax: "<number>";
-	inherits: true;
-	initial-value: 1;
 }
 
 // The changed text, colored through the CSS Custom Highlight API without
-// adding formatting to the content. The script fades it out over the same
-// time as the block highlight, through the opacity property.
+// adding formatting to the content.
 ::highlight(blocktune-changed-text) {
-	background-color: rgba(var(--wp-admin-theme-color--rgb), calc(0.4 * var(--blocktune-changed-text-opacity, 1)));
+	background-color: rgba(var(--wp-admin-theme-color--rgb), calc(0.4 * var(--blocktune-highlight-opacity, 1)));
 }
