@@ -61,6 +61,7 @@ By default, the AI assistant picks a provider in the order Anthropic, OpenAI, Go
 * When you change a block while the AI is answering, the AI does not overwrite your change. It reads the block again, and edits it from what it is now.
 * Styling is limited to what each block and the theme allow, and theme presets are used where possible.
 * The AI does not add new images or files. It only uses media that is already in the post or that you give it.
+* The AI does not search the web or read other web pages. It answers from what you send and what the model already knows.
 * Long posts (over about 60,000 characters of block markup) are sent as an outline, and the AI reads only the parts it needs. This saves tokens, but the AI may miss context it did not read.
 * The conversation is not saved. It is cleared when you reload the editor.
 * Your content is sent to the AI provider. See the "External services" section of [readme.txt](readme.txt) for what is sent and when.
