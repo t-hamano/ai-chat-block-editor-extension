@@ -41,7 +41,7 @@ The plugin uses the API keys registered on the Connectors screen in WordPress co
    * **Text inside a block**: select a few words. Only that text is changed.
    * **Nothing**: the AI reads the whole post and decides where to edit, insert, or delete blocks.
 4. Type what you want, such as "Translate this into Japanese" or "Make this heading shorter", and press **Send**. The answer appears as it is written, and you can press **Stop** at any time.
-5. Changed blocks are outlined, and changed text is colored for a few seconds. If the first change is off screen, the editor scrolls to it. With reduced motion turned on, only the color is shown.
+5. Changed blocks are outlined, and changed text is colored for a few seconds. If the first change is off screen, the editor scrolls to it. With reduced motion turned on, the color does not fade, and the editor jumps to the change instead of scrolling smoothly.
 
 Each edit is a single undo step, so you can take it back with the editor's Undo button. Press **New conversation** (the plus icon) to start over.
 
