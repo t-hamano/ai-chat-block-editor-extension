@@ -27,7 +27,6 @@ import {
 	findChangedBlocks,
 	highlightBlocks,
 	highlightChanges,
-	isHighlighted,
 	takeBlockSnapshot,
 	withChangeHighlight,
 } from '../highlight';
@@ -95,36 +94,6 @@ describe( 'findChangedBlocks', () => {
 		const text = createBlock( 'test/text', { content: 'New' } );
 		dispatch( blockEditorStore ).replaceBlocks( [ group ], [ text ], undefined, null );
 		expect( findChangedBlocks( before ) ).toEqual( [ text.clientId ] );
-	} );
-} );
-
-describe( 'highlightBlocks', () => {
-	beforeEach( () => {
-		vi.useFakeTimers();
-	} );
-
-	afterEach( () => {
-		vi.runAllTimers();
-		vi.useRealTimers();
-	} );
-
-	it( 'highlights the blocks for a while', () => {
-		highlightBlocks( [ 'a', 'b' ] );
-		expect( isHighlighted( 'a' ) ).toBe( true );
-		expect( isHighlighted( 'b' ) ).toBe( true );
-		vi.advanceTimersByTime( HIGHLIGHT_DURATION );
-		expect( isHighlighted( 'a' ) ).toBe( false );
-		expect( isHighlighted( 'b' ) ).toBe( false );
-	} );
-
-	it( 'keeps a block highlighted for the full time when it changes again', () => {
-		highlightBlocks( [ 'a' ] );
-		vi.advanceTimersByTime( HIGHLIGHT_DURATION / 2 );
-		highlightBlocks( [ 'a' ] );
-		vi.advanceTimersByTime( HIGHLIGHT_DURATION / 2 );
-		expect( isHighlighted( 'a' ) ).toBe( true );
-		vi.advanceTimersByTime( HIGHLIGHT_DURATION / 2 );
-		expect( isHighlighted( 'a' ) ).toBe( false );
 	} );
 } );
 
@@ -207,6 +176,28 @@ describe( 'highlightChanges', () => {
 		vi.unstubAllGlobals();
 		vi.useRealTimers();
 		vi.mocked( speak ).mockClear();
+	} );
+
+	it( 'highlights the blocks for a while', () => {
+		render( 'a', 'A' );
+		flushSync( () => highlightBlocks( [ 'a', 'b' ] ) );
+		flushSync( () => vi.advanceTimersByTime( 16 ) );
+		expect( container.querySelector( 'p' )?.className ).toBe( HIGHLIGHT_CLASS_NAME );
+
+		flushSync( () => vi.advanceTimersByTime( HIGHLIGHT_DURATION ) );
+		expect( container.querySelector( 'p' )?.className ).not.toContain( HIGHLIGHT_CLASS_NAME );
+	} );
+
+	it( 'keeps a block highlighted for the full time when it changes again', () => {
+		render( 'a', 'A' );
+		flushSync( () => highlightBlocks( [ 'a' ] ) );
+		flushSync( () => vi.advanceTimersByTime( HIGHLIGHT_DURATION / 2 ) );
+		flushSync( () => highlightBlocks( [ 'a' ] ) );
+		flushSync( () => vi.advanceTimersByTime( HIGHLIGHT_DURATION / 2 ) );
+		expect( container.querySelector( 'p' )?.className ).toBe( HIGHLIGHT_CLASS_NAME );
+
+		flushSync( () => vi.advanceTimersByTime( HIGHLIGHT_DURATION / 2 ) );
+		expect( container.querySelector( 'p' )?.className ).not.toContain( HIGHLIGHT_CLASS_NAME );
 	} );
 
 	it( 'colors the changed text until the block highlight ends', () => {
