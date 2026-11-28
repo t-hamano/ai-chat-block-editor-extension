@@ -51,7 +51,7 @@ function NoConnectorNotice() {
 }
 
 export default function Sidebar() {
-	const title = __( 'AI Chat', 'blocktune' );
+	const title = __( 'Blocktune', 'blocktune' );
 	const isVisualEditor = useSelect(
 		( select ) => select( editorStore ).getEditorMode() === 'visual',
 		[]
