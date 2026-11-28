@@ -35,7 +35,7 @@ The plugin uses the API keys registered on the Connectors screen in WordPress co
 ## Usage
 
 1. Open a post or page in the block editor.
-2. Open the AI Chat sidebar from the sparkle icon in the top toolbar, or from **AI Chat** in the Options menu.
+2. Open the Blocktune sidebar from the sparkle icon in the top toolbar, or from **Blocktune** in the Options menu.
 3. Choose what to edit:
    * **Blocks**: select one or more blocks. Only the selected blocks are changed.
    * **Text inside a block**: select a few words. Only that text is changed.
