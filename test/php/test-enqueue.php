@@ -53,7 +53,7 @@ class Test_Enqueue extends WP_UnitTestCase {
 		$this->assertTrue( wp_script_is( BLOCKTUNE_NAMESPACE ) );
 		$this->assertTrue( wp_style_is( BLOCKTUNE_NAMESPACE ) );
 		$this->assertStringContainsString(
-			'"aiSupported":true',
+			'"isAiSupported":true',
 			implode( '', wp_scripts()->get_data( BLOCKTUNE_NAMESPACE, 'before' ) )
 		);
 		$this->assertStringContainsString(
@@ -107,7 +107,7 @@ class Test_Enqueue extends WP_UnitTestCase {
 
 		$this->assertTrue( wp_script_is( BLOCKTUNE_NAMESPACE ) );
 		$this->assertStringContainsString(
-			'"aiSupported":false',
+			'"isAiSupported":false',
 			implode( '', wp_scripts()->get_data( BLOCKTUNE_NAMESPACE, 'before' ) )
 		);
 	}

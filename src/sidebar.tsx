@@ -27,10 +27,10 @@ const ai = createAutoPlatform(
 		( selectStore( preferencesStore ).get( 'blocktune', 'model' ) as ModelChoice | null ) ?? null
 );
 
-const { aiSupported, hasApiKey, connectorsUrl } = window.blocktune;
+const { isAiSupported, hasApiKey, connectorsUrl } = window.blocktune;
 
 // The assistant can be used only when the site allows AI and has an API key.
-const isUsable = aiSupported && hasApiKey;
+const isUsable = isAiSupported && hasApiKey;
 
 // The site can turn AI off, and then every request is refused, so the
 // sidebar says so instead of showing the chat.
@@ -136,8 +136,8 @@ export default function Sidebar() {
 				}
 			>
 				{ isSettingsOpen && <ModelSettings onClose={ () => setIsSettingsOpen( false ) } /> }
-				{ ! isSettingsOpen && ! aiSupported && <AiNotSupportedNotice /> }
-				{ ! isSettingsOpen && aiSupported && ! hasApiKey && <NoConnectorNotice /> }
+				{ ! isSettingsOpen && ! isAiSupported && <AiNotSupportedNotice /> }
+				{ ! isSettingsOpen && isAiSupported && ! hasApiKey && <NoConnectorNotice /> }
 				{ ! isSettingsOpen && isUsable && (
 					<Chat
 						chat={ chat }
