@@ -70,7 +70,7 @@ describe( 'createSelectionTarget', () => {
 		selectText( id, 4, 11 );
 
 		expect( createSelectionTarget().getContext() ).toEqual( {
-			document: `<!-- ref:${ getRef( id ) } -->${ paragraph( 'One <strong>two</strong> three' ) }`,
+			document: `<!-- ${ getRef( id ) } -->${ paragraph( 'One <strong>two</strong> three' ) }`,
 			selection: '<strong>two</strong> thr',
 			textIn: getRef( id ),
 		} );

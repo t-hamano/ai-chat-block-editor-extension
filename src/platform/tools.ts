@@ -50,7 +50,7 @@ export const EDIT_TOOL = {
 			ref: {
 				type: 'string',
 				description:
-					'The reference ID of the block to edit, such as "b12", from the <!-- ref:b12 --> before it.',
+					'The reference ID of the block to edit, such as "b12", from the <!-- b12 --> before it.',
 			},
 			find: {
 				type: 'string',

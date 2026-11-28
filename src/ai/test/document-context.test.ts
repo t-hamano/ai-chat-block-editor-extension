@@ -9,10 +9,10 @@ import { describe, expect, it } from 'vitest';
 import { buildMessageContext, formatChanges, splitTopLevelBlocks } from '../document-context';
 
 const paragraph = ( ref: string, text: string ) =>
-	`<!-- ref:${ ref } --><!-- wp:paragraph -->\n<p>${ text }</p>\n<!-- /wp:paragraph -->`;
+	`<!-- ${ ref } --><!-- wp:paragraph -->\n<p>${ text }</p>\n<!-- /wp:paragraph -->`;
 
 const group = ( ref: string, inner: string ) =>
-	`<!-- ref:${ ref } --><!-- wp:group {"layout":{"type":"constrained"}} -->\n<div class="wp-block-group">${ inner }</div>\n<!-- /wp:group -->`;
+	`<!-- ${ ref } --><!-- wp:group {"layout":{"type":"constrained"}} -->\n<div class="wp-block-group">${ inner }</div>\n<!-- /wp:group -->`;
 
 const doc = ( ...blocks: string[] ) => blocks.join( '\n\n' );
 
@@ -27,12 +27,12 @@ describe( 'splitTopLevelBlocks', () => {
 		const document = doc(
 			paragraph( 'b1', 'One.' ),
 			group( 'b2', inner ),
-			'<!-- ref:b4 --><!-- wp:latest-posts {"postsToShow":3} /-->'
+			'<!-- b4 --><!-- wp:latest-posts {"postsToShow":3} /-->'
 		);
 		expect( splitTopLevelBlocks( document ) ).toEqual( [
 			{ ref: 'b1', markup: paragraph( 'b1', 'One.' ) },
 			{ ref: 'b2', markup: group( 'b2', inner ) },
-			{ ref: 'b4', markup: '<!-- ref:b4 --><!-- wp:latest-posts {"postsToShow":3} /-->' },
+			{ ref: 'b4', markup: '<!-- b4 --><!-- wp:latest-posts {"postsToShow":3} /-->' },
 		] );
 	} );
 
@@ -44,7 +44,7 @@ describe( 'splitTopLevelBlocks', () => {
 	} );
 
 	it( 'returns null for unbalanced or repeated blocks', () => {
-		expect( splitTopLevelBlocks( '<!-- ref:b1 --><!-- wp:group --><div></div>' ) ).toBeNull();
+		expect( splitTopLevelBlocks( '<!-- b1 --><!-- wp:group --><div></div>' ) ).toBeNull();
 		expect(
 			splitTopLevelBlocks( doc( paragraph( 'b1', 'One.' ), paragraph( 'b1', 'Two.' ) ) )
 		).toBeNull();
@@ -201,7 +201,7 @@ describe( 'buildMessageContext', () => {
 		const previous = doc( paragraph( 'b1', long ), paragraph( 'b2', long ) );
 		const document = doc(
 			previous,
-			'<!-- ref:b3 --><!-- wp:html -->\n<div>Hi</div>\n<!-- /wp:html -->'
+			'<!-- b3 --><!-- wp:html -->\n<div>Hi</div>\n<!-- /wp:html -->'
 		);
 		const result = buildMessageContext( { document, selection: '' }, seen( previous ) );
 		expect( result ).toContain( 'These are the changes.' );
