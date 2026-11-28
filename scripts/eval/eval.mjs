@@ -4,10 +4,9 @@
  * Runs the evaluation with promptfoo, saves the results to `results.json`
  * at the root of the repository, and adds the run to `history.jsonl`.
  *
- * The run is recorded even when cases failed, since those are results too.
- * It is not recorded when promptfoo wrote no results, such as when it was
- * stopped, or when every case ended in an error, such as when the API key
- * is missing.
+ * The run is recorded only when every case passed. Otherwise, and when
+ * promptfoo wrote no results, such as when it was stopped, the command
+ * ends with an error.
  *
  * Usage: npm run eval [-- promptfoo's options]
  */
@@ -66,10 +65,9 @@ if ( ! fs.existsSync( RESULTS ) ) {
 	process.exit( status || 1 );
 }
 try {
-	record( RESULTS, { skipFailures: true } );
+	record( RESULTS );
 } catch ( recordError ) {
 	console.error( recordError.message );
 	process.exit( 1 );
 }
-// promptfoo ends with an error code when a case failed, which is still reported.
 process.exit( status ?? 1 );

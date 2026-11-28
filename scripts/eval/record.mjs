@@ -9,6 +9,8 @@
  * When the evaluation ran each case more than once, as it does by default,
  * each case is recorded once, with the average usage of its runs.
  *
+ * A run is recorded only when every case passed.
+ *
  * `npm run eval` records each run itself. This script records the results
  * in a file again, such as when recording them failed.
  *
@@ -247,24 +249,27 @@ export function compare( run, earlier ) {
  * compares with the last one recorded for the same evaluation set and
  * model.
  *
- * @param {string}  file                   The path of promptfoo's output file.
- * @param {Object}  [options]              Options.
- * @param {boolean} [options.skipFailures] Whether to leave out a run where no case ended without an error, such as when the API key is missing.
- * @return {boolean} Whether the run was added.
- * @throws {Error} When the run is already in the history.
+ * @param {string} file The path of promptfoo's output file.
+ * @throws {Error} When a case failed or ended in an error, or the run is already in the history.
  */
-export function record( file, { skipFailures = false } = {} ) {
+export function record( file ) {
 	const git = ( ...args ) => execFileSync( 'git', args, { encoding: 'utf8' } ).trim();
 	const run = summarize( JSON.parse( fs.readFileSync( file, 'utf8' ) ), {
 		commit: git( 'rev-parse', '--short=12', 'HEAD' ),
 		// The history itself changes with every run, so it does not count.
 		dirty: Boolean( git( 'status', '--porcelain', '--', '.', `:!${ HISTORY }` ) ),
 	} );
-	if ( skipFailures && run.cases.every( ( item ) => item.error && ! item.checks ) ) {
-		console.log(
-			'Every case ended in an error, so the run is not recorded. Check the errors in the results.'
+	// Only runs where every case passed are compared, so the others are not kept.
+	const failed = run.cases.filter( ( item ) => ! item.pass ).map( ( item ) => item.case );
+	if ( ! run.cases.length || failed.length ) {
+		throw new Error(
+			[
+				`The run is not recorded, since ${
+					run.cases.length ? 'some cases failed or ended in an error' : 'it has no cases'
+				}. Check the results with \`npm run eval:view\`.`,
+				...failed.map( ( name ) => `  - ${ name }` ),
+			].join( '\n' )
 		);
-		return false;
 	}
 	const history = fs.existsSync( HISTORY ) ? readHistory( fs.readFileSync( HISTORY, 'utf8' ) ) : [];
 	if ( run.evalId && history.some( ( earlier ) => earlier.evalId === run.evalId ) ) {
@@ -288,7 +293,6 @@ export function record( file, { skipFailures = false } = {} ) {
 			? compare( run, earlier ).join( '\n' )
 			: 'No earlier run of this evaluation set to compare with.'
 	);
-	return true;
 }
 
 if ( import.meta.main ) {

@@ -8,25 +8,25 @@ The editor, the prompt, the document context, and the Anthropic adapter are the 
 
 1. Put your Anthropic API key in `.env` at the root of the repository. The file is ignored by Git.
 
-    ```sh
-    ANTHROPIC_API_KEY=sk-ant-...
-    ```
+   ```sh
+   ANTHROPIC_API_KEY=sk-ant-...
+   ```
 
 2. Run the cases. Each run sends real requests and costs a little: the cases together use well under a dollar.
 
-    ```sh
-    npm run eval
-    ```
+   ```sh
+   npm run eval
+   ```
 
-    The model does not answer the same way every time, so each case runs three times, one run after another. To run only some cases, or each case once, add promptfoo's options, such as `npm run eval -- --filter-pattern "outline"` or `npm run eval -- --repeat 1`.
+   The model does not answer the same way every time, so each case runs three times, one run after another. To run only some cases, or each case once, add promptfoo's options, such as `npm run eval -- --filter-pattern "outline"` or `npm run eval -- --repeat 1`.
 
-    The results are saved to `results.json` at the root of the repository, which is ignored by Git, and the run is added to the [history](#history).
+   The results are saved to `results.json` at the root of the repository, which is ignored by Git, and the run is added to the [history](#history).
 
 3. Look at the results, and compare them with earlier runs.
 
-    ```sh
-    npm run eval:view
-    ```
+   ```sh
+   npm run eval:view
+   ```
 
 Each result shows the model's answers and the document afterwards. Each turn of a result also lists what each request did under `requests`: `text` when the model wrote text, `reading` or `editing` for its tool calls, what became of its edits (`applied`, `fixed`, `failed`, or `dropped`), and `discarded` when its text was taken back. Open a result's details to see why each check passed or failed.
 
@@ -38,15 +38,15 @@ promptfoo keeps every run on your computer, so the viewer can show this run next
 
 1. Commit the change you want to evaluate, then run the cases.
 
-    ```sh
-    npm run eval
-    ```
+   ```sh
+   npm run eval
+   ```
 
-2. The run is added to the history after the cases, even when some of them failed. It prints how the run compares with the last run recorded for the same evaluation set and model, on the cases both runs have.
+2. When every case passed, the run is added to the history after the cases. It prints how the run compares with the last run recorded for the same evaluation set and model, on the cases both runs have.
 
-    The run is not added when promptfoo wrote no results, such as when it was stopped, or when every case ended in an error, such as when the API key is missing. To add the results of `results.json` again, such as when adding them failed, run `npm run eval:record`, or `npm run eval:record -- path/to/results.json` for another file. A run already in the history is not added twice.
+   When a case failed or ended in an error, the run is not added, and the command ends with an error that lists those cases. It also ends with an error when promptfoo wrote no results, such as when it was stopped. To add the results of `results.json` again, such as when adding them failed, run `npm run eval:record`, or `npm run eval:record -- path/to/results.json` for another file. It adds only runs where every case passed, and not a run already in the history.
 
-    A run of only some cases, with promptfoo's options, is added too. Leave its line out of the commit when it should not be in the history.
+   A run of only some cases, with promptfoo's options, is added too. Leave its line out of the commit when it should not be in the history.
 
 3. Commit `history.jsonl` in the pull request of the change, so the Git history of the file is the history of the results.
 
