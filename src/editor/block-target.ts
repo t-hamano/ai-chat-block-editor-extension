@@ -14,11 +14,65 @@ import { findUniqueText } from '../ai/find-text';
 import type { AiEdit, AiEditResult } from '../platform';
 import { getClientIdByRef, getRef, serializeWithRefs, stripRefs } from './block-refs';
 import { locateText } from './locate-text';
+import { findProtectedChange, isEqual } from './protected-attributes';
 import { collectUnsafeHtml } from './unsafe-html';
 import { collectHtml, validateMarkup } from './validate-markup';
 
 function failed( reason: string ): AiEditResult {
 	return { status: 'failed', reason };
+}
+
+/**
+ * Whether new blocks have the names and the inner blocks of the blocks
+ * they replace, so that only their attributes change.
+ *
+ * @param before The blocks in the editor.
+ * @param after  The new blocks.
+ * @return Whether the structure is the same.
+ */
+function hasSameStructure( before: Block[], after: Block[] ): boolean {
+	return (
+		before.length === after.length &&
+		before.every(
+			( block, index ) =>
+				block.isValid !== false &&
+				block.name === after[ index ].name &&
+				hasSameStructure( block.innerBlocks, after[ index ].innerBlocks )
+		)
+	);
+}
+
+/**
+ * Collects the attributes that change from each block to the new block
+ * in its place, with `undefined` for those the new block does not have.
+ *
+ * @param before  The blocks in the editor.
+ * @param after   The new blocks, with the same structure.
+ * @param changes The changes by client ID, which this adds to.
+ * @return The changes.
+ */
+function collectAttributeChanges(
+	before: Block[],
+	after: Block[],
+	changes: Record< string, Record< string, unknown > > = {}
+): Record< string, Record< string, unknown > > {
+	before.forEach( ( block, index ) => {
+		const next = after[ index ];
+		const keys = new Set( [
+			...Object.keys( block.attributes ),
+			...Object.keys( next.attributes ),
+		] );
+		const changed = [ ...keys ].filter(
+			( key ) => ! isEqual( block.attributes[ key ], next.attributes[ key ] )
+		);
+		if ( changed.length ) {
+			changes[ block.clientId ] = Object.fromEntries(
+				changed.map( ( key ) => [ key, next.attributes[ key ] ] )
+			);
+		}
+		collectAttributeChanges( block.innerBlocks, next.innerBlocks, changes );
+	} );
+	return changes;
 }
 
 /**
@@ -123,6 +177,49 @@ export function createBlockTarget(): EditTarget {
 	}
 
 	/**
+	 * Applies new blocks with the structure of the blocks they replace by
+	 * changing the attributes of those blocks, so that a block that cannot
+	 * be removed can still be edited, as the user can edit it.
+	 *
+	 * @param before The blocks in the editor.
+	 * @param after  The new blocks, with the same structure.
+	 * @return What became of the edit.
+	 */
+	function updateInPlace( before: Block[], after: Block[] ): AiEditResult {
+		const changes = collectAttributeChanges( before, after );
+		const ids = Object.keys( changes );
+		const locked = ids.find( ( clientId ) => ! editor().canEditBlock( clientId ) );
+		if ( locked ) {
+			return failed( `The block "${ getRef( locked ) }" is locked, so it cannot be edited.` );
+		}
+		if ( ids.length ) {
+			// One action, so that the edit is one undo step.
+			dispatch( blockEditorStore ).updateBlockAttributes( ids, changes, {
+				uniqueByBlock: true,
+			} );
+		}
+		return applied( before );
+	}
+
+	/**
+	 * Fails when a block that an edit replaces with other blocks cannot be
+	 * removed or edited.
+	 *
+	 * @param ids The client IDs of the blocks.
+	 * @return Why the blocks cannot be replaced, or `null`.
+	 */
+	function checkReplaceable( ids: string[] ): AiEditResult | null {
+		const { canEditBlock, canRemoveBlocks } = editor();
+		if ( canRemoveBlocks( ids ) && ids.every( ( clientId ) => canEditBlock( clientId ) ) ) {
+			return null;
+		}
+		const refs = ids.map( ( clientId ) => `"${ getRef( clientId ) }"` ).join( ', ' );
+		return failed(
+			`The blocks ${ refs } are locked, so they cannot be replaced with other blocks. Keep the same blocks and their inner blocks, and change only their content.`
+		);
+	}
+
+	/**
 	 * Applies an edit of the block a reference ID points at.
 	 *
 	 * @param edit The edit.
@@ -137,14 +234,11 @@ export function createBlockTarget(): EditTarget {
 				`There is no block with the reference ID "${ ref }" in the document. Use a reference ID from the latest document.`
 			);
 		}
-		const isRemoved = edit.action === 'replace_block' || edit.action === 'delete_block';
-		if ( isRemoved && ! canRemoveBlocks( [ clientId ] ) ) {
-			return failed( `The block "${ ref }" is locked, so it cannot be changed or removed.` );
-		}
-
-		const actions = dispatch( blockEditorStore );
 		if ( edit.action === 'delete_block' ) {
-			actions.removeBlocks( [ clientId ], false );
+			if ( ! canRemoveBlocks( [ clientId ] ) ) {
+				return failed( `The block "${ ref }" is locked, so it cannot be removed.` );
+			}
+			dispatch( blockEditorStore ).removeBlocks( [ clientId ], false );
 			clientIds = clientIds.filter( ( id ) => id !== clientId );
 			return { status: 'applied', refs: [] };
 		}
@@ -153,13 +247,28 @@ export function createBlockTarget(): EditTarget {
 		if ( typeof blocks === 'string' ) {
 			return failed( blocks );
 		}
+		const isReplace = edit.action === 'replace_block';
+		const old = getBlock( clientId );
+		const replaced = isReplace && old ? [ old ] : [];
+		const protectedChange = findProtectedChange( replaced, blocks );
+		if ( protectedChange ) {
+			return failed( protectedChange );
+		}
+		if ( isReplace && hasSameStructure( replaced, blocks ) ) {
+			return updateInPlace( replaced, blocks );
+		}
+		const notReplaceable = isReplace && checkReplaceable( [ clientId ] );
+		if ( notReplaceable ) {
+			return notReplaceable;
+		}
 		const rootClientId = getBlockRootClientId( clientId ) ?? undefined;
 		const notAllowed = canInsert( blocks, rootClientId );
 		if ( notAllowed ) {
 			return failed( notAllowed );
 		}
 
-		if ( edit.action === 'replace_block' ) {
+		const actions = dispatch( blockEditorStore );
+		if ( isReplace ) {
 			// The new blocks are selected only when the block was, without
 			// taking the focus from the chat.
 			actions.replaceBlocks( [ clientId ], blocks, undefined, null );
@@ -185,7 +294,7 @@ export function createBlockTarget(): EditTarget {
 	 * @return What became of the edit.
 	 */
 	function replaceText( find: string, markup: string ): AiEditResult {
-		const { canRemoveBlocks, getBlockRootClientId, getBlocks } = editor();
+		const { getBlockRootClientId, getBlocks } = editor();
 		const document = serialize( getBlocks() );
 		const found = findUniqueText( document, stripRefs( find ) );
 		if ( 'reason' in found ) {
@@ -207,6 +316,10 @@ export function createBlockTarget(): EditTarget {
 		if ( typeof blocks === 'string' ) {
 			return failed( blocks );
 		}
+		const protectedChange = findProtectedChange( located.blocks, blocks );
+		if ( protectedChange ) {
+			return failed( protectedChange );
+		}
 
 		// Blocks at either end that stay the same keep their place, so that
 		// only what changed is highlighted.
@@ -225,9 +338,13 @@ export function createBlockTarget(): EditTarget {
 			return { status: 'applied', refs: [], ...( autoFix && { autoFix } ) };
 		}
 
+		if ( hasSameStructure( before, blocks ) ) {
+			return updateInPlace( before, blocks );
+		}
 		const ids = before.map( ( block ) => block.clientId );
-		if ( ! canRemoveBlocks( ids ) ) {
-			return failed( 'The blocks with the "find" text are locked, so they cannot be changed.' );
+		const notReplaceable = checkReplaceable( ids );
+		if ( notReplaceable ) {
+			return notReplaceable;
 		}
 		const notAllowed = canInsert( blocks, getBlockRootClientId( ids[ 0 ] ) ?? undefined );
 		if ( notAllowed ) {
@@ -275,7 +392,7 @@ export function createBlockTarget(): EditTarget {
 				return failed( `The "${ edit.action }" action needs the "ref" of a block.` );
 			}
 
-			const { canRemoveBlocks, getBlock, getBlockIndex, getBlockRootClientId } = editor();
+			const { getBlock, getBlockIndex, getBlockRootClientId, getBlocksByClientId } = editor();
 			const isAppend = edit.action === 'append';
 			if ( ! isAppend && clientIds.some( ( clientId ) => ! getBlock( clientId ) ) ) {
 				return { status: 'dropped' };
@@ -295,8 +412,19 @@ export function createBlockTarget(): EditTarget {
 					'Nothing is selected, so there is nothing to replace. Use "replace_block" with the reference ID of the block to replace, or "append" to add blocks to the end of the document.'
 				);
 			}
-			if ( isReplace && ! canRemoveBlocks( clientIds ) ) {
-				return failed( 'The selected blocks are locked, so they cannot be replaced.' );
+			const replaced = isReplace
+				? getBlocksByClientId( clientIds ).filter( ( block ) => block !== null )
+				: [];
+			const protectedChange = findProtectedChange( replaced, blocks );
+			if ( protectedChange ) {
+				return failed( protectedChange );
+			}
+			if ( isReplace && hasSameStructure( replaced, blocks ) ) {
+				return updateInPlace( replaced, blocks );
+			}
+			const notReplaceable = isReplace && checkReplaceable( clientIds );
+			if ( notReplaceable ) {
+				return notReplaceable;
 			}
 			const rootClientId =
 				anchor && ! isAppend ? ( getBlockRootClientId( anchor ) ?? undefined ) : undefined;
