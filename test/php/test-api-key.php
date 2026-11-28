@@ -16,7 +16,7 @@ class Test_Api_Key extends WP_UnitTestCase {
 	 * Tests that a provider that is not registered has no key.
 	 */
 	public function test_unregistered_provider_has_no_key() {
-		$this->assertSame( '', Api_Key::get( 'blocktune-unregistered' ) );
+		$this->assertSame( '', Api_Key::get_provider_api_key( 'blocktune-unregistered' ) );
 	}
 
 	/**
@@ -25,7 +25,7 @@ class Test_Api_Key extends WP_UnitTestCase {
 	public function test_get_returns_the_key() {
 		$this->set_fake_api_key( 'test-key' );
 
-		$this->assertSame( 'test-key', Api_Key::get( Blocktune_Fake_Provider::ID ) );
+		$this->assertSame( 'test-key', Api_Key::get_provider_api_key( Blocktune_Fake_Provider::ID ) );
 	}
 
 	/**
@@ -34,7 +34,7 @@ class Test_Api_Key extends WP_UnitTestCase {
 	public function test_get_returns_empty_string_without_key() {
 		$this->set_fake_api_key( '' );
 
-		$this->assertSame( '', Api_Key::get( Blocktune_Fake_Provider::ID ) );
+		$this->assertSame( '', Api_Key::get_provider_api_key( Blocktune_Fake_Provider::ID ) );
 	}
 
 	/**
@@ -43,7 +43,7 @@ class Test_Api_Key extends WP_UnitTestCase {
 	public function test_has_any_with_key() {
 		$this->set_fake_api_key( 'test-key' );
 
-		$this->assertTrue( Api_Key::has_any() );
+		$this->assertTrue( Api_Key::has_any_provider_api_key() );
 	}
 
 	/**
@@ -52,6 +52,6 @@ class Test_Api_Key extends WP_UnitTestCase {
 	public function test_has_any_without_key() {
 		$this->set_fake_api_key( '' );
 
-		$this->assertFalse( Api_Key::has_any() );
+		$this->assertFalse( Api_Key::has_any_provider_api_key() );
 	}
 }

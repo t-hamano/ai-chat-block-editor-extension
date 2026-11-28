@@ -14,7 +14,7 @@ class Test_Providers extends WP_UnitTestCase {
 	 * The IDs are the keys of the list, in order.
 	 */
 	public function test_ids() {
-		$this->assertSame( array( 'anthropic', 'openai', 'google' ), Providers::ids() );
+		$this->assertSame( array( 'anthropic', 'openai', 'google' ), Providers::get_provider_ids() );
 	}
 
 	/**

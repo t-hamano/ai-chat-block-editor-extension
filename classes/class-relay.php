@@ -51,11 +51,11 @@ class Relay {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'chat' ),
-				'permission_callback' => array( Enqueue::class, 'can_use' ),
+				'permission_callback' => array( Enqueue::class, 'can_use_assistant' ),
 				'args'                => array(
 					'provider' => array(
 						'type'     => 'string',
-						'enum'     => Providers::ids(),
+						'enum'     => Providers::get_provider_ids(),
 						'required' => true,
 					),
 					'body'     => array(
@@ -83,7 +83,7 @@ class Relay {
 	public function chat( WP_REST_Request $request ) {
 		$provider_id = $request->get_param( 'provider' );
 
-		$api_key = Api_Key::get( $provider_id );
+		$api_key = Api_Key::get_provider_api_key( $provider_id );
 
 		if ( '' === $api_key ) {
 			return new WP_Error(
@@ -113,7 +113,7 @@ class Relay {
 		}
 
 		$provider = Providers::LIST[ $provider_id ];
-		$body     = self::check_body( $provider_id, $request->get_param( 'body' ) );
+		$body     = self::validate_body_and_cap_tokens( $provider_id, $request->get_param( 'body' ) );
 
 		if ( is_wp_error( $body ) ) {
 			return $body;
@@ -153,7 +153,7 @@ class Relay {
 		}
 
 		if ( $stream ) {
-			$error = ( new Stream() )->send( $url, $headers, wp_json_encode( $body ) );
+			$error = ( new Stream() )->send_and_stream_response( $url, $headers, wp_json_encode( $body ) );
 
 			if ( $error ) {
 				return $error;
@@ -197,13 +197,13 @@ class Relay {
 	 * @param array  $body        The request body.
 	 * @return array|WP_Error The body to send, or an error.
 	 */
-	private static function check_body( string $provider_id, array $body ) {
+	private static function validate_body_and_cap_tokens( string $provider_id, array $body ) {
 		$provider = Providers::LIST[ $provider_id ];
 
 		// The relay sets or takes out `stream` itself.
 		unset( $body['stream'] );
 
-		if ( ! self::has_only( $body, $provider['body'] ) ) {
+		if ( ! self::has_only_allowed_fields( $body, $provider['body'] ) ) {
 			return new WP_Error(
 				'blocktune_invalid_body',
 				__( 'The request asks for something the assistant does not use.', 'blocktune' ),
@@ -229,7 +229,7 @@ class Relay {
 	 * @param array $fields The fields, as described for `body` in Providers::LIST.
 	 * @return bool
 	 */
-	private static function has_only( $data, array $fields ) {
+	private static function has_only_allowed_fields( $data, array $fields ) {
 		if ( ! is_array( $data ) ) {
 			return false;
 		}
@@ -241,7 +241,7 @@ class Relay {
 			}
 
 			foreach ( $data as $item ) {
-				if ( ! self::has_only( $item, $fields[0] ) ) {
+				if ( ! self::has_only_allowed_fields( $item, $fields[0] ) ) {
 					return false;
 				}
 			}
@@ -253,7 +253,7 @@ class Relay {
 			if ( is_string( $key ) && array_key_exists( $key, $fields ) ) {
 				$rule = $fields[ $key ];
 
-				if ( is_array( $rule ) ? ! self::has_only( $value, $rule ) : $rule !== $value ) {
+				if ( is_array( $rule ) ? ! self::has_only_allowed_fields( $value, $rule ) : $rule !== $value ) {
 					return false;
 				}
 			} elseif ( ! in_array( $key, $fields, true ) ) {

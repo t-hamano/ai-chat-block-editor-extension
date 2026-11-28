@@ -16,7 +16,7 @@ class Plugin_Links {
 	 * Constructor
 	 */
 	public function __construct() {
-		add_filter( 'plugin_action_links_' . plugin_basename( BLOCKTUNE_PATH . '/blocktune.php' ), array( $this, 'add_action_links' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( BLOCKTUNE_PATH . '/blocktune.php' ), array( $this, 'add_connectors_link' ) );
 	}
 
 	/**
@@ -25,7 +25,7 @@ class Plugin_Links {
 	 * @param array<string> $links The plugin's action links.
 	 * @return array<string> The action links with the Connectors link first.
 	 */
-	public function add_action_links( array $links ): array {
+	public function add_connectors_link( array $links ): array {
 		$connectors_link = sprintf(
 			'<a href="%1$s">%2$s</a>',
 			esc_url( admin_url( 'options-connectors.php' ) ),

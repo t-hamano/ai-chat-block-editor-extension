@@ -52,7 +52,7 @@ class Fallback {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'chat' ),
-				'permission_callback' => array( Enqueue::class, 'can_use' ),
+				'permission_callback' => array( Enqueue::class, 'can_use_assistant' ),
 				'args'                => array(
 					'system'   => array(
 						'type'    => 'string',
