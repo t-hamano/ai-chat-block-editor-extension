@@ -70,11 +70,17 @@ class Stream {
 	 * @return WP_Error|null An error when nothing could be sent to the browser.
 	 */
 	public function send( string $url, array $headers, string $body ) {
+		// Hosts can turn off the functions below, and calling one then stops
+		// PHP, so each is checked first.
 		// Keep running when the user stops the answer, so the connection to
 		// the provider is closed here instead of being cut off.
-		ignore_user_abort( true );
+		if ( function_exists( 'ignore_user_abort' ) ) {
+			ignore_user_abort( true );
+		}
 		// Only this request runs longer, as long as the provider may take.
-		set_time_limit( Relay::TIMEOUT + 10 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+		if ( function_exists( 'set_time_limit' ) ) {
+			set_time_limit( Relay::TIMEOUT + 10 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+		}
 
 		$this->url = $url;
 
@@ -228,7 +234,9 @@ class Stream {
 			apache_setenv( 'no-gzip', '1' );
 		}
 		// PHP's own compression holds output back in the same way.
-		ini_set( 'zlib.output_compression', '0' ); // phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
+		if ( function_exists( 'ini_set' ) ) {
+			ini_set( 'zlib.output_compression', '0' ); // phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
+		}
 
 		status_header( $this->status ? $this->status : 200 );
 		header( 'Content-Type: ' . ( $this->content_type ? $this->content_type : 'text/event-stream' ) );
