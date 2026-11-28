@@ -79,6 +79,10 @@ Your message, the selected blocks or text, and parts of the post needed for the 
 
 No. Conversations are kept only while the editor is open, and are cleared when you reload the page. Only your choice of provider and model is saved.
 
+= A timeout error occurred =
+
+Each answer keeps one PHP worker of your server busy until the provider finishes, for up to 5 minutes. When your server holds streamed answers back, the whole answer comes at once, and a proxy or CDN in front of the site may stop waiting first, often after 60 to 100 seconds. Ask for smaller changes, or ask your host to stop buffering responses or to allow longer requests.
+
 == Screenshots ==
 
 1. Select text or blocks, ask the AI, and see the changes in the editor

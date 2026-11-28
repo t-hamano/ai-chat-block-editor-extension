@@ -23,6 +23,12 @@ export const IDLE_TIMEOUT = 330_000;
 export const RELAY_ERROR_EVENT = 'blocktune_error';
 
 /**
+ * The statuses of a server in between that stopped waiting for the answer,
+ * such as a proxy (504) or Cloudflare (524).
+ */
+const GATEWAY_TIMEOUTS = [ 502, 504, 524 ];
+
+/**
  * An event of a provider's answer, with its data read from JSON.
  */
 export type AnswerEvent = {
@@ -291,6 +297,20 @@ async function* answerAtOnce( request: RelayRequest ): AsyncGenerator< AnswerEve
 			throw new Error( __( 'The answer took too long, so it was stopped.', 'blocktune' ) );
 		}
 		if ( error instanceof Response ) {
+			// The whole answer comes only when it is finished, so a long
+			// answer can outlast the time limit of a server in between.
+			if (
+				GATEWAY_TIMEOUTS.includes( error.status ) &&
+				error.headers.get( 'content-type' ) &&
+				! hasType( error, 'json' )
+			) {
+				throw new Error(
+					__(
+						'The server stopped waiting before the answer was finished. Try asking for a smaller change.',
+						'blocktune'
+					)
+				);
+			}
 			throw new Error( await readError( error ) );
 		}
 		if ( error instanceof SyntaxError ) {

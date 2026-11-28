@@ -242,4 +242,27 @@ describe( 'requestAnswer', () => {
 		expect( ( await done ).message ).toMatch( 'The answer took too long' );
 		expect( sentStream() ).toEqual( [ true, false ] );
 	} );
+
+	it( 'says why a whole answer was cut off by a server in between', async () => {
+		vi.mocked( apiFetch )
+			.mockResolvedValueOnce( new Response( streamBody( [] ) ) )
+			.mockRejectedValueOnce(
+				new Response( '<html>Gateway Timeout</html>', {
+					status: 504,
+					headers: { 'content-type': 'text/html' },
+				} )
+			);
+
+		await expect( readAll( request() ) ).rejects.toThrow( 'The server stopped waiting' );
+	} );
+
+	it( 'shows the message of a whole answer that failed with JSON', async () => {
+		vi.mocked( apiFetch )
+			.mockResolvedValueOnce( new Response( streamBody( [] ) ) )
+			.mockRejectedValueOnce(
+				new Response( '{}', { status: 502, headers: { 'content-type': 'application/json' } } )
+			);
+
+		await expect( readAll( request() ) ).rejects.toThrow( 'Error 502' );
+	} );
 } );
