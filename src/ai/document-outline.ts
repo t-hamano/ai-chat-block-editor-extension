@@ -2,6 +2,7 @@
  * Internal dependencies
  */
 import type { AiRead, AiReadResult } from '../platform';
+import { BLOCK_TOKEN, REF_COMMENT } from './markup-tokens';
 
 /**
  * Above this many characters of block markup, about 20k tokens, the model
@@ -26,14 +27,6 @@ const NEARBY_LENGTH = 8000;
  * How many blocks a search returns at most.
  */
 const MAX_FOUND = 30;
-
-/**
- * Matches a reference ID comment before a block, such as `<!-- ref:b12 -->`,
- * or a block delimiter with the block's name: an opening one, a closing one
- * starting with `/wp:`, or a self-closing one ending with `/-->`.
- */
-const TOKEN =
-	/<!--\s*ref:([a-z0-9]+)\s*-->|<!--\s+(\/)?wp:([a-z][a-z0-9_-]*(?:\/[a-z][a-z0-9_-]*)?)\s+(?:\{[\s\S]*?\}\s+)?(\/)?-->/gi;
 
 /**
  * A block of the document, as the outline lists it.
@@ -113,7 +106,7 @@ export function parseOutline( document: string ): OutlineBlock[] {
 	const texts = new Map< OutlineBlock, string[] >();
 	let pending: { ref: string; start: number } | null = null;
 	let end = 0;
-	for ( const match of document.matchAll( TOKEN ) ) {
+	for ( const match of document.matchAll( BLOCK_TOKEN ) ) {
 		const [ token, ref, isCloser, name, isSelfClosing ] = match;
 		const parent = stack[ stack.length - 1 ];
 		if ( parent ) {
@@ -274,9 +267,7 @@ export function formatOutline( document: string, selection: string, textIn?: str
 	const refs = new Set(
 		textIn
 			? [ textIn.toLowerCase() ]
-			: [ ...selection.matchAll( /<!--\s*ref:([a-z0-9]+)\s*-->/gi ) ].map( ( match ) =>
-					match[ 1 ].toLowerCase()
-				)
+			: [ ...selection.matchAll( REF_COMMENT ) ].map( ( match ) => match[ 1 ].toLowerCase() )
 	);
 	const parts = [
 		[

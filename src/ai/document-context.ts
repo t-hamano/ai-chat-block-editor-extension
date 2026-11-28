@@ -3,16 +3,9 @@
  */
 import type { SeenDocument } from './conversation';
 import { formatOutline, isLongDocument } from './document-outline';
+import { BLOCK_TOKEN, REF_COMMENT } from './markup-tokens';
 import { SELECTION_END, SELECTION_START, type EditContext } from './edit-target';
 import { getSkillNotes } from './skill-notes';
-
-/**
- * Matches a reference ID comment before a block, such as `<!-- ref:b12 -->`,
- * or a block delimiter: an opening one, a closing one starting with `/wp:`,
- * or a self-closing one ending with `/-->`.
- */
-const TOKEN =
-	/<!--\s*ref:([a-z0-9]+)\s*-->|<!--\s+(\/)?wp:(?:[a-z][a-z0-9_-]*\/)?[a-z][a-z0-9_-]*\s+(?:\{[\s\S]*?\}\s+)?(\/)?-->/gi;
 
 /**
  * Above this many top-level blocks in both documents, comparing them takes
@@ -42,8 +35,8 @@ export function splitTopLevelBlocks( document: string ): TopLevelBlock[] | null 
 	let depth = 0;
 	let current: { ref: string; start: number } | null = null;
 	let end = 0;
-	for ( const match of document.matchAll( TOKEN ) ) {
-		const [ token, ref, isCloser, isSelfClosing ] = match;
+	for ( const match of document.matchAll( BLOCK_TOKEN ) ) {
+		const [ token, ref, isCloser, , isSelfClosing ] = match;
 		if ( depth > 0 && ref ) {
 			continue;
 		}
@@ -84,18 +77,15 @@ export function splitTopLevelBlocks( document: string ): TopLevelBlock[] | null 
 }
 
 /**
- * Matches a reference ID comment, and takes the ID.
- */
-const REF = /<!--\s*ref:([a-z0-9]+)\s*-->/gi;
-
-/**
  * Lists the reference IDs in the markup, also those of nested blocks.
  *
  * @param markup The markup.
  * @return The reference IDs.
  */
 function collectRefs( markup: string ): Set< string > {
-	return new Set( [ ...markup.matchAll( REF ) ].map( ( match ) => match[ 1 ].toLowerCase() ) );
+	return new Set(
+		[ ...markup.matchAll( REF_COMMENT ) ].map( ( match ) => match[ 1 ].toLowerCase() )
+	);
 }
 
 /**
