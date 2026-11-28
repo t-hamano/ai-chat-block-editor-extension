@@ -210,19 +210,10 @@ export type AiChatRequest = {
  */
 export type AiPlatform = {
 	/**
-	 * Resolves with whether the user has set an API key.
-	 */
-	hasApiKey: () => Promise< boolean >;
-	/**
 	 * Sends the conversation to the model and streams its answer through
 	 * `onEvent`. Resolves when the answer ends, and rejects when the
 	 * request fails. When `signal` is aborted, rejects with an
 	 * `AbortError`.
 	 */
 	chat: ( request: AiChatRequest ) => Promise< void >;
-	/**
-	 * Opens the host's settings where the user sets the API key. Omitted
-	 * when the host has no such place.
-	 */
-	openSettings?: () => void;
 };

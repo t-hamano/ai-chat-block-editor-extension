@@ -394,16 +394,6 @@ function announceRemoved( before: BlockSnapshot ) {
 }
 
 /**
- * Whether the block is highlighted now.
- *
- * @param clientId The block's client ID.
- * @return Whether it is highlighted.
- */
-export function isHighlighted( clientId: string ): boolean {
-	return highlighted.has( clientId );
-}
-
-/**
  * Finds the block's element, in the editor canvas iframe or, when the
  * canvas is not an iframe, in the page.
  *

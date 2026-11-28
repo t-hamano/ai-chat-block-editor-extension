@@ -258,8 +258,6 @@ export function createAutoPlatform(
 	let platform: Promise< AiPlatform > | undefined;
 	let platformChoice: string | undefined;
 	return {
-		// The sidebar only loads when the site can answer.
-		hasApiKey: async () => true,
 		async chat( request ) {
 			const choice = getChoice();
 			const key = JSON.stringify( choice );
