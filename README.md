@@ -63,12 +63,13 @@ sequenceDiagram
     Site->>AI: Add the API key and pass it on
     AI-->>Site: Stream the answer, with edits and reads
     Site-->>Editor: Pass the stream on
-    loop While the AI edits or reads
-        Editor->>Editor: Check and apply each edit, or read the blocks it asks for
-        Editor->>Site: Send the results back
+    Editor->>Editor: Check and apply each edit
+    loop When the AI reads blocks or an edit fails
+        Editor->>Site: Send the blocks it asked for, or why the edit failed
         Site->>AI: Pass them on
         AI-->>Site: Stream the next answer
         Site-->>Editor: Pass the stream on
+        Editor->>Editor: Check and apply each edit
     end
     Editor-->>User: Answer in the chat, changed blocks outlined
 ```
