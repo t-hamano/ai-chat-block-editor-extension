@@ -1,0 +1,75 @@
+#!/usr/bin/env node
+
+/**
+ * Runs the evaluation with promptfoo, saves the results to `results.json`
+ * at the root of the repository, and adds the run to `history.jsonl`.
+ *
+ * The run is recorded even when cases failed, since those are results too.
+ * It is not recorded when promptfoo wrote no results, such as when it was
+ * stopped, or when every case ended in an error, such as when the API key
+ * is missing.
+ *
+ * Usage: npm run eval [-- promptfoo's options]
+ */
+
+/**
+ * External dependencies
+ */
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+
+/**
+ * Internal dependencies
+ */
+import { record } from './record.mjs';
+
+const ROOT = path.resolve( import.meta.dirname, '../..' );
+const RESULTS = path.join( ROOT, 'results.json' );
+
+/* eslint-disable no-console -- A command line script reports through the console. */
+// npm runs this script, and runs promptfoo the same way `npx` does, without a shell.
+const npm = process.env.npm_execpath;
+if ( ! npm ) {
+	console.error( 'Run the evaluation with `npm run eval`.' );
+	process.exit( 1 );
+}
+
+// Results left from an earlier run must not be recorded as this one.
+fs.rmSync( RESULTS, { force: true } );
+
+const { status, error } = spawnSync(
+	process.execPath,
+	[
+		npm,
+		'exec',
+		'--yes',
+		'--package=promptfoo@0.125.1',
+		'--',
+		'promptfoo',
+		'eval',
+		'-c',
+		'scripts/eval/promptfooconfig.yaml',
+		'-o',
+		RESULTS,
+		...process.argv.slice( 2 ),
+	],
+	{ cwd: ROOT, stdio: 'inherit' }
+);
+if ( error ) {
+	throw error;
+}
+
+console.log();
+if ( ! fs.existsSync( RESULTS ) ) {
+	console.error( 'promptfoo wrote no results, so the run is not recorded.' );
+	process.exit( status || 1 );
+}
+try {
+	record( RESULTS, { skipFailures: true } );
+} catch ( recordError ) {
+	console.error( recordError.message );
+	process.exit( 1 );
+}
+// promptfoo ends with an error code when a case failed, which is still reported.
+process.exit( status ?? 1 );

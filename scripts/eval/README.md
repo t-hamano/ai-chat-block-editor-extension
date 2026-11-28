@@ -20,6 +20,8 @@ The editor, the prompt, the document context, and the Anthropic adapter are the 
 
     The model does not answer the same way every time, so each case runs three times, one run after another. To run only some cases, or each case once, add promptfoo's options, such as `npm run eval -- --filter-pattern "outline"` or `npm run eval -- --repeat 1`.
 
+    The results are saved to `results.json` at the root of the repository, which is ignored by Git, and the run is added to the [history](#history).
+
 3. Look at the results, and compare them with earlier runs.
 
     ```sh
@@ -34,19 +36,17 @@ promptfoo keeps every run on your computer, so the viewer can show this run next
 
 [history.jsonl](history.jsonl) keeps the results of earlier runs in the repository, one line for each run, so they can be compared after promptfoo's own runs are gone.
 
-1. Commit the change you want to evaluate, then run the cases and save the results to a file. `results.json` at the root of the repository is ignored by Git.
+1. Commit the change you want to evaluate, then run the cases.
 
     ```sh
-    npm run eval -- -o results.json
+    npm run eval
     ```
 
-2. Add the run to the history. To read another file, add its path: `npm run eval:record -- path/to/results.json`.
+2. The run is added to the history after the cases, even when some of them failed. It prints how the run compares with the last run recorded for the same evaluation set and model, on the cases both runs have.
 
-    ```sh
-    npm run eval:record
-    ```
+    The run is not added when promptfoo wrote no results, such as when it was stopped, or when every case ended in an error, such as when the API key is missing. To add the results of `results.json` again, such as when adding them failed, run `npm run eval:record`, or `npm run eval:record -- path/to/results.json` for another file. A run already in the history is not added twice.
 
-    It prints how the run compares with the last run recorded for the same evaluation set and model, on the cases both runs have.
+    A run of only some cases, with promptfoo's options, is added too. Leave its line out of the commit when it should not be in the history.
 
 3. Commit `history.jsonl` in the pull request of the change, so the Git history of the file is the history of the results.
 

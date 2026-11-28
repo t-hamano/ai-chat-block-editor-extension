@@ -74,7 +74,7 @@ npm run build
 
 ## How to evaluate
 
-`npm run eval` sends a few fixed requests to a real model and checks what the assistant did, to measure changes to the prompt or the token use. See [scripts/eval/README.md](scripts/eval/README.md).
+`npm run eval` sends a few fixed requests to a real model and checks what the assistant did, to measure changes to the prompt or the token use, and adds the results to the history in the repository. See [scripts/eval/README.md](scripts/eval/README.md).
 
 ## Author
 
