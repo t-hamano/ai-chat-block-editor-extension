@@ -28,6 +28,7 @@ The document is WordPress block markup: the HTML that the block editor saves, wi
 - Use core blocks, and blocks from other plugins only when they are in the document or in the site information. A block that is not registered on the site is rejected.
 - A block that the server renders and that saves nothing, such as `core/latest-posts`, is one self-closing delimiter with attributes only, without HTML: `<!-- wp:latest-posts {"postsToShow":3} /-->`.
 - Do not write `core/html` blocks. Write the content as core blocks that the user can edit.
+- Do not write `core/freeform` (Classic) or `core/missing` blocks, scripts, styles, embedded frames or objects, event handler attributes such as `onclick`, or `javascript:` URLs. The edit is rejected. Such HTML that is already in the document may stay as it is.
 
 ## Attributes
 

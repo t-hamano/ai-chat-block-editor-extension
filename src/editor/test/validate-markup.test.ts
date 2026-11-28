@@ -65,6 +65,33 @@ beforeAll( () => {
 		save: ( { attributes } ) =>
 			createElement( RawHTML, { children: attributes.content as string } ),
 	} );
+	registerBlockType( 'test/rich', {
+		apiVersion: 3,
+		title: 'Rich text',
+		category: 'text',
+		attributes: { content: { type: 'string', source: 'html', selector: 'p' } },
+		edit: () => null,
+		save: ( { attributes } ) =>
+			createElement(
+				'p',
+				{},
+				createElement( RawHTML, { children: attributes.content as string } )
+			),
+	} );
+	for ( const name of [ 'core/freeform', 'core/missing' ] ) {
+		registerBlockType( name, {
+			apiVersion: 3,
+			title: name,
+			category: 'text',
+			attributes: {
+				content: { type: 'string', source: 'raw' },
+				originalName: { type: 'string' },
+			},
+			edit: () => null,
+			save: ( { attributes } ) =>
+				createElement( RawHTML, { children: attributes.content as string } ),
+		} );
+	}
 	// The parser logs the blocks it cannot read.
 	vi.spyOn( console, 'error' ).mockImplementation( () => {} );
 	vi.spyOn( console, 'info' ).mockImplementation( () => {} );
@@ -73,6 +100,9 @@ beforeAll( () => {
 
 const text = ( content: string, attrs = '' ) =>
 	`<!-- wp:test/text ${ attrs }-->\n<p>${ content }</p>\n<!-- /wp:test/text -->`;
+
+const rich = ( content: string ) =>
+	`<!-- wp:test/rich -->\n<p>${ content }</p>\n<!-- /wp:test/rich -->`;
 
 const html = ( content: string ) => `<!-- wp:html -->\n${ content }\n<!-- /wp:html -->`;
 
@@ -218,6 +248,62 @@ describe( 'validateMarkup', () => {
 				expect.stringContaining( 'You cannot write core/html blocks' ),
 			] );
 		}
+	} );
+
+	it( 'allows Classic blocks only when they are in the document, unchanged', () => {
+		const classic = ( content: string ) =>
+			`<!-- wp:freeform -->\n${ content }\n<!-- /wp:freeform -->`;
+
+		expect(
+			validateMarkup( classic( '<p>Kept</p>' ), new Set( [ '<p>Kept</p>' ] ) ).problems
+		).toEqual( [] );
+		expect( validateMarkup( classic( '<script>run();</script>' ) ).problems ).toEqual( [
+			expect.stringContaining( 'You cannot write core/freeform (Classic) blocks' ),
+		] );
+		expect(
+			validateMarkup(
+				`<!-- wp:test/group -->\n<div>${ classic( '<script>run();</script>' ) }</div>\n<!-- /wp:test/group -->`
+			).problems
+		).toEqual( [ expect.stringContaining( 'You cannot write core/freeform (Classic) blocks' ) ] );
+	} );
+
+	it( 'rejects core/missing blocks', () => {
+		expect(
+			validateMarkup(
+				'<!-- wp:missing {"originalName":"x"} -->\n<script>run();</script>\n<!-- /wp:missing -->'
+			).problems
+		).toEqual( [ expect.stringContaining( 'You cannot write core/missing blocks' ) ] );
+	} );
+
+	it( 'rejects HTML that can run code in blocks', () => {
+		for ( const content of [
+			'One<script>run();</script>',
+			'One<img src="x" onerror="run()">',
+			'<a href="javascript:run()">One</a>',
+		] ) {
+			const { problems } = validateMarkup( rich( content ) );
+
+			expect( problems ).toEqual( [
+				expect.stringContaining( 'The test/rich block has HTML that you cannot write' ),
+			] );
+		}
+		const { problems } = validateMarkup(
+			`<!-- wp:test/group -->\n<div>${ rich( 'One<script>run();</script>' ) }</div>\n<!-- /wp:test/group -->`
+		);
+
+		expect( problems ).toEqual( [ expect.stringContaining( 'the <script> element' ) ] );
+	} );
+
+	it( 'keeps HTML that can run code when the document has it', () => {
+		const script = '<script>run();</script>';
+
+		expect(
+			validateMarkup( rich( `Changed${ script }` ), new Set(), new Set( [ script ] ) ).problems
+		).toEqual( [] );
+		expect(
+			validateMarkup( rich( 'Changed<script>other();</script>' ), new Set(), new Set( [ script ] ) )
+				.problems
+		).toEqual( [ expect.stringContaining( 'the <script> element' ) ] );
 	} );
 
 	it( 'accepts attribute values of a deprecated version', () => {
