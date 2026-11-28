@@ -75,10 +75,7 @@ The editor rebuilds each block from its attributes and compares the result with 
 
 `<site-info>` lists the core blocks users can insert, without the `core/` prefix; the blocks from plugins, as in their `block.json`, with attributes that supports add, such as `className`, `style`, `textColor`, and `align`; the block styles of each block, for `className` as `is-style-<name>`; and the `theme.json` settings, merged from WordPress, the theme, and the user.
 
-Read the settings the way `theme.json` defines them:
-
-- Presets are grouped by origin: `default` from WordPress, `theme`, and `custom` from the user. The `default` ones are offered only while the matching setting, such as `color.defaultPalette`, `color.defaultGradients`, `typography.defaultFontSizes`, `spacing.defaultSpacingSizes`, or `shadow.defaultPresets`, is not `false`.
-- Use each preset by its slug:
+- Each preset list has the presets that users can choose, from WordPress, the theme, and the user. Use each preset by its slug:
 
 | Setting | In the block |
 | --- | --- |
@@ -89,9 +86,8 @@ Read the settings the way `theme.json` defines them:
 | `spacing.spacingSizes` | `var:preset\|spacing\|<slug>` in `style.spacing` |
 | `shadow.presets` | `var:preset\|shadow\|<slug>` in `style.shadow` |
 
-- A setting set to `false` turns off what it allows: fixed values instead of presets for `color.custom`, `color.customGradient`, `typography.customFontSize`, and `spacing.customSpacingSize`, and the style itself for the others, such as `color.text`, `typography.lineHeight`, `spacing.padding`, or `border.radius`.
+- A setting set to `false` turns off what it allows: fixed values instead of presets for `color.custom`, `color.customGradient`, `typography.customFontSize`, and `spacing.customSpacingSize`, and the style itself for the others, such as `color.text` or `spacing.padding`.
 - `appearanceTools: true` turns on the background, border, link and heading colors, dimensions, sticky position, block gap, margin, padding, line height, and text columns settings, unless a setting turns one off.
-- `spacing.units` lists the units for fixed spacing values. `layout.contentSize` and `layout.wideSize` are the widths of the content and of `alignwide` blocks.
 - `blocks.<block name>` has settings for that block only, which replace the global ones for it.
 - A style is available only when both the block's `supports` and these settings allow it.
 

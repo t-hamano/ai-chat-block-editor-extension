@@ -18,12 +18,38 @@ import { dispatch } from '@wordpress/data';
  */
 import { getSiteInfo } from '../site-info';
 
+const black = { slug: 'black', name: 'Black', color: '#000000' };
+const base = { slug: 'base', name: 'Base', color: '#ffffff' };
+
 const features = {
 	color: {
-		palette: { theme: [ { slug: 'base', name: 'Base', color: '#ffffff' } ] },
+		palette: {
+			default: [ black, { slug: 'white', name: 'White', color: '#ffffff' } ],
+			theme: [ base, { slug: 'accent', name: 'Accent', color: '#ff0000' } ],
+			custom: [ { slug: 'accent', name: 'My accent', color: '#00ff00' } ],
+		},
+		gradients: {
+			default: [ { slug: 'dawn', name: 'Dawn', gradient: 'linear-gradient(#000,#fff)' } ],
+		},
 		defaultPalette: false,
 	},
-	blocks: { 'core/heading': { color: { custom: false } } },
+	typography: {
+		fontFamilies: {
+			theme: [
+				{
+					slug: 'manrope',
+					name: 'Manrope',
+					fontFamily: 'Manrope, sans-serif',
+					fontFace: [ { fontFamily: 'Manrope', src: [ 'https://example.com/manrope.woff2' ] } ],
+				},
+			],
+		},
+	},
+	blocks: {
+		'core/heading': { color: { custom: false } },
+		'core/button': { color: { palette: { theme: [ black ] } } },
+		'core/quote': { color: { defaultPalette: true } },
+	},
 };
 
 /**
@@ -95,8 +121,41 @@ describe( 'getSiteInfo', () => {
 		expect( styles[ 'core/button' ] ).toEqual( [ 'fill', 'outline' ] );
 	} );
 
-	it( 'passes the theme.json settings as they are', () => {
-		expect( JSON.parse( section( getSiteInfo(), 'theme.json settings' ) ) ).toEqual( features );
+	it( 'passes the theme.json settings', () => {
+		const settings = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
+		expect( settings.blocks[ 'core/heading' ] ).toEqual( { color: { custom: false } } );
+	} );
+
+	it( 'puts the presets of every origin in one list, as the editor offers them', () => {
+		const { color } = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
+		// WordPress's palette is turned off, and the user's accent replaces the theme's.
+		expect( color.palette ).toEqual( [
+			base,
+			{ slug: 'accent', name: 'My accent', color: '#00ff00' },
+		] );
+		expect( color.gradients ).toEqual( features.color.gradients.default );
+		// The setting is applied, so it is left out.
+		expect( color.defaultPalette ).toBeUndefined();
+	} );
+
+	it( 'merges the presets of a block, with what it takes from the global settings', () => {
+		const { blocks } = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
+		// The block's own theme presets, and the user's from the global settings.
+		expect( blocks[ 'core/button' ].color.palette ).toEqual( [
+			black,
+			{ slug: 'accent', name: 'My accent', color: '#00ff00' },
+		] );
+		// A block that offers WordPress's presets gets them with the global ones.
+		expect(
+			blocks[ 'core/quote' ].color.palette.map( ( { slug }: { slug: string } ) => slug )
+		).toEqual( [ 'black', 'white', 'base', 'accent' ] );
+	} );
+
+	it( 'leaves out the font files of font families', () => {
+		const { typography } = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
+		expect( typography.fontFamilies ).toEqual( [
+			{ slug: 'manrope', name: 'Manrope', fontFamily: 'Manrope, sans-serif' },
+		] );
 	} );
 
 	it( 'leaves out blocks the editor does not allow', () => {
