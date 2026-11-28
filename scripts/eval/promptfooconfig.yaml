@@ -160,3 +160,31 @@ tests:
           # The four paragraphs and the three added, so the follow-up edited one
           # of them rather than adding another.
           count: { '<!-- wp:paragraph': 7, 'Start small:': 1 }
+
+  - description: Use the theme's presets for colors and font size
+    vars:
+      request: Make this paragraph stand out with the Accent 3 background, Base text, and the Large font size.
+      document: file://documents/short-article.html
+      select:
+        block: [1]
+    assert:
+      - type: javascript
+        value: file://assertions.mjs:edited
+        metric: edited
+      - type: javascript
+        value: file://assertions.mjs:expected
+        metric: expected
+        config:
+          # The presets by their slugs, with the classes they add, and no
+          # fixed values instead of them.
+          text:
+            [
+              '"backgroundColor":"accent-3"',
+              '"textColor":"base"',
+              '"fontSize":"large"',
+              has-accent-3-background-color,
+              has-base-color,
+              has-large-font-size,
+              Last spring,
+            ]
+          absent: ['#503AA8', '#FFFFFF', 'font-size:']
