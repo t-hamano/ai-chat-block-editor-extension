@@ -14,9 +14,6 @@ declare module '@wordpress/block-library' {
 interface Window {
 	blocktune: {
 		hasApiKey: boolean;
-		/**
-		 * The providers in `PROVIDERS` that have an API key when the editor loads.
-		 */
 		providers: string[];
 		connectorsUrl: string;
 	};
