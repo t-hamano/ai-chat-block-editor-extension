@@ -56,7 +56,7 @@ By default, the AI assistant picks a provider in the order Anthropic, OpenAI, Go
 * Each answer keeps one PHP worker of your server busy until the provider finishes, for up to 5 minutes. On servers that hold streamed answers back, the whole answer comes at once, and a proxy or CDN in front of the site may stop waiting first (often after 60 to 100 seconds). Long answers can then fail with a timeout error.
 * The AI edits post content only. Global Styles, templates, and template parts are out of scope.
 * When a text selection spans more than one block, the whole blocks are edited.
-* Every edit is checked before it is applied, and broken markup is never applied. If the AI fails to write valid markup three times in one answer, the chat shows that the edit could not be made.
+* Every edit is checked before it is applied, and broken markup is never applied. When an edit or a read fails, for example because of broken markup or a block that does not exist, the AI can try again. After the fourth failure in one answer, the chat shows that the edit could not be made.
 * Styling is limited to what each block and the theme allow, and theme presets are used where possible.
 * The AI does not add new images or files. It only uses media that is already in the post or that you give it.
 * Long posts (over about 60,000 characters of block markup) are sent as an outline, and the AI reads only the parts it needs. This saves tokens, but the AI may miss context it did not read.
