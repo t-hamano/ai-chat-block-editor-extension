@@ -138,11 +138,82 @@ export function createBlockTarget(): EditTarget {
 		return blocks;
 	}
 
+	/**
+	 * Checks that the blocks can go where they are inserted, and that each
+	 * of their inner blocks can go inside its parent.
+	 *
+	 * The store only checks blocks whose parent is already in the document,
+	 * so the inner blocks are checked with the same rules from block.json.
+	 *
+	 * @param blocks       The new blocks.
+	 * @param rootClientId The parent the blocks are inserted into.
+	 * @return Why a block cannot be inserted, or `null`.
+	 */
 	function canInsert( blocks: Block[], rootClientId: string | undefined ): string | null {
-		const notAllowed = blocks.find(
-			( block ) => ! editor().canInsertBlockType( block.name, rootClientId )
-		);
-		return notAllowed ? explainNotAllowed( notAllowed.name, rootClientId ) : null;
+		const { canInsertBlockType, getBlockName, getBlockParents } = editor();
+		const rootName = rootClientId ? getBlockName( rootClientId ) : null;
+		const notAllowed = blocks.find( ( block ) => ! canInsertBlockType( block.name, rootClientId ) );
+		if ( notAllowed ) {
+			return explainNotAllowed( notAllowed.name, rootName );
+		}
+		// The names of the blocks around the new blocks, nearest first.
+		const ancestors = rootClientId
+			? [ rootClientId, ...getBlockParents( rootClientId, true ) ]
+					.map( ( id ) => getBlockName( id ) )
+					.filter( ( name ) => name !== null )
+			: [];
+		for ( const block of blocks ) {
+			const reason = canInsertInner( block, [ block.name, ...ancestors ] );
+			if ( reason ) {
+				return reason;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Checks that each inner block of a new block can go inside it, with
+	 * the rules the store uses for blocks in the document.
+	 *
+	 * @param block     The new block.
+	 * @param ancestors The names of the block and the blocks around it, nearest first.
+	 * @return Why an inner block cannot go inside its parent, or `null`.
+	 */
+	function canInsertInner( block: Block, ancestors: string[] ): string | null {
+		const { allowedBlockTypes } = editor().getSettings();
+		const parentType = getBlockType( block.name );
+		// Blocks can also limit their inner blocks with an attribute.
+		const parentAllowed: unknown = block.attributes.allowedBlocks ?? parentType?.allowedBlocks;
+		for ( const inner of block.innerBlocks ) {
+			const type = getBlockType( inner.name );
+			const isAllowedType = Array.isArray( allowedBlockTypes )
+				? allowedBlockTypes.includes( inner.name )
+				: allowedBlockTypes !== false;
+			const isAllowedByParent = Array.isArray( parentAllowed )
+				? parentAllowed.includes( inner.name )
+				: null;
+			const isAllowedParent = type?.parent?.length ? type.parent.includes( block.name ) : null;
+			const hasAllowedAncestor =
+				! type?.ancestor?.length || ancestors.some( ( name ) => type.ancestor?.includes( name ) );
+			const isAllowed =
+				!! type &&
+				isAllowedType &&
+				hasAllowedAncestor &&
+				( ( isAllowedByParent === null && isAllowedParent === null ) ||
+					isAllowedByParent === true ||
+					isAllowedParent === true );
+			if ( ! isAllowed ) {
+				return explainNotAllowed( inner.name, block.name, {
+					isInner: true,
+					allowedBlocks: parentAllowed,
+				} );
+			}
+			const reason = canInsertInner( inner, [ inner.name, ...ancestors ] );
+			if ( reason ) {
+				return reason;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -150,13 +221,27 @@ export function createBlockTarget(): EditTarget {
 	 * can go from its block.json and the block.json of the parent, so that
 	 * the model can find a place it can go.
 	 *
-	 * @param name         The name of the block.
-	 * @param rootClientId The parent the block was inserted into.
+	 * @param name                  The name of the block.
+	 * @param rootName              The name of the parent the block was inserted into.
+	 * @param options               Options.
+	 * @param options.isInner       Whether the block is an inner block of the new markup.
+	 * @param options.allowedBlocks The blocks the parent accepts, when not those of its block.json.
 	 * @return The explanation.
 	 */
-	function explainNotAllowed( name: string, rootClientId: string | undefined ): string {
+	function explainNotAllowed(
+		name: string,
+		rootName: string | null,
+		{
+			isInner = false,
+			allowedBlocks = rootName ? getBlockType( rootName )?.allowedBlocks : undefined,
+		}: { isInner?: boolean; allowedBlocks?: unknown } = {}
+	): string {
 		const quote = ( names: string[] ) => names.map( ( item ) => `"${ item }"` ).join( ' or ' );
-		const reasons = [ `The "${ name }" block is not allowed here.` ];
+		const reasons = [
+			isInner
+				? `The "${ name }" block is not allowed inside the "${ rootName }" block.`
+				: `The "${ name }" block is not allowed here.`,
+		];
 		const { parent, ancestor } = getBlockType( name ) ?? {};
 		if ( parent?.length ) {
 			reasons.push( `It can only be placed directly inside ${ quote( parent ) }.` );
@@ -164,9 +249,12 @@ export function createBlockTarget(): EditTarget {
 		if ( ancestor?.length ) {
 			reasons.push( `It can only be placed somewhere inside ${ quote( ancestor ) }.` );
 		}
-		const rootName = rootClientId ? editor().getBlockName( rootClientId ) : null;
-		const allowedBlocks = rootName ? getBlockType( rootName )?.allowedBlocks : undefined;
-		if ( rootName && allowedBlocks?.length && ! allowedBlocks.includes( name ) ) {
+		if (
+			rootName &&
+			Array.isArray( allowedBlocks ) &&
+			allowedBlocks.length &&
+			! allowedBlocks.includes( name )
+		) {
 			reasons.push(
 				`The parent "${ rootName }" block only accepts ${ quote( allowedBlocks ) } inside it.`
 			);

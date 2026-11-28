@@ -62,6 +62,14 @@ beforeAll( () => {
 		edit: () => null,
 		save: () => createElement( 'small' ),
 	} );
+	registerBlockType( 'test/group', {
+		apiVersion: 3,
+		title: 'Group',
+		category: 'design',
+		attributes: {},
+		edit: () => null,
+		save: () => createElement( 'div', {}, createElement( InnerBlocks.Content ) ),
+	} );
 } );
 
 function setUp( ...contents: string[] ) {
@@ -258,6 +266,36 @@ describe( 'createBlockTarget', () => {
 				'The "test/paragraph" block is not allowed here. The parent "test/list" block only accepts "test/list-item" inside it.',
 		} );
 		expect( documentNow() ).toBe( before );
+	} );
+
+	it( 'checks where the inner blocks of the markup go', () => {
+		const [ first ] = setUp( 'One' );
+		const before = documentNow();
+		const target = createBlockTarget();
+		const group = ( inner: string ) =>
+			`<!-- wp:test/group -->\n<div>${ inner }</div>\n<!-- /wp:test/group -->`;
+		const list = ( inner: string ) =>
+			`<!-- wp:test/list -->\n<ul>${ inner }</ul>\n<!-- /wp:test/list -->`;
+		const item = '<!-- wp:test/list-item -->\n<li>Item</li>\n<!-- /wp:test/list-item -->';
+		const footnote = '<!-- wp:test/footnote -->\n<small></small>\n<!-- /wp:test/footnote -->';
+
+		const reasons = [ list( paragraph( 'New' ) ), group( item ), group( group( footnote ) ) ].map(
+			( markup ) => {
+				const result = target.apply( { action: 'replace_block', ref: getRef( first ), markup } );
+				return result.status === 'failed' ? result.reason : result.status;
+			}
+		);
+		expect( reasons ).toEqual( [
+			'The "test/paragraph" block is not allowed inside the "test/list" block. The parent "test/list" block only accepts "test/list-item" inside it.',
+			'The "test/list-item" block is not allowed inside the "test/group" block. It can only be placed directly inside "test/list".',
+			'The "test/footnote" block is not allowed inside the "test/group" block. It can only be placed somewhere inside "test/list".',
+		] );
+		expect( documentNow() ).toBe( before );
+
+		expect( target.apply( { action: 'append', markup: group( list( item ) ) } ) ).toMatchObject( {
+			status: 'applied',
+		} );
+		expect( documentNow() ).toBe( `${ before }\n\n${ group( list( item ) ) }` );
 	} );
 
 	it( 'strips reference IDs from the markup', () => {
