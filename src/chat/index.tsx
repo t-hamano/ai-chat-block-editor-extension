@@ -3,7 +3,7 @@
  */
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { useSelect } from '@wordpress/data';
-import { useEffect, useRef } from '@wordpress/element';
+import { memo, useEffect, useRef } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { arrowUp, blockDefault, typography } from '@wordpress/icons';
 import { isKeyboardEvent } from '@wordpress/keycodes';
@@ -77,7 +77,9 @@ export function formatUsage( usage: AiUsage ) {
 			);
 }
 
-function AssistantMessage( { message }: { message: AssistantChatMessage } ) {
+// Messages are not changed in place, so only the answer that changed renders
+// again, and earlier answers keep their parsed Markdown.
+const AssistantMessage = memo( function ( { message }: { message: AssistantChatMessage } ) {
 	const activity = message.status === 'streaming' ? message.activity : undefined;
 
 	return (
@@ -127,7 +129,7 @@ function AssistantMessage( { message }: { message: AssistantChatMessage } ) {
 			) }
 		</Stack>
 	);
-}
+} );
 
 /**
  * Describes what is selected in the editor now, which is sent with the

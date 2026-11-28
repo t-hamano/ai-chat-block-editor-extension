@@ -9,6 +9,7 @@ import { useCallback, useEffect, useLayoutEffect, useReducer, useRef } from '@wo
 import {
 	conversationReducer,
 	createConversation,
+	type ConversationAction,
 	getLastSeenDocument,
 	toAiMessages,
 	toUserText,
@@ -53,10 +54,45 @@ export type AiChat = {
  * @return The conversation and the actions on it.
  */
 export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
-	const [ conversation, dispatch ] = useReducer(
+	const [ conversation, dispatchNow ] = useReducer(
 		conversationReducer,
 		undefined,
 		createConversation
+	);
+	// The text of an answer arrives in many small pieces. They are joined and
+	// added once per frame, so the chat does not render for each piece.
+	const pendingTextRef = useRef( '' );
+	const frameRef = useRef< number | null >( null );
+	const dropText = useCallback( () => {
+		if ( frameRef.current !== null ) {
+			cancelAnimationFrame( frameRef.current );
+			frameRef.current = null;
+		}
+		pendingTextRef.current = '';
+	}, [] );
+	const flushText = useCallback( () => {
+		const text = pendingTextRef.current;
+		dropText();
+		if ( text ) {
+			dispatchNow( { type: 'APPEND_TEXT', text } );
+		}
+	}, [ dropText ] );
+	const appendText = useCallback(
+		( text: string ) => {
+			pendingTextRef.current += text;
+			if ( frameRef.current === null ) {
+				frameRef.current = requestAnimationFrame( flushText );
+			}
+		},
+		[ flushText ]
+	);
+	// Other changes come after the text that arrived before them.
+	const dispatch = useCallback(
+		( action: ConversationAction ) => {
+			flushText();
+			dispatchNow( action );
+		},
+		[ flushText ]
 	);
 	const messagesRef = useRef( conversation.messages );
 	// Keep the latest messages for the callbacks, which run after rendering.
@@ -115,7 +151,7 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 						return;
 					}
 					if ( event.type === 'text' ) {
-						dispatch( { type: 'APPEND_TEXT', text: event.text } );
+						appendText( event.text );
 						return;
 					}
 					if ( event.type === 'discard_text' ) {
@@ -188,7 +224,7 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 					}
 				} );
 		},
-		[ ai, createTarget ]
+		[ ai, createTarget, appendText, dispatch ]
 	);
 
 	const stop = useCallback( () => {
@@ -203,14 +239,15 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 			status: 'stopped',
 			documentAfter: readDocumentRef.current?.(),
 		} );
-	}, [] );
+	}, [ dispatch ] );
 
 	const reset = useCallback( () => {
 		const controller = controllerRef.current;
 		controllerRef.current = null;
 		controller?.abort();
-		dispatch( { type: 'RESET' } );
-	}, [] );
+		dropText();
+		dispatchNow( { type: 'RESET' } );
+	}, [ dropText ] );
 
 	// Abandon the answer when the editor closes, so its late edits do not
 	// reach a document that is gone.
@@ -219,8 +256,9 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 			const controller = controllerRef.current;
 			controllerRef.current = null;
 			controller?.abort();
+			dropText();
 		},
-		[]
+		[ dropText ]
 	);
 
 	const last = conversation.messages[ conversation.messages.length - 1 ];
