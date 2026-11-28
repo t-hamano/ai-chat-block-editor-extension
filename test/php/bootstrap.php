@@ -14,7 +14,7 @@ if ( ! $blocktune_tests_dir || ! file_exists( $blocktune_tests_dir . '/includes/
 	exit( 1 );
 }
 
-define( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH', dirname( __DIR__, 2 ) . '/vendor/yoast/phpunit-polyfills' );
+define( 'WP_TESTS_PHPUNIT_POLYFILLS_PATH', dirname( __DIR__, 2 ) . '/vendor/yoast/phpunit-polyfills' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- Constant name required by the WordPress test library.
 
 require_once $blocktune_tests_dir . '/includes/functions.php';
 

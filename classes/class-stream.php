@@ -231,7 +231,7 @@ class Stream {
 		// sending it, so turn it off for this request. The function only
 		// exists when PHP runs as an Apache module.
 		if ( function_exists( 'apache_setenv' ) ) {
-			apache_setenv( 'no-gzip', '1' );
+			apache_setenv( 'no-gzip', '1' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_apache_setenv -- Needed to stream the response.
 		}
 		// PHP's own compression holds output back in the same way.
 		if ( function_exists( 'ini_set' ) ) {
