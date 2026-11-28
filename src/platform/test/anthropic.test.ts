@@ -19,7 +19,6 @@ import {
 	createAnthropicPlatform,
 	readAnthropicStream,
 	toAnthropicEvents,
-	takesEffort,
 	toAnthropicMessages,
 } from '../anthropic';
 import { READ_TOOLS } from '../read-tools';
@@ -59,25 +58,9 @@ describe( 'buildAnthropicBody', () => {
 		} );
 	} );
 
-	it( 'leaves the effort out for a model that does not take one', () => {
-		const body = buildAnthropicBody( 'Be brief.', [], 'claude-sonnet-4-5-20250929' );
+	it( 'leaves the effort out for other models', () => {
+		const body = buildAnthropicBody( 'Be brief.', [], 'claude-sonnet-5' );
 		expect( body ).not.toHaveProperty( 'output_config' );
-	} );
-} );
-
-describe( 'takesEffort', () => {
-	it.each( [
-		[ 'claude-sonnet-5-5', true ],
-		[ 'claude-sonnet-5', true ],
-		[ 'claude-opus-5-5', true ],
-		[ 'claude-opus-4-5-20251101', true ],
-		[ 'claude-sonnet-4-6', true ],
-		[ 'claude-sonnet-4-5-20250929', false ],
-		[ 'claude-opus-4-1-20250805', false ],
-		[ 'claude-sonnet-4-20250514', false ],
-		[ 'claude-haiku-4-5', false ],
-	] )( '%s: %s', ( model, expected ) => {
-		expect( takesEffort( model ) ).toBe( expected );
 	} );
 } );
 

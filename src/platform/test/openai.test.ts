@@ -21,7 +21,6 @@ import {
 	buildOpenAiBody,
 	createOpenAiPlatform,
 	readOpenAiStream,
-	takesEffort,
 	toOpenAiEvents,
 	toOpenAiInput,
 } from '../openai';
@@ -75,20 +74,9 @@ describe( 'buildOpenAiBody', () => {
 		} );
 	} );
 
-	it( 'leaves the effort out for a model that does not take it', () => {
-		const body = buildOpenAiBody( 'Be brief.', [], 'gpt-5-pro' );
+	it( 'leaves the effort out for other models', () => {
+		const body = buildOpenAiBody( 'Be brief.', [], 'gpt-6-sol' );
 		expect( body ).not.toHaveProperty( 'reasoning' );
-	} );
-} );
-
-describe( 'takesEffort', () => {
-	it.each( [
-		[ 'gpt-6.1-sol', true ],
-		[ 'gpt-5', true ],
-		[ 'gpt-5-pro', false ],
-		[ 'gpt-5.5-pro-2026-01-01', false ],
-	] )( '%s: %s', ( model, expected ) => {
-		expect( takesEffort( model ) ).toBe( expected );
 	} );
 } );
 
