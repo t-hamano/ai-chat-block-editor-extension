@@ -209,18 +209,19 @@ class Relay {
 
 		$provider = self::PROVIDERS[ $provider_id ];
 		$body     = self::check_body( $provider_id, $request->get_param( 'body' ) );
-		$stream   = (bool) $request->get_param( 'stream' );
-		$headers  = array_merge(
+
+		if ( is_wp_error( $body ) ) {
+			return $body;
+		}
+
+		$stream  = (bool) $request->get_param( 'stream' );
+		$headers = array_merge(
 			$provider['headers'],
 			array(
 				'content-type'   => 'application/json',
 				$provider['key'] => ( $provider['key_prefix'] ?? '' ) . $api_key,
 			)
 		);
-
-		if ( is_wp_error( $body ) ) {
-			return $body;
-		}
 
 		$url = $stream && isset( $provider['stream_url'] ) ? $provider['stream_url'] : $provider['url'];
 

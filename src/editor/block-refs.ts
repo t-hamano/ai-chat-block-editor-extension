@@ -4,9 +4,9 @@
 import { getFreeformContentHandlerName, serialize, type Block } from '@wordpress/blocks';
 
 /**
- * Matches a reference ID comment, such as `<!-- ref:b12 -->`.
+ * Internal dependencies
  */
-const REF_COMMENT = /<!--\s*ref:[a-z0-9]+\s*-->/gi;
+import { REF_COMMENT } from '../ai/markup-tokens';
 
 // The reference IDs of the blocks, kept for the editor session so that a
 // block keeps its ID through the conversation, and after undo.
