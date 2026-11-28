@@ -9,7 +9,6 @@ import { useCallback, useEffect, useLayoutEffect, useReducer, useRef } from '@wo
 import {
 	conversationReducer,
 	createConversation,
-	type ConversationAction,
 	getLastSeenDocument,
 	toAiMessages,
 	toUserText,
@@ -54,7 +53,7 @@ export type AiChat = {
  * @return The conversation and the actions on it.
  */
 export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
-	const [ conversation, dispatchNow ] = useReducer(
+	const [ conversation, updateConversation ] = useReducer(
 		conversationReducer,
 		undefined,
 		createConversation
@@ -67,36 +66,30 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 	// added once per frame, so the chat does not render for each piece.
 	const pendingTextRef = useRef( '' );
 	const frameRef = useRef< number | null >( null );
-	const dropText = useCallback( () => {
+	const discardBufferedText = useCallback( () => {
 		if ( frameRef.current !== null ) {
 			cancelAnimationFrame( frameRef.current );
 			frameRef.current = null;
 		}
 		pendingTextRef.current = '';
 	}, [] );
-	const flushText = useCallback( () => {
+	// Other changes are made after committing the buffered text, so they come
+	// after the text that arrived before them.
+	const commitBufferedText = useCallback( () => {
 		const text = pendingTextRef.current;
-		dropText();
+		discardBufferedText();
 		if ( text ) {
-			dispatchNow( { type: 'APPEND_TEXT', text } );
+			updateConversation( { type: 'APPEND_TEXT', text } );
 		}
-	}, [ dropText ] );
-	const appendText = useCallback(
+	}, [ discardBufferedText ] );
+	const addTextToBuffer = useCallback(
 		( text: string ) => {
 			pendingTextRef.current += text;
 			if ( frameRef.current === null ) {
-				frameRef.current = requestAnimationFrame( flushText );
+				frameRef.current = requestAnimationFrame( commitBufferedText );
 			}
 		},
-		[ flushText ]
-	);
-	// Other changes come after the text that arrived before them.
-	const dispatch = useCallback(
-		( action: ConversationAction ) => {
-			flushText();
-			dispatchNow( action );
-		},
-		[ flushText ]
+		[ commitBufferedText ]
 	);
 
 	const send = useCallback(
@@ -125,7 +118,8 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 			let seenDocument = context?.document;
 			const readDocument = () => seenDocument;
 			readDocumentRef.current = readDocument;
-			dispatch( {
+			commitBufferedText();
+			updateConversation( {
 				type: 'START',
 				text: message,
 				context: messageContext,
@@ -158,19 +152,22 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 						return;
 					}
 					if ( event.type === 'text' ) {
-						appendText( event.text );
+						addTextToBuffer( event.text );
 						return;
 					}
 					if ( event.type === 'discard_text' ) {
-						dispatch( { type: 'DISCARD_TEXT', text: event.text } );
+						commitBufferedText();
+						updateConversation( { type: 'DISCARD_TEXT', text: event.text } );
 						return;
 					}
 					if ( event.type === 'usage' ) {
-						dispatch( { type: 'USAGE', usage: event.usage } );
+						commitBufferedText();
+						updateConversation( { type: 'USAGE', usage: event.usage } );
 						return;
 					}
 					if ( event.type === 'activity' ) {
-						dispatch( {
+						commitBufferedText();
+						updateConversation( {
 							type: 'ACTIVITY',
 							activity: event.activity,
 						} );
@@ -190,7 +187,8 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 					// answer shows only the edit that changed the document,
 					// or that was dropped.
 					if ( result.status !== 'failed' ) {
-						dispatch( {
+						commitBufferedText();
+						updateConversation( {
 							type: 'EDIT',
 							edit: event.edit,
 							applied: result.status === 'applied',
@@ -208,7 +206,8 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 				.then(
 					() => {
 						if ( isCurrent() ) {
-							dispatch( {
+							commitBufferedText();
+							updateConversation( {
 								type: 'FINISH',
 								status: 'done',
 								documentAfter: readDocument(),
@@ -217,7 +216,8 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 					},
 					( error: unknown ) => {
 						if ( isCurrent() ) {
-							dispatch( {
+							commitBufferedText();
+							updateConversation( {
 								type: 'FINISH',
 								status: 'error',
 								error: error instanceof Error ? error.message : String( error ),
@@ -231,7 +231,7 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 					}
 				} );
 		},
-		[ ai, createTarget, appendText, dispatch ]
+		[ ai, createTarget, addTextToBuffer, commitBufferedText ]
 	);
 
 	const stop = useCallback( () => {
@@ -241,20 +241,21 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 		}
 		controllerRef.current = null;
 		controller.abort();
-		dispatch( {
+		commitBufferedText();
+		updateConversation( {
 			type: 'FINISH',
 			status: 'stopped',
 			documentAfter: readDocumentRef.current?.(),
 		} );
-	}, [ dispatch ] );
+	}, [ commitBufferedText ] );
 
 	const reset = useCallback( () => {
 		const controller = controllerRef.current;
 		controllerRef.current = null;
 		controller?.abort();
-		dropText();
-		dispatchNow( { type: 'RESET' } );
-	}, [ dropText ] );
+		discardBufferedText();
+		updateConversation( { type: 'RESET' } );
+	}, [ discardBufferedText ] );
 
 	// Keep the latest messages for the callbacks, which run after rendering.
 	useLayoutEffect( () => {
@@ -268,9 +269,9 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 			const controller = controllerRef.current;
 			controllerRef.current = null;
 			controller?.abort();
-			dropText();
+			discardBufferedText();
 		},
-		[ dropText ]
+		[ discardBufferedText ]
 	);
 
 	const last = conversation.messages[ conversation.messages.length - 1 ];
