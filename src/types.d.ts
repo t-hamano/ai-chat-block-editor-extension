@@ -13,6 +13,7 @@ declare module '@wordpress/block-library' {
 // Set by the plugin when it enqueues the editor script.
 interface Window {
 	blocktune: {
+		aiSupported: boolean;
 		hasApiKey: boolean;
 		providers: string[];
 		connectorsUrl: string;

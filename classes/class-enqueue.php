@@ -65,6 +65,7 @@ class Enqueue {
 				'window.blocktune = %s;',
 				wp_json_encode(
 					array(
+						'aiSupported'   => wp_supports_ai(),
 						'hasApiKey'     => Api_Key::has_any(),
 						'providers'     => Api_Key::connected_providers(),
 						'connectorsUrl' => admin_url( 'options-connectors.php' ),
@@ -92,7 +93,7 @@ class Enqueue {
 	 * iframe. That hook also runs on the front end, where they are not needed.
 	 */
 	public function enqueue_canvas_styles() {
-		if ( ! is_admin() || ! self::can_use() || ! Api_Key::has_any() ) {
+		if ( ! is_admin() || ! self::can_use() || ! wp_supports_ai() || ! Api_Key::has_any() ) {
 			return;
 		}
 
