@@ -75,6 +75,10 @@ The plugin does not store API keys. It uses the key set on the Connectors screen
 
 Your message, the selected blocks or text, and parts of the content being edited, such as a post or a template, needed for the edit. See the "External services" section for details.
 
+= Can the AI search the web? =
+
+No. The AI answers and edits based only on what you send and what the model already knows, so it may not know about recent events, and it cannot read other web pages. Tools that run on the provider's side, such as web search, are not allowed, so the site's API key is used only to edit your content, and not for extra paid features.
+
 = Are my conversations saved? =
 
 No. Conversations are kept only while the editor is open, and are cleared when you reload the page. Only your choice of provider and model is saved.
