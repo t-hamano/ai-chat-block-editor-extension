@@ -473,8 +473,8 @@ export function withChangeHighlight< P extends BlockListBlockProps >(
 ) {
 	return function ChangeHighlight( props: P ) {
 		const { clientId, className } = props;
-		const changedAt = useSyncExternalStore( subscribe, () => highlighted.get( clientId ) ?? 0 );
 		const [ hasNoText, setHasNoText ] = useState( false );
+		const changedAt = useSyncExternalStore( subscribe, () => highlighted.get( clientId ) ?? 0 );
 
 		useEffect( () => {
 			if ( ! changedAt ) {

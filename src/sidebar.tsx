@@ -69,25 +69,24 @@ function NoConnectorNotice() {
 
 export default function Sidebar() {
 	const title = __( 'Blocktune', 'blocktune' );
-	const isVisualEditor = useSelect(
-		( select ) => select( editorStore ).getEditorMode() === 'visual',
-		[]
-	);
-	// The block that holds the document the AI edits. When the template is
-	// shown around the post, the post is inside the Post Content block, as
-	// the editor also finds it.
-	const documentRoot = useSelect(
-		( select ) =>
-			select( editorStore ).getRenderingMode() === 'template-locked'
-				? select( blockEditorStore ).getBlocksByName( 'core/post-content' )[ 0 ]
-				: undefined,
-		[]
-	);
+	const [ isSettingsOpen, setIsSettingsOpen ] = useState( false );
+	const [ draft, setDraft ] = useState( '' );
+	const { isVisualEditor, documentRoot } = useSelect( ( select ) => {
+		const { getEditorMode, getRenderingMode } = select( editorStore );
+		return {
+			isVisualEditor: getEditorMode() === 'visual',
+			// The block that holds the document the AI edits. When the
+			// template is shown around the post, the post is inside the Post
+			// Content block, as the editor also finds it.
+			documentRoot:
+				getRenderingMode() === 'template-locked'
+					? select( blockEditorStore ).getBlocksByName( 'core/post-content' )[ 0 ]
+					: undefined,
+		};
+	}, [] );
 	const createTarget = useCallback( () => createSelectionTarget( documentRoot ), [ documentRoot ] );
 	const chat = useAiChat( { ai, createTarget } );
 	const { stop, reset } = chat;
-	const [ isSettingsOpen, setIsSettingsOpen ] = useState( false );
-	const [ draft, setDraft ] = useState( '' );
 
 	// The conversation is about the blocks, so it ends when the user
 	// switches to the code editor.
