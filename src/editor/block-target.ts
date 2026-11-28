@@ -8,7 +8,7 @@ import isEqual from 'fast-deep-equal';
  */
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import type { Block } from '@wordpress/blocks';
-import { getBlockType, serialize } from '@wordpress/blocks';
+import { getBlockType, getFreeformContentHandlerName, serialize } from '@wordpress/blocks';
 import { dispatch, select } from '@wordpress/data';
 
 /**
@@ -22,6 +22,17 @@ import { locateText } from './locate-text';
 import { findProtectedChange, isSameBlock } from './protected-attributes';
 import { collectUnsafeHtml } from './unsafe-html';
 import { collectHtml, validateMarkup } from './validate-markup';
+
+/**
+ * Whether the blocks, or their inner blocks, have a Classic block.
+ *
+ * @param blocks The blocks.
+ * @return Whether they have one.
+ */
+function hasClassicBlock( blocks: Block[] ): boolean {
+	const name = getFreeformContentHandlerName();
+	return blocks.some( ( block ) => block.name === name || hasClassicBlock( block.innerBlocks ) );
+}
 
 function failed( reason: string ): AiEditResult {
 	return { status: 'failed', reason };
@@ -310,6 +321,14 @@ export function createBlockTarget(): EditTarget {
 		if ( ! located ) {
 			return failed(
 				'The "find" text is not inside the blocks. Include whole blocks or text inside one block, and try again.'
+			);
+		}
+
+		// Classic blocks are kept as they are, so they are not edited, made
+		// into other blocks, or removed.
+		if ( hasClassicBlock( located.blocks ) ) {
+			return failed(
+				'The "find" text is in or around a Classic (core/freeform) block. Classic blocks must be kept exactly as they are, so they cannot be edited, turned into other blocks, or removed. Change only text outside Classic blocks. When the user needs to change a Classic block, tell them to edit or convert it themselves.'
 			);
 		}
 
