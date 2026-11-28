@@ -21,7 +21,7 @@ class Blocktune_Test_Stream extends Stream {
 	/**
 	 * Records the status and content type.
 	 */
-	protected function start_output() {
+	protected function start_stream_output() {
 		$this->started_with = array( $this->status, $this->content_type );
 	}
 }

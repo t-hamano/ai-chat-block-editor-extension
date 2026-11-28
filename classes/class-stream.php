@@ -69,7 +69,7 @@ class Stream {
 	 * @param string $body    The request body.
 	 * @return WP_Error|null An error when nothing could be sent to the browser.
 	 */
-	public function send( string $url, array $headers, string $body ) {
+	public function send_and_stream_response( string $url, array $headers, string $body ) {
 		// Hosts can turn off the functions below, and calling one then stops
 		// PHP, so each is checked first.
 		// Keep running when the user stops the answer, so the connection to
@@ -84,7 +84,7 @@ class Stream {
 
 		$this->url = $url;
 
-		add_action( 'http_api_curl', array( $this, 'stream_with' ), 10, 3 );
+		add_action( 'http_api_curl', array( $this, 'attach_curl_callbacks' ), 10, 3 );
 
 		$response = wp_remote_post(
 			$url,
@@ -96,11 +96,11 @@ class Stream {
 			)
 		);
 
-		remove_action( 'http_api_curl', array( $this, 'stream_with' ), 10 );
+		remove_action( 'http_api_curl', array( $this, 'attach_curl_callbacks' ), 10 );
 
 		if ( $this->started ) {
 			if ( is_wp_error( $response ) && ! connection_aborted() ) {
-				$this->send_error( $this->timed_out() );
+				$this->send_error_event( $this->is_curl_timed_out() );
 			}
 			return null;
 		}
@@ -116,7 +116,7 @@ class Stream {
 		// The whole answer came at once, such as on a server without cURL.
 		$this->status       = (int) wp_remote_retrieve_response_code( $response );
 		$this->content_type = (string) wp_remote_retrieve_header( $response, 'content-type' );
-		$this->pass_on( wp_remote_retrieve_body( $response ) );
+		$this->output_chunk( wp_remote_retrieve_body( $response ) );
 
 		return null;
 	}
@@ -131,7 +131,7 @@ class Stream {
 	 * @param array       $args   The request arguments.
 	 * @param string      $url    The request address.
 	 */
-	public function stream_with( $handle, array $args, string $url ) {
+	public function attach_curl_callbacks( $handle, array $args, string $url ) {
 		if ( $url !== $this->url ) {
 			return;
 		}
@@ -139,11 +139,11 @@ class Stream {
 		$this->handle = $handle;
 
 		// phpcs:disable WordPress.WP.AlternativeFunctions.curl_curl_setopt -- `http_api_curl` hands over the handle to change how the answer is read.
-		curl_setopt( $handle, CURLOPT_WRITEFUNCTION, array( $this, 'write' ) );
+		curl_setopt( $handle, CURLOPT_WRITEFUNCTION, array( $this, 'write_chunk' ) );
 		// Stopping from the write function would make WordPress send the
 		// request again, so the progress function stops it instead.
 		curl_setopt( $handle, CURLOPT_NOPROGRESS, false );
-		curl_setopt( $handle, CURLOPT_XFERINFOFUNCTION, array( $this, 'keep_going' ) );
+		curl_setopt( $handle, CURLOPT_XFERINFOFUNCTION, array( $this, 'abort_if_disconnected' ) );
 		// phpcs:enable WordPress.WP.AlternativeFunctions.curl_curl_setopt
 	}
 
@@ -154,7 +154,7 @@ class Stream {
 	 * @param string $data   The piece.
 	 * @return int The length of the piece, so that cURL goes on.
 	 */
-	public function write( $handle, string $data ): int {
+	public function write_chunk( $handle, string $data ): int {
 		if ( ! $this->started ) {
 			// phpcs:disable WordPress.WP.AlternativeFunctions.curl_curl_getinfo -- The handle comes from `http_api_curl`.
 			$this->status       = (int) curl_getinfo( $handle, CURLINFO_RESPONSE_CODE );
@@ -162,7 +162,7 @@ class Stream {
 			// phpcs:enable WordPress.WP.AlternativeFunctions.curl_curl_getinfo
 		}
 
-		$this->pass_on( $data );
+		$this->output_chunk( $data );
 
 		return strlen( $data );
 	}
@@ -172,7 +172,7 @@ class Stream {
 	 *
 	 * @return int 1 to stop when the browser has gone, or 0 to go on.
 	 */
-	public function keep_going(): int {
+	public function abort_if_disconnected(): int {
 		// The user stopped the answer, so stop the provider's answer too.
 		return connection_aborted() ? 1 : 0;
 	}
@@ -183,7 +183,7 @@ class Stream {
 	 *
 	 * @param bool $timed_out Whether the provider took too long.
 	 */
-	public function send_error( bool $timed_out ) {
+	public function send_error_event( bool $timed_out ) {
 		$message = $timed_out
 			? __( 'The provider took too long to answer, so the answer was stopped.', 'blocktune' )
 			: __( 'The connection to the provider was lost before the answer was finished.', 'blocktune' );
@@ -199,10 +199,10 @@ class Stream {
 	 *
 	 * @param string $data The piece.
 	 */
-	private function pass_on( string $data ) {
+	private function output_chunk( string $data ) {
 		if ( ! $this->started ) {
 			$this->started = true;
-			$this->start_output();
+			$this->start_stream_output();
 		}
 
 		echo $data; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -214,7 +214,7 @@ class Stream {
 	 *
 	 * @return bool
 	 */
-	private function timed_out(): bool {
+	private function is_curl_timed_out(): bool {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.curl_curl_errno -- The handle comes from `http_api_curl`.
 		return $this->handle && CURLE_OPERATION_TIMEDOUT === curl_errno( $this->handle );
 	}
@@ -222,7 +222,7 @@ class Stream {
 	/**
 	 * Sends the headers, and turns off everything that would hold the answer back
 	 */
-	protected function start_output() {
+	protected function start_stream_output() {
 		while ( ob_get_level() > 0 ) {
 			ob_end_clean();
 		}

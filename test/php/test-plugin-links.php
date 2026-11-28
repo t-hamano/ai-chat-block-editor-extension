@@ -14,7 +14,7 @@ class Test_Plugin_Links extends WP_UnitTestCase {
 	 * Tests that the Connectors link is added before the other links.
 	 */
 	public function test_connectors_link_is_added_first() {
-		$links = ( new Plugin_Links() )->add_action_links( array( 'deactivate' => '<a href="#">Deactivate</a>' ) );
+		$links = ( new Plugin_Links() )->add_connectors_link( array( 'deactivate' => '<a href="#">Deactivate</a>' ) );
 
 		$this->assertCount( 2, $links );
 		$this->assertSame(
@@ -32,7 +32,7 @@ class Test_Plugin_Links extends WP_UnitTestCase {
 
 		$this->assertSame(
 			10,
-			has_filter( 'plugin_action_links_' . plugin_basename( BLOCKTUNE_PATH . '/blocktune.php' ), array( $plugin_links, 'add_action_links' ) )
+			has_filter( 'plugin_action_links_' . plugin_basename( BLOCKTUNE_PATH . '/blocktune.php' ), array( $plugin_links, 'add_connectors_link' ) )
 		);
 	}
 }

@@ -26,7 +26,7 @@ class Enqueue {
 	 *
 	 * @return bool
 	 */
-	public static function can_use() {
+	public static function can_use_assistant() {
 		return current_user_can( is_multisite() ? 'manage_network_options' : 'manage_options' );
 	}
 
@@ -34,7 +34,7 @@ class Enqueue {
 	 * Enqueue block editor scripts
 	 */
 	public function enqueue_editor_scripts() {
-		if ( ! self::can_use() ) {
+		if ( ! self::can_use_assistant() ) {
 			return;
 		}
 
@@ -66,8 +66,8 @@ class Enqueue {
 				wp_json_encode(
 					array(
 						'isAiSupported' => wp_supports_ai(),
-						'hasApiKey'     => Api_Key::has_any(),
-						'providers'     => Api_Key::connected_providers(),
+						'hasApiKey'     => Api_Key::has_any_provider_api_key(),
+						'providers'     => Api_Key::get_connected_providers(),
 						'connectorsUrl' => admin_url( 'options-connectors.php' ),
 					)
 				)
@@ -93,7 +93,7 @@ class Enqueue {
 	 * iframe. That hook also runs on the front end, where they are not needed.
 	 */
 	public function enqueue_canvas_styles() {
-		if ( ! is_admin() || ! self::can_use() || ! wp_supports_ai() || ! Api_Key::has_any() ) {
+		if ( ! is_admin() || ! self::can_use_assistant() || ! wp_supports_ai() || ! Api_Key::has_any_provider_api_key() ) {
 			return;
 		}
 

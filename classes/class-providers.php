@@ -106,7 +106,7 @@ class Providers {
 	 *
 	 * @return string[] The provider IDs, such as `anthropic`.
 	 */
-	public static function ids(): array {
+	public static function get_provider_ids(): array {
 		return array_keys( self::LIST );
 	}
 }

@@ -28,7 +28,7 @@ class Api_Key {
 	 * @param string $provider_id The provider ID, such as `anthropic`.
 	 * @return string The key, or an empty string when the provider has none.
 	 */
-	public static function get( string $provider_id ): string {
+	public static function get_provider_api_key( string $provider_id ): string {
 		$registry = AiClient::defaultRegistry();
 
 		if ( ! $registry->hasProvider( $provider_id ) ) {
@@ -45,9 +45,9 @@ class Api_Key {
 	 *
 	 * @return bool
 	 */
-	public static function has_any(): bool {
+	public static function has_any_provider_api_key(): bool {
 		foreach ( AiClient::defaultRegistry()->getRegisteredProviderIds() as $provider_id ) {
-			if ( '' !== self::get( $provider_id ) ) {
+			if ( '' !== self::get_provider_api_key( $provider_id ) ) {
 				return true;
 			}
 		}
@@ -60,12 +60,12 @@ class Api_Key {
 	 *
 	 * @return string[] The provider IDs, such as `anthropic`.
 	 */
-	public static function connected_providers(): array {
+	public static function get_connected_providers(): array {
 		return array_values(
 			array_filter(
-				Providers::ids(),
+				Providers::get_provider_ids(),
 				static function ( $provider_id ) {
-					return '' !== self::get( $provider_id );
+					return '' !== self::get_provider_api_key( $provider_id );
 				}
 			)
 		);

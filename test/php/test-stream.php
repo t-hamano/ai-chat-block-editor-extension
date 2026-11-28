@@ -36,7 +36,7 @@ class Test_Stream extends WP_UnitTestCase {
 
 		$this->expectOutputString( "data: {}\n\n" );
 
-		$this->assertNull( $stream->send( 'https://api.example.com/', array(), '{"a":1}' ) );
+		$this->assertNull( $stream->send_and_stream_response( 'https://api.example.com/', array(), '{"a":1}' ) );
 		$this->assertSame( array( 'https://api.example.com/', '{"a":1}' ), $sent );
 		$this->assertSame( array( 200, 'text/event-stream' ), $stream->started_with );
 	}
@@ -50,7 +50,7 @@ class Test_Stream extends WP_UnitTestCase {
 			static fn() => new WP_Error( 'http_request_not_executed', 'User has blocked requests through HTTP.' )
 		);
 
-		$error = ( new Blocktune_Test_Stream() )->send( 'https://api.example.com/', array(), '{}' );
+		$error = ( new Blocktune_Test_Stream() )->send_and_stream_response( 'https://api.example.com/', array(), '{}' );
 
 		$this->assertWPError( $error );
 		$this->assertSame( 502, $error->get_error_data()['status'] );
@@ -64,14 +64,14 @@ class Test_Stream extends WP_UnitTestCase {
 
 		$this->expectOutputRegex( '/^\n\nevent: blocktune_error\ndata: \{"message":"The provider took too long[^"]*"\}\n\n$/' );
 
-		$stream->send_error( true );
+		$stream->send_error_event( true );
 	}
 
 	/**
 	 * Tests that an error is returned when the provider cannot be reached.
 	 */
 	public function test_unreachable_provider_is_an_error() {
-		$error = ( new Blocktune_Test_Stream() )->send( 'http://127.0.0.1:9/', array(), '{}' );
+		$error = ( new Blocktune_Test_Stream() )->send_and_stream_response( 'http://127.0.0.1:9/', array(), '{}' );
 
 		$this->assertWPError( $error );
 		$this->assertSame( 502, $error->get_error_data()['status'] );

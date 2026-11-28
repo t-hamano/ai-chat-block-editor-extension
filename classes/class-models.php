@@ -48,11 +48,11 @@ class Models {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'list_models' ),
-				'permission_callback' => array( Enqueue::class, 'can_use' ),
+				'permission_callback' => array( Enqueue::class, 'can_use_assistant' ),
 				'args'                => array(
 					'provider' => array(
 						'type'     => 'string',
-						'enum'     => Providers::ids(),
+						'enum'     => Providers::get_provider_ids(),
 						'required' => true,
 					),
 				),
@@ -67,7 +67,7 @@ class Models {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function list_models( WP_REST_Request $request ) {
-		$models = self::get( $request->get_param( 'provider' ) );
+		$models = self::get_provider_models( $request->get_param( 'provider' ) );
 
 		if ( is_wp_error( $models ) ) {
 			return $models;
@@ -82,8 +82,8 @@ class Models {
 	 * @param string $provider_id The provider ID, such as `anthropic`.
 	 * @return array|WP_Error The models, each with an `id` and a `name`.
 	 */
-	public static function get( string $provider_id ) {
-		$api_key = Api_Key::get( $provider_id );
+	public static function get_provider_models( string $provider_id ) {
+		$api_key = Api_Key::get_provider_api_key( $provider_id );
 
 		if ( '' === $api_key ) {
 			return new WP_Error(
@@ -101,7 +101,7 @@ class Models {
 			return $models;
 		}
 
-		$models = self::fetch( $provider_id, $api_key );
+		$models = self::fetch_provider_models( $provider_id, $api_key );
 
 		// Errors are not kept, so the next request tries again.
 		if ( ! is_wp_error( $models ) ) {
@@ -118,7 +118,7 @@ class Models {
 	 * @param string $api_key     The provider's API key.
 	 * @return array|WP_Error The models, each with an `id` and a `name`.
 	 */
-	private static function fetch( string $provider_id, string $api_key ) {
+	private static function fetch_provider_models( string $provider_id, string $api_key ) {
 		$provider = Providers::LIST[ $provider_id ];
 
 		$response = wp_remote_get(
@@ -154,7 +154,7 @@ class Models {
 		$models = array();
 
 		foreach ( $list as $model ) {
-			$model = self::normalize( $model );
+			$model = self::normalize_model( $model );
 
 			if ( $model ) {
 				$models[] = $model;
@@ -173,7 +173,7 @@ class Models {
 	 * @param mixed $model The model, as the provider lists it.
 	 * @return array|null The model with an `id` and a `name`, or null to leave it out.
 	 */
-	private static function normalize( $model ) {
+	private static function normalize_model( $model ) {
 		if ( ! is_array( $model ) ) {
 			return null;
 		}
