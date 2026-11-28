@@ -183,14 +183,20 @@ class Relay {
 		}
 
 		// Sites can turn AI off, or stop prompts, as they do for the AI Client.
-		if (
-			! wp_supports_ai() ||
-			// The hook is the AI Client's own, so it is not prefixed.
-			apply_filters( 'wp_ai_client_prevent_prompt', false, wp_ai_client_prompt()->using_provider( $provider_id ) ) // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-		) {
+		// When AI is off, the filter is not applied, as in the AI Client.
+		if ( ! wp_supports_ai() ) {
 			return new WP_Error(
 				'blocktune_prompt_prevented',
-				__( 'The site does not allow AI requests.', 'blocktune' ),
+				__( 'AI features are not supported in this environment.', 'blocktune' ),
+				array( 'status' => 503 )
+			);
+		}
+
+		// The hook is the AI Client's own, so it is not prefixed.
+		if ( apply_filters( 'wp_ai_client_prevent_prompt', false, wp_ai_client_prompt()->using_provider( $provider_id ) ) ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+			return new WP_Error(
+				'blocktune_prompt_prevented',
+				__( 'Prompt execution was prevented by a filter.', 'blocktune' ),
 				array( 'status' => 503 )
 			);
 		}
