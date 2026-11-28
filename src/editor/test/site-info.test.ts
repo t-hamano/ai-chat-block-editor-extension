@@ -10,7 +10,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
  */
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { registerCoreBlocks } from '@wordpress/block-library';
-import { registerBlockStyle, registerBlockType } from '@wordpress/blocks';
+import { getBlockTypes, registerBlockStyle, registerBlockType } from '@wordpress/blocks';
 import { dispatch } from '@wordpress/data';
 
 /**
@@ -20,10 +20,41 @@ import { getSiteInfo } from '../site-info';
 
 const features = {
 	color: {
-		palette: { theme: [ { slug: 'base', name: 'Base', color: '#ffffff' } ] },
+		palette: {
+			default: [ { slug: 'black', name: 'Black', color: '#000000' } ],
+			theme: [ { slug: 'base', name: 'Base', color: '#ffffff' } ],
+		},
+		gradients: {
+			default: [ { slug: 'dawn', name: 'Dawn', gradient: 'linear-gradient(#000,#fff)' } ],
+		},
 		defaultPalette: false,
 	},
-	blocks: { 'core/heading': { color: { custom: false } } },
+	typography: {
+		fontFamilies: {
+			theme: [
+				{
+					slug: 'manrope',
+					name: 'Manrope',
+					fontFamily: 'Manrope, sans-serif',
+					fontFace: [ { fontFamily: 'Manrope', src: [ 'https://example.com/manrope.woff2' ] } ],
+				},
+			],
+		},
+	},
+	blocks: {
+		'core/heading': {
+			color: {
+				custom: false,
+				palette: { default: [ { slug: 'black', name: 'Black', color: '#000000' } ] },
+			},
+		},
+		'core/button': {
+			color: {
+				defaultPalette: true,
+				palette: { default: [ { slug: 'black', name: 'Black', color: '#000000' } ] },
+			},
+		},
+	},
 };
 
 /**
@@ -66,10 +97,21 @@ beforeAll( () => {
 } );
 
 describe( 'getSiteInfo', () => {
-	it( 'lists core blocks by name', () => {
-		const names = section( getSiteInfo(), 'Core blocks' ).split( ', ' );
-		expect( names ).toContain( 'paragraph' );
-		expect( names ).not.toContain( 'core/paragraph' );
+	it( 'says all core blocks can be inserted when the editor allows them all', () => {
+		expect( section( getSiteInfo(), 'Core blocks' ) ).toBe( 'All of them.' );
+	} );
+
+	it( 'lists the core blocks left out, by name, when they are fewer', () => {
+		const names = getBlockTypes()
+			.filter( ( { supports } ) => supports?.inserter !== false )
+			.map( ( { name } ) => name )
+			.filter( ( name ) => name !== 'core/quote' && name !== 'core/verse' );
+		dispatch( blockEditorStore ).updateSettings( { allowedBlockTypes: names } );
+		try {
+			expect( section( getSiteInfo(), 'Core blocks' ) ).toBe( 'All except: quote, verse' );
+		} finally {
+			dispatch( blockEditorStore ).updateSettings( { allowedBlockTypes: true } );
+		}
 	} );
 
 	it( 'describes blocks from plugins as in their block.json', () => {
@@ -95,8 +137,28 @@ describe( 'getSiteInfo', () => {
 		expect( styles[ 'core/button' ] ).toEqual( [ 'fill', 'outline' ] );
 	} );
 
-	it( 'passes the theme.json settings as they are', () => {
-		expect( JSON.parse( section( getSiteInfo(), 'theme.json settings' ) ) ).toEqual( features );
+	it( 'passes the theme.json settings', () => {
+		const settings = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
+		expect( settings.color.palette.theme ).toEqual( features.color.palette.theme );
+		expect( settings.color.defaultPalette ).toBe( false );
+		expect( settings.blocks[ 'core/heading' ].color.custom ).toBe( false );
+	} );
+
+	it( 'leaves out the presets of WordPress that a setting turns off', () => {
+		const settings = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
+		expect( settings.color.palette.default ).toBeUndefined();
+		// The block's settings fall back to the global ones, unless they have their own.
+		expect( settings.blocks[ 'core/heading' ].color.palette.default ).toBeUndefined();
+		expect( settings.blocks[ 'core/button' ].color.palette.default ).toHaveLength( 1 );
+		// Only the setting that turns them off leaves them out.
+		expect( settings.color.gradients.default ).toHaveLength( 1 );
+	} );
+
+	it( 'leaves out the font files of font families', () => {
+		const settings = JSON.parse( section( getSiteInfo(), 'theme.json settings' ) );
+		expect( settings.typography.fontFamilies.theme ).toEqual( [
+			{ slug: 'manrope', name: 'Manrope', fontFamily: 'Manrope, sans-serif' },
+		] );
 	} );
 
 	it( 'leaves out blocks the editor does not allow', () => {
@@ -105,7 +167,7 @@ describe( 'getSiteInfo', () => {
 		} );
 		try {
 			const text = getSiteInfo();
-			expect( section( text, 'Core blocks' ) ).toBe( 'paragraph' );
+			expect( section( text, 'Core blocks' ) ).toBe( 'Only: paragraph' );
 			expect( JSON.parse( section( text, 'Block styles' ) ) ).toEqual( {
 				'my-plugin/card': [ 'outlined' ],
 			} );
