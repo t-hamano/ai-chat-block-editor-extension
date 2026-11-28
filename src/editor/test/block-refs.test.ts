@@ -79,7 +79,7 @@ beforeAll( () => {
  * @return The IDs and names, such as `b1 test/text`.
  */
 function refsAndNames( markup: string ): string[] {
-	return [ ...markup.matchAll( /<!-- ref:([a-z0-9]+) --><!-- wp:([a-z0-9/_-]+)/g ) ].map(
+	return [ ...markup.matchAll( /<!-- (b[0-9]+) --><!-- wp:([a-z0-9/_-]+)/g ) ].map(
 		( match ) => `${ match[ 1 ] } ${ match[ 2 ] }`
 	);
 }
@@ -105,13 +105,13 @@ describe( 'serializeWithRefs', () => {
 
 		expect( markup ).toBe(
 			[
-				`<!-- ref:${ getRef( box.clientId ) } --><!-- wp:test/box -->`,
-				`<div><!-- ref:${ getRef( inner.clientId ) } --><!-- wp:test/text -->`,
+				`<!-- ${ getRef( box.clientId ) } --><!-- wp:test/box -->`,
+				`<div><!-- ${ getRef( inner.clientId ) } --><!-- wp:test/text -->`,
 				'<p>Inner</p>',
 				'<!-- /wp:test/text --></div>',
 				'<!-- /wp:test/box -->',
 				'',
-				`<!-- ref:${ getRef( after.clientId ) } --><!-- wp:test/text -->`,
+				`<!-- ${ getRef( after.clientId ) } --><!-- wp:test/text -->`,
 				'<p>After</p>',
 				'<!-- /wp:test/text -->',
 			].join( '\n' )
@@ -123,7 +123,7 @@ describe( 'serializeWithRefs', () => {
 		const block = createBlock( 'test/text', { content: 'One' } );
 		const ref = getRef( block.clientId );
 
-		expect( serializeWithRefs( [ block ] ) ).toContain( `<!-- ref:${ ref } -->` );
+		expect( serializeWithRefs( [ block ] ) ).toContain( `<!-- ${ ref } -->` );
 		expect( getRef( block.clientId ) ).toBe( ref );
 		expect( getClientIdByRef( ref ) ).toBe( block.clientId );
 		expect( getClientIdByRef( 'b0' ) ).toBeUndefined();
@@ -154,6 +154,15 @@ describe( 'serializeWithRefs', () => {
 			c,
 		] );
 		expect( stripRefs( markup ) ).toBe( serialize( blocks ) );
+	} );
+
+	it( 'keeps other HTML comments when removing the IDs', () => {
+		const markup =
+			'<!-- b1 --><!-- wp:test/text --><p>A<!--more--><!-- note --></p><!-- /wp:test/text -->';
+
+		expect( stripRefs( markup ) ).toBe(
+			'<!-- wp:test/text --><p>A<!--more--><!-- note --></p><!-- /wp:test/text -->'
+		);
 	} );
 
 	it( 'puts IDs before blocks whose type is not registered', () => {

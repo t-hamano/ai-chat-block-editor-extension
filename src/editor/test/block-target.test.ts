@@ -107,7 +107,7 @@ describe( 'createBlockTarget', () => {
 		const ids = setUp( 'One', 'Two' );
 		dispatch( blockEditorStore ).selectBlock( ids[ 1 ] );
 
-		const ref = ( index: number ) => `<!-- ref:${ getRef( ids[ index ] ) } -->`;
+		const ref = ( index: number ) => `<!-- ${ getRef( ids[ index ] ) } -->`;
 		expect( createBlockTarget().getContext() ).toEqual( {
 			document: `${ ref( 0 ) }${ paragraph( 'One' ) }\n\n${ ref( 1 ) }${ paragraph( 'Two' ) }`,
 			selection: `${ ref( 1 ) }${ paragraph( 'Two' ) }`,
@@ -323,7 +323,7 @@ describe( 'createBlockTarget', () => {
 		expect(
 			createBlockTarget().apply( {
 				action: 'replace',
-				markup: `<!-- ref:${ getRef( first ) } -->${ paragraph( 'New' ) }`,
+				markup: `<!-- ${ getRef( first ) } -->${ paragraph( 'New' ) }`,
 			} )
 		).toMatchObject( { status: 'applied' } );
 		expect( documentNow() ).toBe( paragraph( 'New' ) );
@@ -379,7 +379,7 @@ describe( 'createBlockTarget', () => {
 		// The reference IDs the model copies from the document are left out.
 		const result = target.apply( {
 			action: 'replace_text',
-			find: `One</p>\n<!-- /wp:test/paragraph -->\n\n<!-- ref:${ getRef( second ) } --><!-- wp:test/paragraph -->\n<p>Two`,
+			find: `One</p>\n<!-- /wp:test/paragraph -->\n\n<!-- ${ getRef( second ) } --><!-- wp:test/paragraph -->\n<p>Two`,
 			markup: `One</p>\n<!-- /wp:test/paragraph -->\n\n<!-- wp:test/paragraph -->\n<p>2`,
 		} );
 		expect( result ).toEqual( { status: 'applied', refs: [ expect.any( String ) ] } );
