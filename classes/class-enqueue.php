@@ -65,7 +65,7 @@ class Enqueue {
 				'window.blocktune = %s;',
 				wp_json_encode(
 					array(
-						'aiSupported'   => wp_supports_ai(),
+						'isAiSupported' => wp_supports_ai(),
 						'hasApiKey'     => Api_Key::has_any(),
 						'providers'     => Api_Key::connected_providers(),
 						'connectorsUrl' => admin_url( 'options-connectors.php' ),
