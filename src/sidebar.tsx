@@ -1,10 +1,9 @@
 /**
  * WordPress dependencies
  */
-import { store as blockEditorStore } from '@wordpress/block-editor';
 import { select as selectStore, useSelect } from '@wordpress/data';
 import { PluginSidebar, PluginSidebarMoreMenuItem, store as editorStore } from '@wordpress/editor';
-import { createInterpolateElement, useCallback, useEffect, useState } from '@wordpress/element';
+import { createInterpolateElement, useEffect, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { cog, plus } from '@wordpress/icons';
 import { store as preferencesStore } from '@wordpress/preferences';
@@ -15,7 +14,7 @@ import { IconButton, Notice } from '@wordpress/ui';
  */
 import { useAiChat } from './ai/use-ai-chat';
 import { Chat } from './chat';
-import { createSelectionTarget } from './editor/text-target';
+import { useSelectionTarget } from './editor/use-selection-target';
 import icon from './icon';
 import { createAutoPlatform, type ModelChoice } from './platform/select';
 import { ModelSettings } from './settings';
@@ -71,20 +70,11 @@ export default function Sidebar() {
 	const title = __( 'Blocktune', 'blocktune' );
 	const [ isSettingsOpen, setIsSettingsOpen ] = useState( false );
 	const [ draft, setDraft ] = useState( '' );
-	const { isVisualEditor, documentRoot } = useSelect( ( select ) => {
-		const { getEditorMode, getRenderingMode } = select( editorStore );
-		return {
-			isVisualEditor: getEditorMode() === 'visual',
-			// The block that holds the document the AI edits. When the
-			// template is shown around the post, the post is inside the Post
-			// Content block, as the editor also finds it.
-			documentRoot:
-				getRenderingMode() === 'template-locked'
-					? select( blockEditorStore ).getBlocksByName( 'core/post-content' )[ 0 ]
-					: undefined,
-		};
-	}, [] );
-	const createTarget = useCallback( () => createSelectionTarget( documentRoot ), [ documentRoot ] );
+	const isVisualEditor = useSelect(
+		( select ) => select( editorStore ).getEditorMode() === 'visual',
+		[]
+	);
+	const { documentRoot, createTarget } = useSelectionTarget();
 	const chat = useAiChat( { ai, createTarget } );
 	const { stop, reset } = chat;
 
