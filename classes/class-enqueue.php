@@ -66,6 +66,7 @@ class Enqueue {
 				wp_json_encode(
 					array(
 						'hasApiKey'     => Api_Key::has_any(),
+						'providers'     => Api_Key::connected_providers(),
 						'connectorsUrl' => admin_url( 'options-connectors.php' ),
 					)
 				)
