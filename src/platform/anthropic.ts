@@ -17,11 +17,6 @@ import { connectionLost, requestAnswer, type AnswerEvent } from './transport';
 export const ANTHROPIC_MODEL = 'claude-sonnet-5-5';
 
 /**
- * The most tokens one answer may use, including the model's thinking.
- */
-const MAX_TOKENS = 64000;
-
-/**
  * A content block of a message, as Anthropic's Messages API has it.
  */
 type ContentBlock = { type: string; [ key: string ]: unknown };
@@ -86,6 +81,8 @@ const CACHE_CONTROL = { type: 'ephemeral' } as const;
 /**
  * Builds the body of a request to Anthropic's Messages API.
  *
+ * The relay sets the token limit of the answer, so the body leaves it out.
+ *
  * The prompt is cached at two points. The marker on the system prompt
  * caches the tool and the system prompt, which stay the same in every
  * request, so they are read from the cache even when the conversation
@@ -104,7 +101,6 @@ export function buildAnthropicBody(
 ) {
 	return {
 		model,
-		max_tokens: MAX_TOKENS,
 		cache_control: CACHE_CONTROL,
 		system: [ { type: 'text', text: system, cache_control: CACHE_CONTROL } ],
 		tools: [ EDIT_TOOL, ...READ_TOOLS ],

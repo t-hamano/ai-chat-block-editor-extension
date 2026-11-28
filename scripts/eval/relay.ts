@@ -15,7 +15,8 @@ import { addUsage, countRetries, readAnswerUsage, readStreamUsage, type Usage } 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 
 /**
- * The token limit the relay sets on every request.
+ * The token limit the relay sets on every request, as `MAX_TOKENS` in
+ * `classes/class-relay.php`.
  */
 const MAX_TOKENS = 64000;
 
