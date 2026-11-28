@@ -12,6 +12,7 @@ import type { EditTarget } from '../ai/edit-target';
 import type { AiEditResult } from '../platform';
 import { getRef, stripRefs } from './block-refs';
 import { createBlockTarget } from './block-target';
+import { createSeenBlocks } from './seen-blocks';
 import { explainUnsafeHtml, findUnsafeHtml } from './unsafe-html';
 
 /**
@@ -83,7 +84,8 @@ export function getTextSelection(
  * @return The edit target.
  */
 export function createTextTarget( selection: TextSelection ): EditTarget {
-	const blockTarget = createBlockTarget();
+	const seen = createSeenBlocks();
+	const blockTarget = createBlockTarget( seen );
 	const { clientId, attributeKey } = selection;
 	let { start, end } = selection;
 
@@ -101,8 +103,14 @@ export function createTextTarget( selection: TextSelection ): EditTarget {
 
 	function replaceRange( markup: string ): AiEditResult {
 		const html = readHtml();
-		if ( html === null || html !== expected ) {
+		if ( html === null ) {
 			return { status: 'dropped' };
+		}
+		if ( html !== expected ) {
+			return {
+				status: 'failed',
+				reason: `The user changed the text of the block "${ getRef( clientId ) }" after it was selected, so the selection may no longer point at the same text, and the edit was not applied. Read the block again with "read_blocks", and change the text with "replace_text" or "replace_block".`,
+			};
 		}
 		const inline = stripRefs( markup );
 		if ( /<!--\s*\/?wp:/.test( inline ) || BLOCK_TAG.test( inline ) ) {
@@ -156,8 +164,11 @@ export function createTextTarget( selection: TextSelection ): EditTarget {
 			};
 		},
 		getDocument: blockTarget.getDocument,
+		markRead: blockTarget.markRead,
 		apply( edit ) {
-			return edit.action === 'replace' ? replaceRange( edit.markup ) : blockTarget.apply( edit );
+			return edit.action === 'replace'
+				? seen.track( () => replaceRange( edit.markup ) )
+				: blockTarget.apply( edit );
 		},
 	};
 }

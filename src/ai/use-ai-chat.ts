@@ -145,7 +145,18 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 				messages,
 				signal: controller.signal,
 				// The model reads the document as it is now, with its edits.
-				...( target ? { read: ( read: AiRead ) => answerRead( target.getDocument(), read ) } : {} ),
+				...( target
+					? {
+							read: ( read: AiRead ) => {
+								const result = answerRead( target.getDocument(), read );
+								// The model can now edit the blocks it read.
+								if ( result.status === 'done' && read.tool === 'read_blocks' ) {
+									target.markRead( read.refs );
+								}
+								return result;
+							},
+						}
+					: {} ),
 				onEvent( event ) {
 					if ( ! isCurrent() ) {
 						return;
