@@ -54,4 +54,20 @@ class Api_Key {
 
 		return false;
 	}
+
+	/**
+	 * Lists the providers the plugin streams from that have an API key
+	 *
+	 * @return string[] The provider IDs, such as `anthropic`.
+	 */
+	public static function connected_providers(): array {
+		return array_values(
+			array_filter(
+				array_keys( Relay::PROVIDERS ),
+				static function ( $provider_id ) {
+					return '' !== self::get( $provider_id );
+				}
+			)
+		);
+	}
 }

@@ -126,6 +126,11 @@ export function chooseModel( provider: Provider, models: Model[] | null ): strin
  *                 whether the provider has a key.
  */
 async function loadModels( provider: string ): Promise< Model[] | null | false > {
+	// The route would answer `blocktune_no_api_key`, which the browser logs as
+	// an error, so a provider that had no key when the editor loaded is not asked.
+	if ( ! window.blocktune.providers.includes( provider ) ) {
+		return false;
+	}
 	try {
 		return await apiFetch< Model[] >( {
 			path: `/blocktune/v1/models?provider=${ provider }`,

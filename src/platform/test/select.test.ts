@@ -49,9 +49,11 @@ const list = ( ...ids: string[] ) => ids.map( ( id ) => ( { id, name: id } ) );
 /**
  * Answers the models route with a list, or an error, for each provider.
  *
- * @param answers The answer for each provider ID. Providers left out have no key.
+ * @param answers The answer for each provider ID. Providers left out have no
+ *                key, and are not listed as connected when the editor loads.
  */
 function mockModels( answers: Record< string, unknown > ) {
+	vi.stubGlobal( 'window', { blocktune: { providers: Object.keys( answers ) } } );
 	vi.mocked( apiFetch ).mockImplementation( ( async ( { path }: { path: string } ) => {
 		const provider = new URL( path, 'https://example.com' ).searchParams.get( 'provider' )!;
 		const answer = answers[ provider ] ?? NO_KEY;
@@ -157,6 +159,24 @@ describe( 'selectPlatform', () => {
 		expect( createGeminiPlatform ).toHaveBeenCalledWith( getPostId, 'gemini-4-pro' );
 	} );
 
+	it( 'does not ask for the models of the providers that had no key when the editor loaded', async () => {
+		mockModels( { google: list( 'gemini-4-pro' ) } );
+
+		await selectPlatform( getPostId, { provider: 'anthropic', model: 'claude-opus-6' } );
+		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+		expect( apiFetch ).toHaveBeenCalledWith( {
+			path: '/blocktune/v1/models?provider=google',
+		} );
+	} );
+
+	it( 'chooses automatically when the chosen provider lost its key after the editor loaded', async () => {
+		mockModels( { anthropic: NO_KEY, google: list( 'gemini-4-pro' ) } );
+
+		expect(
+			await selectPlatform( getPostId, { provider: 'anthropic', model: 'claude-opus-6' } )
+		).toEqual( { name: 'google' } );
+	} );
+
 	it( 'falls back to the AI Client with the same order without a key', async () => {
 		mockModels( {} );
 
@@ -204,7 +224,7 @@ describe( 'createAutoPlatform', () => {
 		expect( chat ).toHaveBeenCalledTimes( 2 );
 		expect( chat ).toHaveBeenCalledWith( request );
 		expect( createGeminiPlatform ).toHaveBeenCalledTimes( 1 );
-		expect( apiFetch ).toHaveBeenCalledTimes( 3 );
+		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
 	} );
 
 	it( 'chooses again when the user chooses another model', async () => {

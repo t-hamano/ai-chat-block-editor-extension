@@ -56,6 +56,10 @@ class Test_Enqueue extends WP_UnitTestCase {
 			'"hasApiKey":true',
 			implode( '', wp_scripts()->get_data( BLOCKTUNE_NAMESPACE, 'before' ) )
 		);
+		$this->assertStringContainsString(
+			'"providers":["anthropic"]',
+			implode( '', wp_scripts()->get_data( BLOCKTUNE_NAMESPACE, 'before' ) )
+		);
 	}
 
 	/**
@@ -74,6 +78,10 @@ class Test_Enqueue extends WP_UnitTestCase {
 		$this->assertTrue( wp_script_is( BLOCKTUNE_NAMESPACE ) );
 		$this->assertStringContainsString(
 			'"hasApiKey":false',
+			implode( '', wp_scripts()->get_data( BLOCKTUNE_NAMESPACE, 'before' ) )
+		);
+		$this->assertStringContainsString(
+			'"providers":[]',
 			implode( '', wp_scripts()->get_data( BLOCKTUNE_NAMESPACE, 'before' ) )
 		);
 	}
