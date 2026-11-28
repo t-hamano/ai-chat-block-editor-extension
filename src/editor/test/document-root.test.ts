@@ -16,7 +16,7 @@ import { createElement } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { getDocumentRoot, isInDocument } from '../document-root';
+import { isInDocument } from '../document-root';
 
 beforeAll( () => {
 	registerBlockType( 'test/paragraph', {
@@ -48,15 +48,6 @@ function setUpTemplate() {
 	dispatch( blockEditorStore ).replaceInnerBlocks( content.clientId, [ post ] );
 	return { outside: outside.clientId, content: content.clientId, post: post.clientId };
 }
-
-describe( 'getDocumentRoot', () => {
-	it( 'is the Post Content block when the template is shown around the post', () => {
-		const { content } = setUpTemplate();
-
-		expect( getDocumentRoot( true ) ).toBe( content );
-		expect( getDocumentRoot( false ) ).toBeUndefined();
-	} );
-} );
 
 describe( 'isInDocument', () => {
 	it( 'leaves out the blocks inside a block that controls them', () => {

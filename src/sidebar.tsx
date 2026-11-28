@@ -15,7 +15,6 @@ import { IconButton, Notice } from '@wordpress/ui';
  */
 import { useAiChat } from './ai/use-ai-chat';
 import { Chat } from './chat';
-import { getDocumentRoot } from './editor/document-root';
 import { createSelectionTarget } from './editor/text-target';
 import icon from './icon';
 import { createAutoPlatform, type ModelChoice } from './platform/select';
@@ -74,12 +73,14 @@ export default function Sidebar() {
 		( select ) => select( editorStore ).getEditorMode() === 'visual',
 		[]
 	);
+	// The block that holds the document the AI edits. When the template is
+	// shown around the post, the post is inside the Post Content block, as
+	// the editor also finds it.
 	const documentRoot = useSelect(
 		( select ) =>
-			getDocumentRoot(
-				select( editorStore ).getRenderingMode() === 'template-locked',
-				select( blockEditorStore )
-			),
+			select( editorStore ).getRenderingMode() === 'template-locked'
+				? select( blockEditorStore ).getBlocksByName( 'core/post-content' )[ 0 ]
+				: undefined,
 		[]
 	);
 	const createTarget = useCallback( () => createSelectionTarget( documentRoot ), [ documentRoot ] );
