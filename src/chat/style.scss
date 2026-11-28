@@ -1,5 +1,9 @@
 // The chat fills the sidebar below its header, and only the messages scroll.
-.blocktune-sidebar-area {
+.blocktune-sidebar-area,
+// TODO: WordPress 7.1 ignores the `render` prop of `PluginSidebar`, so the
+// container has no class of its own there. Remove this selector when the
+// minimum supported WordPress version is 7.2.
+.interface-complementary-area:has(> .blocktune-sidebar) {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
