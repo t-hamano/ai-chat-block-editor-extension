@@ -1,5 +1,5 @@
 // The chat fills the sidebar below its header, and only the messages scroll.
-.interface-complementary-area:has(> .blocktune-sidebar) {
+.blocktune-sidebar-area {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
