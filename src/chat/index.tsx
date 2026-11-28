@@ -18,6 +18,7 @@ import {
 	type AssistantChatMessage,
 } from '../ai/conversation';
 import type { AiChat } from '../ai/use-ai-chat';
+import { isInDocument } from '../editor/document-root';
 import { getTextSelection } from '../editor/text-target';
 import type { AiUsage } from '../platform';
 import { AnswerMarkdown } from './answer-markdown';
@@ -134,30 +135,41 @@ const AssistantMessage = memo( function ( { message }: { message: AssistantChatM
 /**
  * Describes what is selected in the editor now, which is sent with the
  * next message: "Text selected" or "3 blocks selected" with an icon, or
- * nothing.
+ * nothing. It also tells whether the selection is in the document, and not
+ * in a block whose content is edited in its own editor.
+ *
+ * @param documentRoot The block that holds the document, if any.
  */
-function useSelectionStatus() {
-	return useSelect( ( select ) => {
-		const editor = select( blockEditorStore );
-		if ( getTextSelection( editor ) ) {
+function useSelectionStatus( documentRoot: string | undefined ) {
+	return useSelect(
+		( select ) => {
+			const editor = select( blockEditorStore );
+			const text = getTextSelection( editor );
+			if ( text ) {
+				return {
+					icon: typography,
+					label: __( 'Text selected', 'blocktune' ),
+					isInDocument: isInDocument( text.clientId, documentRoot, editor ),
+				};
+			}
+			const clientIds = editor.getSelectedBlockClientIds();
+			if ( ! clientIds.length ) {
+				return null;
+			}
 			return {
-				icon: typography,
-				label: __( 'Text selected', 'blocktune' ),
+				icon: blockDefault,
+				label: sprintf(
+					/* translators: %d: Number of selected blocks. */
+					_n( '%d block selected', '%d blocks selected', clientIds.length, 'blocktune' ),
+					clientIds.length
+				),
+				isInDocument: clientIds.every( ( clientId ) =>
+					isInDocument( clientId, documentRoot, editor )
+				),
 			};
-		}
-		const count = editor.getSelectedBlockClientIds().length;
-		if ( ! count ) {
-			return null;
-		}
-		return {
-			icon: blockDefault,
-			label: sprintf(
-				/* translators: %d: Number of selected blocks. */
-				_n( '%d block selected', '%d blocks selected', count, 'blocktune' ),
-				count
-			),
-		};
-	}, [] );
+		},
+		[ documentRoot ]
+	);
 }
 
 type Props = {
@@ -168,6 +180,10 @@ type Props = {
 	 */
 	isAvailable: boolean;
 	/**
+	 * The block that holds the document, when it is not the whole editor.
+	 */
+	documentRoot?: string;
+	/**
 	 * The message the user is writing. It is kept by the parent, so it
 	 * survives while the chat is not shown.
 	 */
@@ -175,13 +191,16 @@ type Props = {
 	onDraftChange: ( draft: string ) => void;
 };
 
-export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Props ) {
+export function Chat( { chat, isAvailable, documentRoot, draft, onDraftChange: setDraft }: Props ) {
 	const { conversation, isResponding, send, stop, reset } = chat;
 	const messagesRef = useRef< HTMLDivElement >( null );
 	// Whether the messages are scrolled to the bottom. The chat follows the
 	// answer only then, so it stays still while the user reads above.
 	const isAtBottomRef = useRef( true );
-	const selection = useSelectionStatus();
+	const selection = useSelectionStatus( documentRoot );
+	// The content of a template part or a synced pattern is edited in its
+	// own editor, so a selection inside one cannot be sent.
+	const isSelectionOutside = !! selection && ! selection.isInDocument;
 
 	// Keep the latest message in view while the answer streams in. This runs
 	// before the browser paints, so a scroll event never sees new text that
@@ -201,7 +220,7 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 	const isLong =
 		! isResponding && getConversationTokens( conversation.messages ) > CONVERSATION_TOKEN_LIMIT;
 
-	const canSend = isAvailable && !! draft.trim() && ! isResponding;
+	const canSend = isAvailable && !! draft.trim() && ! isResponding && ! isSelectionOutside;
 
 	const submit = () => {
 		if ( canSend ) {
@@ -296,6 +315,16 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 				direction="column"
 				gap="sm"
 			>
+				{ isAvailable && isSelectionOutside && (
+					<Notice.Root intent="info">
+						<Notice.Description>
+							{ __(
+								'The selection is in a template part, a synced pattern, or another block whose content is edited on its own. To edit it with AI, open the block in its own editor first.',
+								'blocktune'
+							) }
+						</Notice.Description>
+					</Notice.Root>
+				) }
 				<TextareaControl
 					className="blocktune-chat__input"
 					label={ __( 'Message', 'blocktune' ) }

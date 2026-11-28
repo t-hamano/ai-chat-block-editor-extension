@@ -138,15 +138,11 @@ class Relay {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'chat' ),
-				'permission_callback' => array( $this, 'can_chat' ),
+				'permission_callback' => array( Enqueue::class, 'can_use' ),
 				'args'                => array(
 					'provider' => array(
 						'type'     => 'string',
 						'enum'     => array_keys( self::PROVIDERS ),
-						'required' => true,
-					),
-					'post_id'  => array(
-						'type'     => 'integer',
 						'required' => true,
 					),
 					'body'     => array(
@@ -160,16 +156,6 @@ class Relay {
 				),
 			)
 		);
-	}
-
-	/**
-	 * Whether the current user can chat about the post
-	 *
-	 * @param WP_REST_Request $request The request.
-	 * @return bool
-	 */
-	public function can_chat( WP_REST_Request $request ) {
-		return Enqueue::can_use() && current_user_can( 'edit_post', $request->get_param( 'post_id' ) );
 	}
 
 	/**

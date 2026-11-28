@@ -755,4 +755,81 @@ describe( 'createBlockTarget', () => {
 			).toEqual( changedBy( first ) );
 		} );
 	} );
+
+	describe( 'blocks that show content kept elsewhere', () => {
+		// A group whose inner blocks it controls, as a template part, a synced
+		// pattern, or the Post Content block does.
+		function setUpControlled( ...contents: string[] ) {
+			const outside = createBlock( 'test/paragraph', { content: 'Outside' } );
+			const holder = createBlock( 'test/group' );
+			const inner = contents.map( ( content ) => createBlock( 'test/paragraph', { content } ) );
+			dispatch( blockEditorStore ).resetBlocks( [ outside, holder ] );
+			dispatch( blockEditorStore ).setHasControlledInnerBlocks( holder.clientId, true );
+			dispatch( blockEditorStore ).replaceInnerBlocks( holder.clientId, inner );
+			// The editor has these settings once it shows the inner blocks.
+			dispatch( blockEditorStore ).updateBlockListSettings( holder.clientId, {} );
+			return { holder: holder.clientId, inner: inner.map( ( block ) => block.clientId ) };
+		}
+
+		const contentOf = ( clientId: string ) =>
+			serialize( select( blockEditorStore ).getBlocks( clientId ) );
+		// The blocks are registered only before the tests run.
+		const emptyGroup = () => serialize( [ createBlock( 'test/group' ) ] );
+
+		it( 'edits the blocks in the root, which holds the post in a template', () => {
+			const { holder, inner } = setUpControlled( 'One', 'Two' );
+			const target = createBlockTarget( holder );
+
+			expect( stripRefs( target.getContext().document ) ).toBe(
+				[ 'One', 'Two' ].map( paragraph ).join( '\n\n' )
+			);
+			expect(
+				target.apply( { action: 'replace_text', find: 'Two', markup: 'Deux' } )
+			).toMatchObject( { status: 'applied' } );
+			expect( target.apply( { action: 'append', markup: paragraph( 'Three' ) } ) ).toMatchObject( {
+				status: 'applied',
+			} );
+			expect(
+				target.apply( { action: 'insert_after', markup: paragraph( 'Four' ) } )
+			).toMatchObject( { status: 'applied' } );
+
+			expect( contentOf( holder ) ).toBe(
+				[ 'One', 'Deux', 'Three', 'Four' ].map( paragraph ).join( '\n\n' )
+			);
+			expect( select( blockEditorStore ).getBlockOrder() ).toHaveLength( 2 );
+			expect( select( blockEditorStore ).getBlock( inner[ 0 ] ) ).not.toBeNull();
+		} );
+
+		it( 'leaves their content out of the document, also after the blocks are reset', () => {
+			const { holder } = setUpControlled( 'One' );
+			const target = createBlockTarget();
+			// The store gives the block its inner blocks after a reset.
+			dispatch( blockEditorStore ).resetBlocks( select( blockEditorStore ).getBlocks() );
+			expect( select( blockEditorStore ).getBlock( holder )?.innerBlocks ).toHaveLength( 1 );
+
+			expect( stripRefs( target.getContext().document ) ).toBe(
+				[ paragraph( 'Outside' ), emptyGroup() ].join( '\n\n' )
+			);
+			// The model saw the block without its content, so it is not changed.
+			expect(
+				target.apply( { action: 'replace_block', ref: getRef( holder ), markup: emptyGroup() } )
+			).toMatchObject( { status: 'applied' } );
+		} );
+
+		it( 'does not write inner blocks into them', () => {
+			const { holder } = setUpControlled( 'One' );
+			const target = createBlockTarget();
+
+			const result = target.apply( {
+				action: 'replace_block',
+				ref: getRef( holder ),
+				markup: `<!-- wp:test/group -->\n<div>${ paragraph( 'New' ) }</div>\n<!-- /wp:test/group -->`,
+			} );
+			expect( result ).toMatchObject( {
+				status: 'failed',
+				reason: expect.stringContaining( 'kept outside the document' ),
+			} );
+			expect( contentOf( holder ) ).toBe( paragraph( 'One' ) );
+		} );
+	} );
 } );

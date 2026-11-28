@@ -41,6 +41,12 @@ describe( 'buildSystemPrompt', () => {
 		}
 	} );
 
+	it( 'explains that the content of template parts and synced patterns is edited on its own', () => {
+		const prompt = buildSystemPrompt( '# Title\n' );
+		expect( prompt ).toContain( 'core/template-part' );
+		expect( prompt ).toContain( 'tell them to open the block in its own editor' );
+	} );
+
 	it( 'includes the block markup rules without their frontmatter', () => {
 		const prompt = buildSystemPrompt( '# Title\n' );
 		expect( prompt ).toContain( '<skill name="block-markup">' );

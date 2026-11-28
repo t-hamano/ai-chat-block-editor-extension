@@ -54,7 +54,8 @@ By default, the AI assistant picks a provider in the order Anthropic, OpenAI, Go
 * Only administrators can use the AI assistant, and only super admins on a multisite network, where the API keys can be shared by every site. There is no setting to allow other roles.
 * Answers stream only for Anthropic, OpenAI, and Google. Other providers run through the AI Client in WordPress and show the answer all at once.
 * Each answer keeps one PHP worker of your server busy until the provider finishes, for up to 5 minutes. On servers that hold streamed answers back, the whole answer comes at once, and a proxy or CDN in front of the site may stop waiting first (often after 60 to 100 seconds). Long answers can then fail with a timeout error.
-* The AI edits post content only. Global Styles, templates, and template parts are out of scope.
+* The AI edits the blocks of what you are editing: a post, a page, a template, a template part, or a pattern. When the template is shown around a post, it edits the post's content only. Global Styles are out of scope.
+* The content of a template part, a synced pattern, or a navigation menu placed in what you edit is not sent to the AI, and is edited in its own editor. Open the block there, for example with **Edit** in the toolbar of a template part, and ask again. A selection inside such a block cannot be sent.
 * When a text selection spans more than one block, the whole blocks are edited.
 * Every edit is checked before it is applied, and broken markup is never applied. When an edit or a read fails, for example because of broken markup or a block that does not exist, the AI can try again. After the fourth failure in one answer, the chat shows that the edit could not be made.
 * When you change a block while the AI is answering, the AI does not overwrite your change. It reads the block again, and edits it from what it is now.

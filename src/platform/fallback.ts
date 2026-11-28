@@ -162,16 +162,12 @@ export function readFallbackAnswer(
  *
  * The route does not stream, so each answer arrives at once.
  *
- * @param getPostId Returns the ID of the post being edited.
- * @param models    The preferred models in order, as [provider ID, model
- *                  ID] pairs. The AI Client chooses when none of them is
- *                  available.
+ * @param models The preferred models in order, as [provider ID, model ID]
+ *               pairs. The AI Client chooses when none of them is
+ *               available.
  * @return The connection.
  */
-export function createFallbackPlatform(
-	getPostId: () => number,
-	models: [ string, string ][] = []
-): AiPlatform {
+export function createFallbackPlatform( models: [ string, string ][] = [] ): AiPlatform {
 	return {
 		chat( { system, messages, onEvent, read, signal } ) {
 			const conversation = toFallbackMessages( messages );
@@ -184,7 +180,6 @@ export function createFallbackPlatform(
 								path: '/blocktune/v1/fallback',
 								method: 'POST',
 								data: {
-									post_id: getPostId(),
 									system,
 									messages: conversation,
 									tools: [ FALLBACK_EDIT_TOOL, ...FALLBACK_READ_TOOLS ],

@@ -41,7 +41,6 @@ vi.mock( '../fallback', () => ( {
 } ) );
 
 const [ anthropic, openai, google ] = PROVIDERS;
-const getPostId = () => 1;
 const NO_KEY = { code: 'blocktune_no_api_key', message: 'No key.' };
 
 const list = ( ...ids: string[] ) => ids.map( ( id ) => ( { id, name: id } ) );
@@ -108,8 +107,8 @@ describe( 'selectPlatform', () => {
 	it( 'chooses providers in order, skipping the ones without a key', async () => {
 		mockModels( { openai: list( 'gpt-7' ), google: list( 'gemini-4-pro' ) } );
 
-		expect( await selectPlatform( getPostId ) ).toEqual( { name: 'openai' } );
-		expect( createOpenAiPlatform ).toHaveBeenCalledWith( getPostId, 'gpt-7' );
+		expect( await selectPlatform() ).toEqual( { name: 'openai' } );
+		expect( createOpenAiPlatform ).toHaveBeenCalledWith( 'gpt-7' );
 		expect( createAnthropicPlatform ).not.toHaveBeenCalled();
 		expect( createGeminiPlatform ).not.toHaveBeenCalled();
 	} );
@@ -117,14 +116,14 @@ describe( 'selectPlatform', () => {
 	it( 'uses a provider with a key whose list could not be loaded', async () => {
 		mockModels( { anthropic: { code: 'blocktune_provider_unreachable' } } );
 
-		expect( await selectPlatform( getPostId ) ).toEqual( { name: 'anthropic' } );
-		expect( createAnthropicPlatform ).toHaveBeenCalledWith( getPostId, anthropic.recommended[ 0 ] );
+		expect( await selectPlatform() ).toEqual( { name: 'anthropic' } );
+		expect( createAnthropicPlatform ).toHaveBeenCalledWith( anthropic.recommended[ 0 ] );
 	} );
 
 	it( 'does not choose when the request did not reach the plugin', async () => {
 		mockModels( { anthropic: { code: 'fetch_error' }, openai: list( 'gpt-7' ) } );
 
-		await expect( selectPlatform( getPostId ) ).rejects.toEqual( { code: 'fetch_error' } );
+		await expect( selectPlatform() ).rejects.toEqual( { code: 'fetch_error' } );
 		expect( createAnthropicPlatform ).not.toHaveBeenCalled();
 		expect( createOpenAiPlatform ).not.toHaveBeenCalled();
 	} );
@@ -132,40 +131,40 @@ describe( 'selectPlatform', () => {
 	it( 'uses the provider and model the user chose', async () => {
 		mockModels( { anthropic: list( 'claude-opus-6' ), openai: list( 'gpt-7', 'gpt-6' ) } );
 
-		expect( await selectPlatform( getPostId, { provider: 'openai', model: 'gpt-6' } ) ).toEqual( {
+		expect( await selectPlatform( { provider: 'openai', model: 'gpt-6' } ) ).toEqual( {
 			name: 'openai',
 		} );
-		expect( createOpenAiPlatform ).toHaveBeenCalledWith( getPostId, 'gpt-6' );
+		expect( createOpenAiPlatform ).toHaveBeenCalledWith( 'gpt-6' );
 		expect( createAnthropicPlatform ).not.toHaveBeenCalled();
 	} );
 
 	it( 'chooses another model of the chosen provider when the model was retired', async () => {
 		mockModels( { openai: list( 'gpt-7' ) } );
 
-		await selectPlatform( getPostId, { provider: 'openai', model: 'gpt-5-old' } );
-		expect( createOpenAiPlatform ).toHaveBeenCalledWith( getPostId, 'gpt-7' );
+		await selectPlatform( { provider: 'openai', model: 'gpt-5-old' } );
+		expect( createOpenAiPlatform ).toHaveBeenCalledWith( 'gpt-7' );
 	} );
 
 	it( 'keeps the chosen model when the list could not be loaded', async () => {
 		mockModels( { openai: { code: 'blocktune_provider_unreachable' } } );
 
-		await selectPlatform( getPostId, { provider: 'openai', model: 'gpt-6' } );
-		expect( createOpenAiPlatform ).toHaveBeenCalledWith( getPostId, 'gpt-6' );
+		await selectPlatform( { provider: 'openai', model: 'gpt-6' } );
+		expect( createOpenAiPlatform ).toHaveBeenCalledWith( 'gpt-6' );
 	} );
 
 	it( 'chooses automatically when the chosen provider has no key', async () => {
 		mockModels( { google: list( 'gemini-4-pro' ) } );
 
-		expect(
-			await selectPlatform( getPostId, { provider: 'anthropic', model: 'claude-opus-6' } )
-		).toEqual( { name: 'google' } );
-		expect( createGeminiPlatform ).toHaveBeenCalledWith( getPostId, 'gemini-4-pro' );
+		expect( await selectPlatform( { provider: 'anthropic', model: 'claude-opus-6' } ) ).toEqual( {
+			name: 'google',
+		} );
+		expect( createGeminiPlatform ).toHaveBeenCalledWith( 'gemini-4-pro' );
 	} );
 
 	it( 'does not ask for the models of the providers that had no key when the editor loaded', async () => {
 		mockModels( { google: list( 'gemini-4-pro' ) } );
 
-		await selectPlatform( getPostId, { provider: 'anthropic', model: 'claude-opus-6' } );
+		await selectPlatform( { provider: 'anthropic', model: 'claude-opus-6' } );
 		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
 		expect( apiFetch ).toHaveBeenCalledWith( {
 			path: '/blocktune/v1/models?provider=google',
@@ -175,16 +174,16 @@ describe( 'selectPlatform', () => {
 	it( 'chooses automatically when the chosen provider lost its key after the editor loaded', async () => {
 		mockModels( { anthropic: NO_KEY, google: list( 'gemini-4-pro' ) } );
 
-		expect(
-			await selectPlatform( getPostId, { provider: 'anthropic', model: 'claude-opus-6' } )
-		).toEqual( { name: 'google' } );
+		expect( await selectPlatform( { provider: 'anthropic', model: 'claude-opus-6' } ) ).toEqual( {
+			name: 'google',
+		} );
 	} );
 
 	it( 'falls back to the AI Client with the same order without a key', async () => {
 		mockModels( {} );
 
-		expect( await selectPlatform( getPostId ) ).toEqual( { name: 'fallback' } );
-		const models = vi.mocked( createFallbackPlatform ).mock.calls[ 0 ][ 1 ]!;
+		expect( await selectPlatform() ).toEqual( { name: 'fallback' } );
+		const models = vi.mocked( createFallbackPlatform ).mock.calls[ 0 ][ 0 ]!;
 		expect( models[ 0 ] ).toEqual( [ 'anthropic', anthropic.recommended[ 0 ] ] );
 		expect( models.map( ( [ provider ] ) => provider ) ).toEqual(
 			PROVIDERS.flatMap( ( provider ) => provider.recommended.map( () => provider.id ) )
@@ -217,7 +216,7 @@ describe( 'createAutoPlatform', () => {
 		vi.mocked( createGeminiPlatform ).mockReturnValue( { chat } );
 		mockModels( { google: list( 'gemini-4-pro' ) } );
 
-		const ai = createAutoPlatform( getPostId );
+		const ai = createAutoPlatform();
 		expect( apiFetch ).not.toHaveBeenCalled();
 
 		const request = {} as Parameters< typeof chat >[ 0 ];
@@ -236,17 +235,14 @@ describe( 'createAutoPlatform', () => {
 		mockModels( { openai: list( 'gpt-7', 'gpt-6' ) } );
 
 		let choice = { provider: 'openai', model: 'gpt-7' };
-		const ai = createAutoPlatform( getPostId, () => choice );
+		const ai = createAutoPlatform( () => choice );
 		const request = {} as Parameters< typeof chat >[ 0 ];
 		await ai.chat( request );
 		await ai.chat( request );
 		choice = { provider: 'openai', model: 'gpt-6' };
 		await ai.chat( request );
 
-		expect( vi.mocked( createOpenAiPlatform ).mock.calls ).toEqual( [
-			[ getPostId, 'gpt-7' ],
-			[ getPostId, 'gpt-6' ],
-		] );
+		expect( vi.mocked( createOpenAiPlatform ).mock.calls ).toEqual( [ [ 'gpt-7' ], [ 'gpt-6' ] ] );
 	} );
 
 	it( 'chooses again when the choice could not be made', async () => {
@@ -254,7 +250,7 @@ describe( 'createAutoPlatform', () => {
 		vi.mocked( createGeminiPlatform ).mockReturnValue( { chat } );
 		mockModels( { anthropic: { code: 'fetch_error' } } );
 
-		const ai = createAutoPlatform( getPostId );
+		const ai = createAutoPlatform();
 		const request = {} as Parameters< typeof chat >[ 0 ];
 		await expect( ai.chat( request ) ).rejects.toEqual( { code: 'fetch_error' } );
 

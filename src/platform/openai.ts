@@ -234,11 +234,10 @@ export function toOpenAiEvents( answer: any ): AnswerEvent[] {
  * Connects the AI assistant to OpenAI through the plugin's relay, which adds
  * the site's API key on the server.
  *
- * @param getPostId Returns the ID of the post being edited.
- * @param model     The model that answers.
+ * @param model The model that answers.
  * @return The connection.
  */
-export function createOpenAiPlatform( getPostId: () => number, model = OPENAI_MODEL ): AiPlatform {
+export function createOpenAiPlatform( model = OPENAI_MODEL ): AiPlatform {
 	return {
 		chat( { system, messages, onEvent, read, signal } ) {
 			const input = toOpenAiInput( messages );
@@ -248,7 +247,6 @@ export function createOpenAiPlatform( getPostId: () => number, model = OPENAI_MO
 						readOpenAiStream(
 							requestAnswer( {
 								provider: 'openai',
-								postId: getPostId(),
 								body: buildOpenAiBody( system, input, model ),
 								signal,
 								readError: readErrorMessage,

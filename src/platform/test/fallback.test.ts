@@ -56,7 +56,7 @@ function respond( ...answers: FallbackAnswer[] ) {
 }
 
 function chat( onEvent: ( event: AiStreamEvent ) => any = () => undefined ) {
-	return createFallbackPlatform( () => 1, [ [ 'anthropic', 'claude-opus-5-5' ] ] ).chat( {
+	return createFallbackPlatform( [ [ 'anthropic', 'claude-opus-5-5' ] ] ).chat( {
 		system: 'System',
 		messages: [ { role: 'user', text: 'Rewrite this' } ],
 		onEvent,
@@ -197,7 +197,6 @@ describe( 'createFallbackPlatform', () => {
 
 		expect( requests[ 0 ] ).toEqual( {
 			path: '/blocktune/v1/fallback',
-			post_id: 1,
 			system: 'System',
 			messages: [ { role: 'user', parts: [ { text: 'Rewrite this' } ] } ],
 			tools: [ FALLBACK_EDIT_TOOL, ...FALLBACK_READ_TOOLS ],

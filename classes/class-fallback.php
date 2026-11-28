@@ -52,12 +52,8 @@ class Fallback {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'chat' ),
-				'permission_callback' => array( $this, 'can_chat' ),
+				'permission_callback' => array( Enqueue::class, 'can_use' ),
 				'args'                => array(
-					'post_id'  => array(
-						'type'     => 'integer',
-						'required' => true,
-					),
 					'system'   => array(
 						'type'    => 'string',
 						'default' => '',
@@ -109,16 +105,6 @@ class Fallback {
 				),
 			)
 		);
-	}
-
-	/**
-	 * Whether the current user can chat about the post
-	 *
-	 * @param WP_REST_Request $request The request.
-	 * @return bool
-	 */
-	public function can_chat( WP_REST_Request $request ) {
-		return Enqueue::can_use() && current_user_can( 'edit_post', $request->get_param( 'post_id' ) );
 	}
 
 	/**

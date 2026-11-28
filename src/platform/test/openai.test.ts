@@ -309,7 +309,7 @@ describe( 'createOpenAiPlatform', () => {
 			event.type === 'edit' ? { status: 'applied' as const } : undefined
 		);
 
-		await createOpenAiPlatform( () => 1 ).chat( {
+		await createOpenAiPlatform().chat( {
 			system: 'System',
 			messages: [ { role: 'user', text: 'Rewrite this' } ],
 			onEvent,
@@ -326,14 +326,14 @@ describe( 'createOpenAiPlatform', () => {
 			event.type === 'edit' ? { status: 'applied' as const } : undefined
 		);
 
-		await createOpenAiPlatform( () => 1 ).chat( {
+		await createOpenAiPlatform().chat( {
 			system: 'System',
 			messages: [ { role: 'user', text: 'Rewrite this' } ],
 			onEvent,
 			signal: new AbortController().signal,
 		} );
 
-		expect( requests[ 0 ] ).toMatchObject( { provider: 'openai', post_id: 1, stream: true } );
+		expect( requests[ 0 ] ).toMatchObject( { provider: 'openai', stream: true } );
 		expect( onEvent ).toHaveBeenCalledWith( { type: 'edit', edit: EDIT } );
 		expect( requests[ 1 ].body.input ).toEqual( [
 			{ role: 'user', content: 'Rewrite this' },
@@ -353,7 +353,7 @@ describe( 'createOpenAiPlatform', () => {
 		const onEvent = vi.fn();
 
 		await expect(
-			createOpenAiPlatform( () => 1 ).chat( {
+			createOpenAiPlatform().chat( {
 				system: 'System',
 				messages: [ { role: 'user', text: 'Rewrite this' } ],
 				onEvent,

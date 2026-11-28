@@ -39,7 +39,6 @@ function relayError( message: string ) {
 function request( signal = new AbortController().signal ) {
 	return requestAnswer( {
 		provider: 'anthropic',
-		postId: 1,
 		body: {},
 		signal,
 		readError: async ( response: Response ) => `Error ${ response.status }`,
@@ -100,7 +99,7 @@ describe( 'requestAnswer', () => {
 		expect( await readAll( request() ) ).toEqual( [ { event: 'message', data: {} } ] );
 		expect( vi.mocked( apiFetch ).mock.calls[ 0 ][ 0 ] ).toMatchObject( {
 			path: '/blocktune/v1/chat',
-			data: { provider: 'anthropic', post_id: 1, stream: true, body: {} },
+			data: { provider: 'anthropic', stream: true, body: {} },
 		} );
 	} );
 

@@ -1,9 +1,10 @@
 /**
  * WordPress dependencies
  */
+import { store as blockEditorStore } from '@wordpress/block-editor';
 import { select as selectStore, useSelect } from '@wordpress/data';
 import { PluginSidebar, PluginSidebarMoreMenuItem, store as editorStore } from '@wordpress/editor';
-import { createInterpolateElement, useEffect, useState } from '@wordpress/element';
+import { createInterpolateElement, useCallback, useEffect, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { cog, plus } from '@wordpress/icons';
 import { store as preferencesStore } from '@wordpress/preferences';
@@ -14,6 +15,7 @@ import { IconButton, Notice } from '@wordpress/ui';
  */
 import { useAiChat } from './ai/use-ai-chat';
 import { Chat } from './chat';
+import { getDocumentRoot } from './editor/document-root';
 import { createSelectionTarget } from './editor/text-target';
 import icon from './icon';
 import { createAutoPlatform, type ModelChoice } from './platform/select';
@@ -22,7 +24,6 @@ import { ModelSettings } from './settings';
 const SIDEBAR_NAME = 'ai-chat';
 
 const ai = createAutoPlatform(
-	() => selectStore( editorStore ).getCurrentPostId() as number,
 	() =>
 		( selectStore( preferencesStore ).get( 'blocktune', 'model' ) as ModelChoice | null ) ?? null
 );
@@ -73,7 +74,16 @@ export default function Sidebar() {
 		( select ) => select( editorStore ).getEditorMode() === 'visual',
 		[]
 	);
-	const chat = useAiChat( { ai, createTarget: createSelectionTarget } );
+	const documentRoot = useSelect(
+		( select ) =>
+			getDocumentRoot(
+				select( editorStore ).getRenderingMode() === 'template-locked',
+				select( blockEditorStore )
+			),
+		[]
+	);
+	const createTarget = useCallback( () => createSelectionTarget( documentRoot ), [ documentRoot ] );
+	const chat = useAiChat( { ai, createTarget } );
 	const { stop, reset } = chat;
 	const [ isSettingsOpen, setIsSettingsOpen ] = useState( false );
 	const [ draft, setDraft ] = useState( '' );
@@ -131,6 +141,7 @@ export default function Sidebar() {
 					<Chat
 						chat={ chat }
 						isAvailable={ isVisualEditor }
+						documentRoot={ documentRoot }
 						draft={ draft }
 						onDraftChange={ setDraft }
 					/>

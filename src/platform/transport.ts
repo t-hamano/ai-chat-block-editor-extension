@@ -121,7 +121,6 @@ export type RelayRequest = {
 	 * The provider ID.
 	 */
 	provider: string;
-	postId: number;
 	/**
 	 * The request body for the provider.
 	 */
@@ -186,7 +185,7 @@ function hasType( response: Response, type: string ): boolean {
  * @param request The request.
  */
 async function* stream( request: RelayRequest ): AsyncGenerator< AnswerEvent > {
-	const { provider, postId, body, signal, readError } = request;
+	const { provider, body, signal, readError } = request;
 	const watch = new AbortController();
 	let timedOut = false;
 	let timer: ReturnType< typeof setTimeout > | undefined;
@@ -217,7 +216,7 @@ async function* stream( request: RelayRequest ): AsyncGenerator< AnswerEvent > {
 			response = await apiFetch< Response, false >( {
 				path: '/blocktune/v1/chat',
 				method: 'POST',
-				data: { provider, post_id: postId, stream: true, body },
+				data: { provider, stream: true, body },
 				parse: false,
 				signal: watch.signal,
 			} );
@@ -268,7 +267,7 @@ async function* stream( request: RelayRequest ): AsyncGenerator< AnswerEvent > {
  * @param request The request.
  */
 async function* answerAtOnce( request: RelayRequest ): AsyncGenerator< AnswerEvent > {
-	const { provider, postId, body, signal, readError, toEvents } = request;
+	const { provider, body, signal, readError, toEvents } = request;
 	// The whole answer comes as one piece, so it may take as long as the
 	// wait for one piece of a streamed answer.
 	const watch = new AbortController();
@@ -284,7 +283,7 @@ async function* answerAtOnce( request: RelayRequest ): AsyncGenerator< AnswerEve
 		const response = await apiFetch< Response, false >( {
 			path: '/blocktune/v1/chat',
 			method: 'POST',
-			data: { provider, post_id: postId, stream: false, body },
+			data: { provider, stream: false, body },
 			parse: false,
 			signal: watch.signal,
 		} );

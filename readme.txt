@@ -73,7 +73,7 @@ The plugin does not store API keys. It uses the key set on the Connectors screen
 
 = What data is sent to the AI provider? =
 
-Your message, the selected blocks or text, and parts of the post needed for the edit. See the "External services" section for details.
+Your message, the selected blocks or text, and parts of the content being edited, such as a post or a template, needed for the edit. See the "External services" section for details.
 
 = Are my conversations saved? =
 
@@ -93,7 +93,7 @@ This plugin sends content to an AI provider to edit it. It connects only to the 
 
 For Anthropic, OpenAI, and Google, the plugin connects to the provider directly, so that the answer appears as it is written. The AI Client in WordPress returns the whole answer at once, so it is not used for these providers. The requests still go through the WordPress HTTP API, and the site's settings that turn AI off still apply. Other providers go through the AI Client.
 
-When you send a message, the following data is sent to the provider: your message and the conversation so far, the selected blocks or text, an outline or parts of the post being edited, and a list of the blocks and theme presets available on the site. The site's API key is sent with each request. To show the models you can choose, the plugin also asks the provider for its list of models.
+When you send a message, the following data is sent to the provider: your message and the conversation so far, the selected blocks or text, an outline or parts of the content being edited, such as a post, a page, or a template, and a list of the blocks and theme presets available on the site. The site's API key is sent with each request. To show the models you can choose, the plugin also asks the provider for its list of models.
 
 = Anthropic (Claude) =
 

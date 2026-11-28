@@ -81,11 +81,12 @@ export function getTextSelection(
  * Each edit is one undo step.
  *
  * @param selection The selected range.
+ * @param root      The block that holds the document, if any.
  * @return The edit target.
  */
-export function createTextTarget( selection: TextSelection ): EditTarget {
-	const seen = createSeenBlocks();
-	const blockTarget = createBlockTarget( seen );
+export function createTextTarget( selection: TextSelection, root?: string ): EditTarget {
+	const seen = createSeenBlocks( root );
+	const blockTarget = createBlockTarget( root, seen );
 	const { clientId, attributeKey } = selection;
 	let { start, end } = selection;
 
@@ -177,9 +178,10 @@ export function createTextTarget( selection: TextSelection ): EditTarget {
  * Creates the edit target for the selection now: a text range inside one
  * block, or else the selected blocks.
  *
+ * @param root The block that holds the document, if any.
  * @return The edit target.
  */
-export function createSelectionTarget(): EditTarget {
+export function createSelectionTarget( root?: string ): EditTarget {
 	const selection = getTextSelection();
-	return selection ? createTextTarget( selection ) : createBlockTarget();
+	return selection ? createTextTarget( selection, root ) : createBlockTarget( root );
 }
