@@ -3,7 +3,7 @@
  */
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { useSelect } from '@wordpress/data';
-import { memo, useEffect, useRef } from '@wordpress/element';
+import { memo, useLayoutEffect, useRef } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { arrowUp, blockDefault, typography } from '@wordpress/icons';
 import { isKeyboardEvent } from '@wordpress/keycodes';
@@ -178,15 +178,25 @@ type Props = {
 export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Props ) {
 	const { conversation, isResponding, send, stop, reset } = chat;
 	const messagesRef = useRef< HTMLDivElement >( null );
+	// Whether the messages are scrolled to the bottom. The chat follows the
+	// answer only then, so it stays still while the user reads above.
+	const isAtBottomRef = useRef( true );
 	const selection = useSelectionStatus();
 
-	// Keep the latest message in view while the answer streams in.
-	useEffect( () => {
+	// Keep the latest message in view while the answer streams in. This runs
+	// before the browser paints, so a scroll event never sees new text that
+	// the chat has not followed yet.
+	useLayoutEffect( () => {
 		const element = messagesRef.current;
-		if ( element ) {
+		if ( element && isAtBottomRef.current ) {
 			element.scrollTop = element.scrollHeight;
 		}
 	}, [ conversation ] );
+
+	const onScroll = ( event: React.UIEvent< HTMLDivElement > ) => {
+		const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+		isAtBottomRef.current = scrollHeight - clientHeight - scrollTop <= 1;
+	};
 
 	const isLong =
 		! isResponding && getConversationTokens( conversation.messages ) > CONVERSATION_TOKEN_LIMIT;
@@ -195,6 +205,8 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 
 	const submit = () => {
 		if ( canSend ) {
+			// The user wants to see the answer to their message.
+			isAtBottomRef.current = true;
 			send( draft );
 			setDraft( '' );
 		}
@@ -224,7 +236,13 @@ export function Chat( { chat, isAvailable, draft, onDraftChange: setDraft }: Pro
 
 	return (
 		<Stack className="blocktune-chat" direction="column">
-			<Stack className="blocktune-chat__messages" direction="column" gap="lg" ref={ messagesRef }>
+			<Stack
+				className="blocktune-chat__messages"
+				direction="column"
+				gap="lg"
+				ref={ messagesRef }
+				onScroll={ onScroll }
+			>
 				{ ! isAvailable && (
 					<Notice.Root intent="info">
 						<Notice.Description>
