@@ -312,7 +312,7 @@ th { color: var(--text-secondary); font-weight: 600; }
 <body>
 <main>
 <h1>Evaluation history</h1>
-${ runs.length ? '' : '<p>No runs are recorded yet. Record one with <code>npm run eval:record</code>.</p>' }
+${ runs.length ? '' : '<p>No runs are recorded yet. Record one with <code>npm run eval</code>.</p>' }
 <p>Each point is a run recorded in <code>history.jsonl</code>, oldest on the left. A hollow red point is a run where the case failed, and a red cross on the bottom edge a run where it ended in an error, without usage. A dashed line marks a change of the evaluation set or the model: runs on either side do not compare.</p>
 ${ cases }
 <h2>Runs</h2>
