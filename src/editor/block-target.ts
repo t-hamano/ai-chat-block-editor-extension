@@ -420,7 +420,10 @@ export function createBlockTarget(
 			if ( ! canRemoveBlocks( [ clientId ] ) ) {
 				return failed( `The block "${ ref }" is locked, so it cannot be removed.` );
 			}
-			dispatch( blockEditorStore ).removeBlocks( [ clientId ], false );
+			// Replaced with nothing, since `removeBlocks` keeps some blocks,
+			// such as Post Content in a template, until the user confirms the
+			// removal in a dialog. The user can undo the edit instead.
+			dispatch( blockEditorStore ).replaceBlocks( [ clientId ], [] );
 			clientIds = clientIds.filter( ( id ) => id !== clientId );
 			return { status: 'applied', refs: [] };
 		}
