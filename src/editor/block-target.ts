@@ -18,6 +18,7 @@ import type { EditTarget } from '../ai/edit-target';
 import { findUniqueText } from '../ai/find-text';
 import type { AiEdit, AiEditResult } from '../platform';
 import { getClientIdByRef, getRef, serializeWithRefs, stripRefs } from './block-refs';
+import { withoutControlledContent } from './document-root';
 import { locateText } from './locate-text';
 import { findProtectedChange, isSameBlock } from './protected-attributes';
 import { collectUnsafeHtml } from './unsafe-html';
@@ -99,13 +100,22 @@ function collectAttributeChanges(
  * the document can also be edited by their reference IDs, which the
  * document and the selection carry before each block.
  *
+ * The document is the blocks in the root, which holds the post when the
+ * editor shows the template around it, or else the whole editor. Blocks
+ * that show content kept elsewhere, such as template parts and synced
+ * patterns, are in it without their inner blocks.
+ *
  * Each edit is one undo step.
  *
+ * @param root The block that holds the document, if any.
  * @param seen The blocks as the model saw them, when another target shares
  *             them.
  * @return The edit target.
  */
-export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): EditTarget {
+export function createBlockTarget(
+	root?: string,
+	seen: SeenBlocks = createSeenBlocks( root )
+): EditTarget {
 	const editor = () => select( blockEditorStore );
 	// The blocks the edits are for. A replacement takes their place.
 	let clientIds = editor().getSelectedBlockClientIds();
@@ -113,7 +123,8 @@ export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): Edit
 	// the blocks inserted before, so that they stay in order.
 	let anchor: string | undefined = clientIds[ clientIds.length - 1 ];
 
-	const getDocument = () => serializeWithRefs( editor().getBlocks() );
+	const getBlocks = () => withoutControlledContent( editor().getBlocks( root ) );
+	const getDocument = () => serializeWithRefs( getBlocks() );
 	// What the automatic fix changed in the markup of the edit being applied.
 	let autoFix: string | undefined;
 
@@ -130,15 +141,12 @@ export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): Edit
 	function readBlocks( markup: string ): Block[] | string {
 		autoFix = undefined;
 		// Markup that the editor would not read as written is never applied.
+		const current = getBlocks();
 		const {
 			blocks,
 			problems,
 			autoFix: fix,
-		} = validateMarkup(
-			stripRefs( markup ),
-			collectHtml( editor().getBlocks() ),
-			collectUnsafeHtml( editor().getBlocks() )
-		);
+		} = validateMarkup( stripRefs( markup ), collectHtml( current ), collectUnsafeHtml( current ) );
 		if ( problems.length ) {
 			return [
 				'The edit was not applied, because the markup has these problems:',
@@ -329,6 +337,46 @@ export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): Edit
 	}
 
 	/**
+	 * Fails when the new blocks give inner blocks to a block like one they
+	 * replace that shows content kept elsewhere, such as a template part or
+	 * a synced pattern. Such a block loads its content by itself, so the
+	 * inner blocks would be lost. Its content is edited in its own editor.
+	 *
+	 * @param replaced The blocks the edit replaces.
+	 * @param blocks   The new blocks.
+	 * @return Why the blocks cannot be applied, or `null`.
+	 */
+	function checkControlled( replaced: Block[], blocks: Block[] ): AiEditResult | null {
+		const { areInnerBlocksControlled } = editor();
+		const names = new Set< string >();
+		const collectNames = ( list: Block[] ) => {
+			for ( const block of list ) {
+				if ( areInnerBlocksControlled( block.clientId ) ) {
+					names.add( block.name );
+				}
+				collectNames( block.innerBlocks );
+			}
+		};
+		collectNames( replaced );
+		const find = ( list: Block[] ): Block | undefined => {
+			for ( const block of list ) {
+				const found =
+					names.has( block.name ) && block.innerBlocks.length ? block : find( block.innerBlocks );
+				if ( found ) {
+					return found;
+				}
+			}
+			return undefined;
+		};
+		const found = names.size ? find( blocks ) : undefined;
+		return found
+			? failed(
+					`The "${ found.name }" block shows content that is kept outside the document, so its inner blocks cannot be written here. Keep the block without inner blocks, as it is in the document. When the user asks to change its content, tell them to open the block in its own editor and ask there.`
+				)
+			: null;
+	}
+
+	/**
 	 * Fails when the user changed one of the blocks, or their inner blocks,
 	 * since the model last saw them, so that the edit does not undo what the
 	 * user changed.
@@ -383,10 +431,14 @@ export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): Edit
 		}
 		const isReplace = edit.action === 'replace_block';
 		const old = getBlock( clientId );
-		const replaced = isReplace && old ? [ old ] : [];
+		const replaced = isReplace && old ? withoutControlledContent( [ old ] ) : [];
 		const protectedChange = findProtectedChange( replaced, blocks );
 		if ( protectedChange ) {
 			return failed( protectedChange );
+		}
+		const controlled = checkControlled( replaced, blocks );
+		if ( controlled ) {
+			return controlled;
 		}
 		if ( isReplace && hasSameStructure( replaced, blocks ) ) {
 			return updateInPlace( replaced, blocks );
@@ -428,13 +480,13 @@ export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): Edit
 	 * @return What became of the edit.
 	 */
 	function replaceText( find: string, markup: string ): AiEditResult {
-		const { getBlockRootClientId, getBlocks } = editor();
-		const document = serialize( getBlocks() );
+		const current = getBlocks();
+		const document = serialize( current );
 		const found = findUniqueText( document, stripRefs( find ) );
 		if ( 'reason' in found ) {
 			return failed( found.reason );
 		}
-		const located = locateText( getBlocks(), document, found.start, found.end );
+		const located = locateText( current, document, found.start, found.end );
 		if ( ! located ) {
 			return failed(
 				'The "find" text is not inside the blocks. Include whole blocks or text inside one block, and try again.'
@@ -462,6 +514,10 @@ export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): Edit
 		if ( protectedChange ) {
 			return failed( protectedChange );
 		}
+		const controlled = checkControlled( located.blocks, blocks );
+		if ( controlled ) {
+			return controlled;
+		}
 
 		// Blocks at either end that stay the same keep their place, so that
 		// only what changed is highlighted.
@@ -488,7 +544,7 @@ export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): Edit
 		if ( notReplaceable ) {
 			return notReplaceable;
 		}
-		const notAllowed = canInsert( blocks, getBlockRootClientId( ids[ 0 ] ) ?? undefined );
+		const notAllowed = canInsert( blocks, editor().getBlockRootClientId( ids[ 0 ] ) ?? undefined );
 		if ( notAllowed ) {
 			return failed( notAllowed );
 		}
@@ -551,11 +607,17 @@ export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): Edit
 			return changed;
 		}
 		const replaced = isReplace
-			? getBlocksByClientId( clientIds ).filter( ( block ) => block !== null )
+			? withoutControlledContent(
+					getBlocksByClientId( clientIds ).filter( ( block ) => block !== null )
+				)
 			: [];
 		const protectedChange = findProtectedChange( replaced, blocks );
 		if ( protectedChange ) {
 			return failed( protectedChange );
+		}
+		const controlled = checkControlled( replaced, blocks );
+		if ( controlled ) {
+			return controlled;
 		}
 		if ( isReplace && hasSameStructure( replaced, blocks ) ) {
 			return updateInPlace( replaced, blocks );
@@ -565,7 +627,7 @@ export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): Edit
 			return notReplaceable;
 		}
 		const rootClientId =
-			anchor && ! isAppend ? ( getBlockRootClientId( anchor ) ?? undefined ) : undefined;
+			anchor && ! isAppend ? ( getBlockRootClientId( anchor ) ?? undefined ) : root;
 		const notAllowed = canInsert( blocks, rootClientId );
 		if ( notAllowed ) {
 			return failed( notAllowed );
@@ -574,7 +636,7 @@ export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): Edit
 		const actions = dispatch( blockEditorStore );
 		const last = blocks[ blocks.length - 1 ].clientId;
 		if ( isAppend ) {
-			actions.insertBlocks( blocks, undefined, undefined, false );
+			actions.insertBlocks( blocks, undefined, root, false );
 		} else if ( isReplace ) {
 			if ( ! anchor || clientIds.includes( anchor ) ) {
 				anchor = last;
@@ -596,9 +658,11 @@ export function createBlockTarget( seen: SeenBlocks = createSeenBlocks() ): Edit
 		getContext: () => ( {
 			document: getDocument(),
 			selection: serializeWithRefs(
-				editor()
-					.getBlocksByClientId( clientIds )
-					.filter( ( block ) => block !== null )
+				withoutControlledContent(
+					editor()
+						.getBlocksByClientId( clientIds )
+						.filter( ( block ) => block !== null )
+				)
 			),
 		} ),
 		getDocument,

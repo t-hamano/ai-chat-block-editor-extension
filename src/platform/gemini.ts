@@ -298,11 +298,10 @@ export async function readGeminiStream(
  * Connects the AI assistant to Google's Gemini through the plugin's relay,
  * which adds the site's API key on the server.
  *
- * @param getPostId Returns the ID of the post being edited.
- * @param model     The model that answers.
+ * @param model The model that answers.
  * @return The connection.
  */
-export function createGeminiPlatform( getPostId: () => number, model = GEMINI_MODEL ): AiPlatform {
+export function createGeminiPlatform( model = GEMINI_MODEL ): AiPlatform {
 	return {
 		chat( { system, messages, onEvent, read, signal } ) {
 			const contents = toGeminiContents( messages );
@@ -312,7 +311,6 @@ export function createGeminiPlatform( getPostId: () => number, model = GEMINI_MO
 						readGeminiStream(
 							requestAnswer( {
 								provider: 'google',
-								postId: getPostId(),
 								body: buildGeminiBody( system, contents, model ),
 								signal,
 								readError: readGeminiErrorMessage,

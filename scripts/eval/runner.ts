@@ -426,7 +426,7 @@ export async function runCase(
 	const blocks = loadCase( evalCase );
 	const existingHtml = collectHtml( blocks );
 	const relay = setUpRelay( apiKey );
-	const platform = createAnthropicPlatform( () => 1, model );
+	const platform = createAnthropicPlatform( model );
 
 	const started = Date.now();
 	let conversation = createConversation();

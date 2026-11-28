@@ -43,7 +43,6 @@ class Test_Fallback extends WP_UnitTestCase {
 			wp_json_encode(
 				array_merge(
 					array(
-						'post_id'  => self::factory()->post->create(),
 						'system'   => 'Be brief.',
 						'messages' => array(
 							array(
@@ -243,14 +242,6 @@ class Test_Fallback extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
 		$this->assertSame( 403, $this->chat()->get_status() );
-		$this->assertNull( Blocktune_Fallback_Provider::$prompt );
-	}
-
-	/**
-	 * Tests that the user must be able to edit the post.
-	 */
-	public function test_cannot_chat_about_a_post_that_does_not_exist() {
-		$this->assertSame( 403, $this->chat( array( 'post_id' => PHP_INT_MAX ) )->get_status() );
 		$this->assertNull( Blocktune_Fallback_Provider::$prompt );
 	}
 

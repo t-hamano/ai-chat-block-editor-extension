@@ -16,6 +16,7 @@ import { select } from '@wordpress/data';
 import { LONG_DOCUMENT } from '../ai/document-outline';
 import type { AiEditResult } from '../platform';
 import { getClientIdByRef, serializeWithRefs } from './block-refs';
+import { withoutControlledContent } from './document-root';
 
 /**
  * A block without its inner blocks: what the user can change in the block
@@ -75,13 +76,17 @@ export type SeenBlocks = {
 };
 
 /**
- * Keeps the blocks in the editor now as the model saw them.
+ * Keeps the blocks in the document now as the model saw them.
  *
+ * @param root The block that holds the document, if any.
  * @return The blocks as the model saw them.
  */
-export function createSeenBlocks(): SeenBlocks {
+export function createSeenBlocks( root?: string ): SeenBlocks {
 	const editor = () => select( blockEditorStore );
-	const seen = collect( editor().getBlocks() );
+	// The blocks in the document now, without the content of the blocks that
+	// keep it elsewhere, which the model never sees.
+	const getBlocks = () => withoutControlledContent( editor().getBlocks( root ) );
+	const seen = collect( getBlocks() );
 	const isSeen = ( clientId: string, state: BlockState | undefined ) => {
 		const known = seen.get( clientId );
 		return !! known && !! state && isEqual( known, state );
@@ -112,10 +117,11 @@ export function createSeenBlocks(): SeenBlocks {
 		markRead( refs ) {
 			for ( const ref of refs ) {
 				const clientId = getClientIdByRef( ref );
-				const block = clientId ? editor().getBlock( clientId ) : null;
-				if ( ! block ) {
+				const found = clientId ? editor().getBlock( clientId ) : null;
+				if ( ! found ) {
 					continue;
 				}
+				const [ block ] = withoutControlledContent( [ found ] );
 				// A long block is read without its inner blocks, which are
 				// read separately.
 				if ( block.innerBlocks.length && serializeWithRefs( [ block ] ).length > LONG_DOCUMENT ) {
@@ -126,9 +132,11 @@ export function createSeenBlocks(): SeenBlocks {
 			}
 		},
 		findChanged( clientIds ) {
-			const blocks = editor()
-				.getBlocksByClientId( clientIds )
-				.filter( ( block ) => block !== null );
+			const blocks = withoutControlledContent(
+				editor()
+					.getBlocksByClientId( clientIds )
+					.filter( ( block ) => block !== null )
+			);
 			const now = collect( blocks );
 			for ( const [ clientId, state ] of now ) {
 				if ( ! isSeen( clientId, state ) ) {
@@ -138,10 +146,10 @@ export function createSeenBlocks(): SeenBlocks {
 			return undefined;
 		},
 		track( apply ) {
-			const before = collect( editor().getBlocks() );
+			const before = collect( getBlocks() );
 			const result = apply();
 			if ( result.status === 'applied' ) {
-				keepChanges( before, collect( editor().getBlocks() ) );
+				keepChanges( before, collect( getBlocks() ) );
 			}
 			return result;
 		},

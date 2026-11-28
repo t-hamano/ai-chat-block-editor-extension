@@ -46,7 +46,7 @@ type Provider = {
 	 * they cannot write as many tokens as the adapters ask for.
 	 */
 	canChat: ( model: string ) => boolean;
-	create: ( getPostId: () => number, model: string ) => AiPlatform;
+	create: ( model: string ) => AiPlatform;
 };
 
 /**
@@ -210,14 +210,10 @@ export async function listProviderOptions(): Promise< ProviderOption[] > {
  * answer comes through the AI Client, which is given the same order to choose
  * from.
  *
- * @param getPostId Returns the ID of the post being edited.
- * @param choice    The provider and model the user chose, if any.
+ * @param choice The provider and model the user chose, if any.
  * @return The connection.
  */
-export async function selectPlatform(
-	getPostId: () => number,
-	choice?: ModelChoice | null
-): Promise< AiPlatform > {
+export async function selectPlatform( choice?: ModelChoice | null ): Promise< AiPlatform > {
 	const chosen = choice && PROVIDERS.find( ( provider ) => provider.id === choice.provider );
 	if ( chosen ) {
 		const models = await loadModels( chosen.id );
@@ -226,17 +222,16 @@ export async function selectPlatform(
 				! models || models.some( ( { id } ) => id === choice!.model )
 					? choice!.model
 					: chooseModel( chosen, models );
-			return chosen.create( getPostId, model );
+			return chosen.create( model );
 		}
 	}
 	for ( const provider of PROVIDERS ) {
 		const models = await loadModels( provider.id );
 		if ( models !== false ) {
-			return provider.create( getPostId, chooseModel( provider, models ) );
+			return provider.create( chooseModel( provider, models ) );
 		}
 	}
 	return createFallbackPlatform(
-		getPostId,
 		PROVIDERS.flatMap( ( provider ) =>
 			provider.recommended.map( ( model ): [ string, string ] => [ provider.id, model ] )
 		)
@@ -249,14 +244,10 @@ export async function selectPlatform(
  * until the user chooses another provider or model. When it could not be
  * made, the next message tries again.
  *
- * @param getPostId Returns the ID of the post being edited.
  * @param getChoice Returns the provider and model the user chose, if any.
  * @return The connection.
  */
-export function createAutoPlatform(
-	getPostId: () => number,
-	getChoice: () => ModelChoice | null = () => null
-): AiPlatform {
+export function createAutoPlatform( getChoice: () => ModelChoice | null = () => null ): AiPlatform {
 	let platform: Promise< AiPlatform > | undefined;
 	let platformChoice: string | undefined;
 	return {
@@ -267,7 +258,7 @@ export function createAutoPlatform(
 				platform = undefined;
 				platformChoice = key;
 			}
-			platform ??= selectPlatform( getPostId, choice ).catch( ( error ) => {
+			platform ??= selectPlatform( choice ).catch( ( error ) => {
 				platform = undefined;
 				throw error;
 			} );

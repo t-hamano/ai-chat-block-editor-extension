@@ -65,7 +65,6 @@ class Test_Relay extends WP_UnitTestCase {
 				array_merge(
 					array(
 						'provider' => 'anthropic',
-						'post_id'  => self::factory()->post->create(),
 						'body'     => array(
 							'model'    => 'test-model',
 							'messages' => array(),
@@ -451,14 +450,6 @@ class Test_Relay extends WP_UnitTestCase {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
 
 		$this->assertSame( 403, $this->chat()->get_status() );
-		$this->assertNull( $this->sent );
-	}
-
-	/**
-	 * Tests that the user must be able to edit the post.
-	 */
-	public function test_cannot_chat_about_a_post_that_does_not_exist() {
-		$this->assertSame( 403, $this->chat( array( 'post_id' => PHP_INT_MAX ) )->get_status() );
 		$this->assertNull( $this->sent );
 	}
 

@@ -254,7 +254,7 @@ describe( 'createGeminiPlatform', () => {
 			event.type === 'edit' ? { status: 'applied' as const } : undefined
 		);
 
-		await createGeminiPlatform( () => 1 ).chat( {
+		await createGeminiPlatform().chat( {
 			system: 'System',
 			messages: [ { role: 'user', text: 'Rewrite this' } ],
 			onEvent,
@@ -271,14 +271,14 @@ describe( 'createGeminiPlatform', () => {
 			event.type === 'edit' ? { status: 'applied' as const, refs: [ 'b3' ] } : undefined
 		);
 
-		await createGeminiPlatform( () => 1 ).chat( {
+		await createGeminiPlatform().chat( {
 			system: 'System',
 			messages: [ { role: 'user', text: 'Rewrite this' } ],
 			onEvent,
 			signal: new AbortController().signal,
 		} );
 
-		expect( requests[ 0 ] ).toMatchObject( { provider: 'google', post_id: 1, stream: true } );
+		expect( requests[ 0 ] ).toMatchObject( { provider: 'google', stream: true } );
 		expect( onEvent ).toHaveBeenCalledWith( { type: 'edit', edit: EDIT } );
 		expect( requests[ 1 ].body.contents ).toEqual( [
 			{ role: 'user', parts: [ { text: 'Rewrite this' } ] },
@@ -314,7 +314,7 @@ describe( 'createGeminiPlatform', () => {
 		const onEvent = vi.fn();
 
 		await expect(
-			createGeminiPlatform( () => 1 ).chat( {
+			createGeminiPlatform().chat( {
 				system: 'System',
 				messages: [ { role: 'user', text: 'Rewrite this' } ],
 				onEvent,
@@ -336,7 +336,7 @@ describe( 'createGeminiPlatform', () => {
 		);
 
 		await expect(
-			createGeminiPlatform( () => 1 ).chat( {
+			createGeminiPlatform().chat( {
 				system: 'System',
 				messages: [ { role: 'user', text: 'Hi' } ],
 				onEvent: vi.fn(),

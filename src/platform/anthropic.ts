@@ -302,14 +302,10 @@ const INVALID_EDIT = `Call ${ EDIT_TOOL.name } with "action" set to one of ${ ED
  * Connects the AI assistant to Anthropic through the plugin's relay, which
  * adds the site's API key on the server.
  *
- * @param getPostId Returns the ID of the post being edited.
- * @param model     The model that answers.
+ * @param model The model that answers.
  * @return The connection.
  */
-export function createAnthropicPlatform(
-	getPostId: () => number,
-	model = ANTHROPIC_MODEL
-): AiPlatform {
+export function createAnthropicPlatform( model = ANTHROPIC_MODEL ): AiPlatform {
 	return {
 		chat( { system, messages, onEvent, read, signal } ) {
 			const conversation = toAnthropicMessages( messages );
@@ -319,7 +315,6 @@ export function createAnthropicPlatform(
 						readAnthropicStream(
 							requestAnswer( {
 								provider: 'anthropic',
-								postId: getPostId(),
 								body: buildAnthropicBody( system, conversation, model ),
 								signal,
 								readError: readErrorMessage,

@@ -322,7 +322,7 @@ describe( 'createAnthropicPlatform', () => {
 			event.type === 'edit' ? { status: 'applied' as const } : undefined
 		);
 
-		await createAnthropicPlatform( () => 1 ).chat( {
+		await createAnthropicPlatform().chat( {
 			system: 'System',
 			messages: [ { role: 'user', text: 'Rewrite this' } ],
 			onEvent,
@@ -358,7 +358,7 @@ describe( 'createAnthropicPlatform', () => {
 			event.type === 'edit' ? { status: 'applied' as const } : undefined
 		);
 
-		await createAnthropicPlatform( () => 1 ).chat( {
+		await createAnthropicPlatform().chat( {
 			system: 'System',
 			messages: [ { role: 'user', text: 'Rewrite this' } ],
 			onEvent,
@@ -385,7 +385,7 @@ describe( 'createAnthropicPlatform', () => {
 				event.type === 'edit' ? result : undefined
 			);
 
-			await createAnthropicPlatform( () => 1 ).chat( {
+			await createAnthropicPlatform().chat( {
 				system: 'System',
 				messages: [ { role: 'user', text: 'Rewrite this' } ],
 				onEvent,
@@ -403,7 +403,7 @@ describe( 'createAnthropicPlatform', () => {
 		const onEvent = vi.fn();
 		const readBlocks = vi.fn( () => ( { status: 'done' as const, content: '<p>Two</p>' } ) );
 
-		await createAnthropicPlatform( () => 1 ).chat( {
+		await createAnthropicPlatform().chat( {
 			system: 'System',
 			messages: [ { role: 'user', text: 'Rewrite b2' } ],
 			onEvent,
@@ -426,7 +426,7 @@ describe( 'createAnthropicPlatform', () => {
 		const onEvent = vi.fn();
 
 		await expect(
-			createAnthropicPlatform( () => 1 ).chat( {
+			createAnthropicPlatform().chat( {
 				system: 'System',
 				messages: [ { role: 'user', text: 'Rewrite this' } ],
 				onEvent,
@@ -444,7 +444,7 @@ describe( 'createAnthropicPlatform', () => {
 		const bodies = respond( ...Array.from( { length: 11 }, () => readCall ), text );
 
 		await expect(
-			createAnthropicPlatform( () => 1 ).chat( {
+			createAnthropicPlatform().chat( {
 				system: 'System',
 				messages: [ { role: 'user', text: 'Rewrite b2' } ],
 				onEvent: vi.fn(),
@@ -467,7 +467,7 @@ describe( 'createAnthropicPlatform', () => {
 			event.type === 'edit' ? { status: 'applied' as const, refs: [ 'b7' ] } : undefined
 		);
 
-		await createAnthropicPlatform( () => 1 ).chat( {
+		await createAnthropicPlatform().chat( {
 			system: 'System',
 			messages: [ { role: 'user', text: 'Rewrite this' } ],
 			onEvent,
@@ -488,7 +488,7 @@ describe( 'createAnthropicPlatform', () => {
 		const bodies = respond( toolCall( '{"action":"replace_block","markup":"x"}' ), text );
 		const onEvent = vi.fn();
 
-		await createAnthropicPlatform( () => 1 ).chat( {
+		await createAnthropicPlatform().chat( {
 			system: 'System',
 			messages: [ { role: 'user', text: 'Rewrite this' } ],
 			onEvent,
