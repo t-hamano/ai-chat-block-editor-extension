@@ -11,9 +11,11 @@ import { checkRequestLimit, endToolRequest, needsReply, trackRequestText } from 
 import { runRead } from './read-tools';
 
 /**
- * How many failed edits the model may try again in one answer.
+ * How many times the model may try again in one answer after a failed edit
+ * or read. Reads count too, so a model that keeps asking for blocks that do
+ * not exist also stops.
  */
-const MAX_FAILED_EDITS = 3;
+const MAX_RETRIES = 3;
 
 /**
  * The tool the model edits the document with, in the shape of Anthropic's
@@ -281,7 +283,7 @@ export async function runToolLoop< Answer, Result >(
 		if ( endToolRequest( text, replied, onEvent ) ) {
 			return;
 		}
-		if ( failures > MAX_FAILED_EDITS ) {
+		if ( failures > MAX_RETRIES ) {
 			throw new Error( __( 'The edit could not be made.', 'blocktune' ) );
 		}
 		checkRequestLimit( ++requests );
