@@ -417,26 +417,20 @@ function announceRemoved( before: BlockSnapshot ) {
 }
 
 /**
- * Finds the block's element, in the editor canvas iframe or, when the
- * canvas is not an iframe, in the page.
+ * Finds the block's element in the editor canvas iframe.
  *
  * @param clientId The block's client ID.
  * @return The element, if the block is rendered.
  */
 function getBlockElement( clientId: string ): HTMLElement | null {
-	const id = `block-${ clientId }`;
 	const canvas = document.querySelector< HTMLIFrameElement >( 'iframe[name="editor-canvas"]' );
-	return canvas?.contentDocument?.getElementById( id ) ?? document.getElementById( id );
+	return canvas?.contentDocument?.getElementById( `block-${ clientId }` ) ?? null;
 }
 
 /**
  * Scrolls to the block when it is off-screen, as the block editor scrolls
  * to a block that becomes selected: smoothly, or at once with reduced
  * motion.
- *
- * The observer tells whether the block is visible also when the editor
- * scrolls in a container of its own instead of the window, as it does
- * when the canvas is not an iframe.
  *
  * @param clientId The block's client ID.
  * @return Stops waiting to scroll.

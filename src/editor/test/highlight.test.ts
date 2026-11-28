@@ -133,10 +133,13 @@ describe( 'highlightChanges', () => {
 		createElement( 'p', { id: `block-${ clientId }`, className }, text );
 	const ChangeHighlight = withChangeHighlight( Block );
 
+	let canvas: HTMLIFrameElement;
+	let view: Window & typeof globalThis;
 	let container: HTMLDivElement;
 	let root: ReturnType< typeof createRoot >;
 	let highlights: Map< string, { ranges: Range[] } >;
 	let animate: ReturnType< typeof vi.fn< Element[ 'animate' ] > >;
+	let scrollIntoView: ReturnType< typeof vi.fn< Element[ 'scrollIntoView' ] > >;
 
 	function render( clientId: string, text: string ) {
 		flushSync( () => root.render( createElement( ChangeHighlight, { clientId, text } ) ) );
@@ -152,32 +155,37 @@ describe( 'highlightChanges', () => {
 				'performance',
 			],
 		} );
+		// The blocks are rendered in the editor canvas iframe, as in the
+		// block editor.
+		canvas = document.createElement( 'iframe' );
+		canvas.name = 'editor-canvas';
+		document.body.appendChild( canvas );
+		view = canvas.contentWindow as Window & typeof globalThis;
 		highlights = new Map();
-		vi.stubGlobal( 'CSS', { highlights } );
-		vi.stubGlobal(
-			'Highlight',
-			class {
+		Object.assign( view, {
+			CSS: { highlights },
+			Highlight: class {
 				ranges: Range[];
 				constructor( ...ranges: Range[] ) {
 					this.ranges = ranges;
 				}
-			}
-		);
+			},
+		} );
 		// The test page has no layout, so it cannot scroll.
-		Element.prototype.scrollIntoView = vi.fn();
+		scrollIntoView = vi.fn();
+		view.Element.prototype.scrollIntoView = scrollIntoView;
 		// The test page cannot animate, so the fade is only recorded.
 		animate = vi.fn( () => ( { cancel: vi.fn() } ) as unknown as Animation );
-		Element.prototype.animate = animate;
-		container = document.createElement( 'div' );
-		document.body.appendChild( container );
+		view.Element.prototype.animate = animate;
+		container = view.document.createElement( 'div' );
+		view.document.body.appendChild( container );
 		root = createRoot( container );
 	} );
 
 	afterEach( () => {
 		vi.runOnlyPendingTimers();
 		flushSync( () => root.unmount() );
-		container.remove();
-		vi.unstubAllGlobals();
+		canvas.remove();
 		vi.useRealTimers();
 		vi.mocked( speak ).mockClear();
 	} );
@@ -281,7 +289,7 @@ describe( 'highlightChanges', () => {
 	} );
 
 	it( 'highlights the whole block when the browser cannot color text', () => {
-		vi.stubGlobal( 'Highlight', undefined );
+		Object.assign( view, { Highlight: undefined } );
 		const { one } = setUp();
 		render( one, 'One' );
 		const before = takeBlockSnapshot();
@@ -324,9 +332,8 @@ describe( 'highlightChanges', () => {
 		 * @param isIntersecting Whether the block is visible.
 		 */
 		function stubVisibility( isIntersecting: boolean ) {
-			vi.stubGlobal(
-				'IntersectionObserver',
-				class {
+			Object.assign( view, {
+				IntersectionObserver: class {
 					callback: ( entries: { isIntersecting: boolean }[] ) => void;
 					constructor( callback: ( entries: { isIntersecting: boolean }[] ) => void ) {
 						this.callback = callback;
@@ -335,8 +342,8 @@ describe( 'highlightChanges', () => {
 						this.callback( [ { isIntersecting } ] );
 					}
 					disconnect() {}
-				}
-			);
+				},
+			} );
 		}
 
 		/**
@@ -365,7 +372,7 @@ describe( 'highlightChanges', () => {
 		it( 'scrolls to the changed block when it is off-screen', () => {
 			stubVisibility( false );
 			editFirstBlock();
-			expect( Element.prototype.scrollIntoView ).toHaveBeenCalledWith( {
+			expect( scrollIntoView ).toHaveBeenCalledWith( {
 				block: 'center',
 				behavior: 'smooth',
 			} );
@@ -374,16 +381,18 @@ describe( 'highlightChanges', () => {
 		it( 'does not scroll to a changed block that is on screen', () => {
 			stubVisibility( true );
 			editFirstBlock();
-			expect( Element.prototype.scrollIntoView ).not.toHaveBeenCalled();
+			expect( scrollIntoView ).not.toHaveBeenCalled();
 		} );
 
 		it( 'jumps to the changed block with reduced motion', () => {
 			stubVisibility( false );
-			vi.stubGlobal( 'matchMedia', ( query: string ) => ( {
-				matches: query === '(prefers-reduced-motion: reduce)',
-			} ) );
+			Object.assign( view, {
+				matchMedia: ( query: string ) => ( {
+					matches: query === '(prefers-reduced-motion: reduce)',
+				} ),
+			} );
 			editFirstBlock();
-			expect( Element.prototype.scrollIntoView ).toHaveBeenCalledWith( {
+			expect( scrollIntoView ).toHaveBeenCalledWith( {
 				block: 'center',
 				behavior: 'instant',
 			} );
@@ -392,7 +401,7 @@ describe( 'highlightChanges', () => {
 		it( 'scrolls when the edit keeps the selection', () => {
 			stubVisibility( false );
 			editFirstBlock( { selected: true } );
-			expect( Element.prototype.scrollIntoView ).toHaveBeenCalled();
+			expect( scrollIntoView ).toHaveBeenCalled();
 		} );
 
 		it( 'leaves the scrolling to the block editor when the edit selects another block', () => {
@@ -408,7 +417,7 @@ describe( 'highlightChanges', () => {
 			flushSync( () => vi.advanceTimersByTime( 16 ) );
 
 			expect( select( blockEditorStore ).getSelectedBlockClientId() ).toBe( text.clientId );
-			expect( Element.prototype.scrollIntoView ).not.toHaveBeenCalled();
+			expect( scrollIntoView ).not.toHaveBeenCalled();
 		} );
 	} );
 } );
