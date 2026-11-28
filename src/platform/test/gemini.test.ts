@@ -68,7 +68,6 @@ describe( 'buildGeminiBody', () => {
 			contents,
 			tools: [ { functionDeclarations: [ GEMINI_EDIT_TOOL, ...GEMINI_READ_TOOLS ] } ],
 			generationConfig: {
-				maxOutputTokens: expect.any( Number ),
 				thinkingConfig: { includeThoughts: true },
 			},
 		} );

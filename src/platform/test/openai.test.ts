@@ -64,7 +64,6 @@ describe( 'buildOpenAiBody', () => {
 		const input = toOpenAiInput( [ { role: 'user', text: 'Hi' } ] );
 		expect( buildOpenAiBody( 'Be brief.', input ) ).toEqual( {
 			model: OPENAI_MODEL,
-			max_output_tokens: expect.any( Number ),
 			instructions: 'Be brief.',
 			tools: [ OPENAI_EDIT_TOOL, ...OPENAI_READ_TOOLS ],
 			input,

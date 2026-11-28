@@ -97,7 +97,8 @@ export default function Sidebar() {
 				title={ title }
 				icon={ icon }
 				className="blocktune-sidebar"
-				// @ts-expect-error `PluginSidebar` passes `header` on to `ComplementaryArea`, but its types leave it out.
+				// @ts-expect-error `PluginSidebar` passes `render` and `header` on to `ComplementaryArea`, but its types leave them out.
+				render={ <div className="blocktune-sidebar-area" /> }
 				header={
 					<>
 						<h2 className="interface-complementary-area-header__title">{ title }</h2>

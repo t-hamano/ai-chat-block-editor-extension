@@ -27,6 +27,7 @@ eslint.config.js
 package-lock.json
 phpcs.xml.dist
 phpunit.xml.dist
+playwright.config.js
 tsconfig.json
 vitest.config.mjs
 webpack.config.js

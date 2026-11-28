@@ -136,6 +136,7 @@ describe( 'highlightChanges', () => {
 	let container: HTMLDivElement;
 	let root: ReturnType< typeof createRoot >;
 	let highlights: Map< string, { ranges: Range[] } >;
+	let animate: ReturnType< typeof vi.fn< Element[ 'animate' ] > >;
 
 	function render( clientId: string, text: string ) {
 		flushSync( () => root.render( createElement( ChangeHighlight, { clientId, text } ) ) );
@@ -164,6 +165,9 @@ describe( 'highlightChanges', () => {
 		);
 		// The test page has no layout, so it cannot scroll.
 		Element.prototype.scrollIntoView = vi.fn();
+		// The test page cannot animate, so the fade is only recorded.
+		animate = vi.fn( () => ( { cancel: vi.fn() } ) as unknown as Animation );
+		Element.prototype.animate = animate;
 		container = document.createElement( 'div' );
 		document.body.appendChild( container );
 		root = createRoot( container );
@@ -212,13 +216,39 @@ describe( 'highlightChanges', () => {
 		expect( container.querySelector( 'p' )?.className ).not.toContain( HIGHLIGHT_CLASS_NAME );
 		expect( highlights.get( TEXT_HIGHLIGHT_NAME )?.ranges[ 0 ].toString() ).toBe( ' more' );
 
-		vi.advanceTimersByTime( HIGHLIGHT_DURATION * 0.8 );
-		const opacity = document.documentElement.style.getPropertyValue( TEXT_OPACITY_PROPERTY );
-		expect( Number( opacity ) ).toBeGreaterThan( 0 );
-		expect( Number( opacity ) ).toBeLessThan( 1 );
+		expect( animate ).toHaveBeenCalledTimes( 1 );
+		expect( animate.mock.contexts[ 0 ] ).toBe( container.querySelector( 'p' ) );
+		expect( animate ).toHaveBeenCalledWith(
+			[
+				{ [ TEXT_OPACITY_PROPERTY ]: 1 },
+				{ [ TEXT_OPACITY_PROPERTY ]: 1, offset: 0.6 },
+				{ [ TEXT_OPACITY_PROPERTY ]: 0 },
+			],
+			{ duration: HIGHLIGHT_DURATION }
+		);
 
 		flushSync( () => vi.advanceTimersByTime( HIGHLIGHT_DURATION ) );
 		expect( highlights.has( TEXT_HIGHLIGHT_NAME ) ).toBe( false );
+	} );
+
+	it( 'restarts the fade of the changed text when the block changes again', () => {
+		const { one } = setUp();
+		render( one, 'One' );
+		let before = takeBlockSnapshot();
+		dispatch( blockEditorStore ).updateBlockAttributes( one, { content: 'One more' } );
+		render( one, 'One more' );
+		flushSync( () => highlightChanges( before ) );
+		flushSync( () => vi.advanceTimersByTime( 16 ) );
+		const first = animate.mock.results[ 0 ].value as Animation;
+
+		before = takeBlockSnapshot();
+		dispatch( blockEditorStore ).updateBlockAttributes( one, { content: 'One more time' } );
+		render( one, 'One more time' );
+		flushSync( () => highlightChanges( before ) );
+		flushSync( () => vi.advanceTimersByTime( 16 ) );
+
+		expect( first.cancel ).toHaveBeenCalled();
+		expect( animate ).toHaveBeenCalledTimes( 2 );
 	} );
 
 	it( 'compares a replaced block with the block it replaced', () => {
