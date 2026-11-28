@@ -28,7 +28,8 @@ export const TEXT_HIGHLIGHT_NAME = 'blocktune-changed-text';
 
 /**
  * The custom property that fades out the changed text's color. The
- * CSS Custom Highlight API cannot animate, so it is set on each frame.
+ * CSS Custom Highlight API cannot animate, so the property is animated on
+ * the block instead, which keeps the style changes inside the block.
  */
 export const TEXT_OPACITY_PROPERTY = '--blocktune-changed-text-opacity';
 
@@ -63,8 +64,8 @@ const previousTexts = new Map< string, string >();
 // highlight registry holds some of it.
 const textRanges = new Map< string, Range >();
 let paintedViews = new Set< Window >();
-// The fade of the changed text's color in each window, by frame request.
-const fades = new Map< Window, number >();
+// The fade of the changed text's color in each block.
+const fades = new WeakMap< Element, Animation >();
 
 function subscribe( listener: () => void ) {
 	listeners.add( listener );
@@ -77,9 +78,10 @@ function subscribe( listener: () => void ) {
  * Takes a snapshot of the blocks in the editor, to compare with after an
  * edit.
  *
+ * @param withText Whether to read each block's text in the canvas.
  * @return The snapshot.
  */
-export function takeBlockSnapshot(): BlockSnapshot {
+export function takeBlockSnapshot( withText = true ): BlockSnapshot {
 	const { getBlockOrder, getBlockAttributes } = select( blockEditorStore );
 	const snapshot = new Map< string, BlockState >();
 	const walk = ( parent: string ) => {
@@ -88,7 +90,7 @@ export function takeBlockSnapshot(): BlockSnapshot {
 				attributes: getBlockAttributes( clientId ),
 				parent,
 				index,
-				text: getBlockElement( clientId )?.textContent ?? null,
+				text: withText ? ( getBlockElement( clientId )?.textContent ?? null ) : null,
 			} );
 			walk( clientId );
 		} );
@@ -107,7 +109,7 @@ export function takeBlockSnapshot(): BlockSnapshot {
  */
 export function findChangedBlocks( before: BlockSnapshot ): string[] {
 	const { getBlockParents } = select( blockEditorStore );
-	const after = takeBlockSnapshot();
+	const after = takeBlockSnapshot( false );
 	const changed = new Set(
 		[ ...after.keys() ].filter(
 			( clientId ) =>
@@ -121,27 +123,40 @@ export function findChangedBlocks( before: BlockSnapshot ): string[] {
 }
 
 /**
- * Finds the text of a changed block before the edit. A block that took
+ * Finds the text of each changed block before the edit. A block that took
  * the place of another one is compared with the one it replaced.
  *
- * @param before   The snapshot taken before the edit.
- * @param clientId The changed block's client ID.
- * @return The text, if the block or the one it replaced was rendered.
+ * @param before    The snapshot taken before the edit.
+ * @param clientIds The changed blocks' client IDs.
+ * @return The text of each block whose text, or the one of the block it
+ *         replaced, was rendered, by client ID.
  */
-function findPreviousText( before: BlockSnapshot, clientId: string ): string | null {
-	const state = before.get( clientId );
-	if ( state ) {
-		return state.text;
-	}
+function findPreviousTexts( before: BlockSnapshot, clientIds: string[] ): Map< string, string > {
 	const { getBlock, getBlockIndex, getBlockRootClientId } = select( blockEditorStore );
-	const parent = getBlockRootClientId( clientId ) ?? '';
-	const index = getBlockIndex( clientId );
-	for ( const [ id, old ] of before ) {
-		if ( old.parent === parent && old.index === index && ! getBlock( id ) ) {
-			return old.text;
+	// The text of each removed block, by its place, to look up the block
+	// that took its place without going through the snapshot each time.
+	let removed: Map< string, string | null > | undefined;
+	const texts = new Map< string, string >();
+	for ( const clientId of clientIds ) {
+		let text = before.get( clientId )?.text;
+		if ( text === undefined ) {
+			if ( ! removed ) {
+				removed = new Map();
+				for ( const [ id, old ] of before ) {
+					const place = `${ old.parent }:${ old.index }`;
+					if ( ! removed.has( place ) && ! getBlock( id ) ) {
+						removed.set( place, old.text );
+					}
+				}
+			}
+			const parent = getBlockRootClientId( clientId ) ?? '';
+			text = removed.get( `${ parent }:${ getBlockIndex( clientId ) }` );
+		}
+		if ( text !== undefined && text !== null ) {
+			texts.set( clientId, text );
 		}
 	}
-	return null;
+	return texts;
 }
 
 /**
@@ -261,38 +276,35 @@ function highlightText( clientId: string ): boolean {
 	}
 	textRanges.set( clientId, range );
 	paintTextHighlight();
-	fadeTextHighlight( view );
+	fadeTextHighlight( element );
 	return true;
 }
 
 /**
- * Fades out the changed text's color in the window, from the start. With
+ * Fades out the changed text's color in the block, from the start. With
  * reduced motion, the color stays the same until the highlight ends.
  *
- * @param view The window that shows the text.
+ * @param element The block's element.
  */
-function fadeTextHighlight( view: Window ) {
-	const { style } = view.document.documentElement;
-	view.cancelAnimationFrame( fades.get( view ) ?? 0 );
-	fades.delete( view );
-	style.removeProperty( TEXT_OPACITY_PROPERTY );
-	if ( view.matchMedia?.( '(prefers-reduced-motion: reduce)' ).matches ) {
+function fadeTextHighlight( element: HTMLElement ) {
+	fades.get( element )?.cancel();
+	fades.delete( element );
+	const view = element.ownerDocument.defaultView;
+	if ( ! element.animate || view?.matchMedia?.( '(prefers-reduced-motion: reduce)' ).matches ) {
 		return;
 	}
-	const start = view.performance.now();
-	const step = ( now: number ) => {
-		const progress = ( now - start ) / HIGHLIGHT_DURATION;
-		if ( progress >= 1 ) {
-			fades.delete( view );
-			style.removeProperty( TEXT_OPACITY_PROPERTY );
-			return;
-		}
-		// The same as the block highlight's animation: it holds, then fades out.
-		const opacity = progress <= 0.6 ? 1 : Math.max( 0, 1 - ( progress - 0.6 ) / 0.4 );
-		style.setProperty( TEXT_OPACITY_PROPERTY, String( opacity ) );
-		fades.set( view, view.requestAnimationFrame( step ) );
-	};
-	fades.set( view, view.requestAnimationFrame( step ) );
+	// The same as the block highlight's animation: it holds, then fades out.
+	fades.set(
+		element,
+		element.animate(
+			[
+				{ [ TEXT_OPACITY_PROPERTY ]: 1 },
+				{ [ TEXT_OPACITY_PROPERTY ]: 1, offset: 0.6 },
+				{ [ TEXT_OPACITY_PROPERTY ]: 0 },
+			],
+			{ duration: HIGHLIGHT_DURATION }
+		)
+	);
 }
 
 /**
@@ -351,14 +363,7 @@ export function highlightChanges( before: BlockSnapshot ) {
 		announceRemoved( before );
 		return;
 	}
-	const texts = new Map< string, string >();
-	for ( const clientId of clientIds ) {
-		const text = findPreviousText( before, clientId );
-		if ( text !== null ) {
-			texts.set( clientId, text );
-		}
-	}
-	highlightBlocks( clientIds, texts );
+	highlightBlocks( clientIds, findPreviousTexts( before, clientIds ) );
 	speak(
 		sprintf(
 			/* translators: %d: The number of blocks. */

@@ -38,6 +38,14 @@
 	}
 }
 
+// Registered so that the script can animate it, and inherited so that the
+// changed text in the block sees it.
+@property --blocktune-changed-text-opacity {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 1;
+}
+
 // The changed text, colored through the CSS Custom Highlight API without
 // adding formatting to the content. The script fades it out over the same
 // time as the block highlight, through the opacity property.
