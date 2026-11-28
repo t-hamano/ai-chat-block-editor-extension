@@ -97,8 +97,6 @@ export default function Sidebar() {
 				title={ title }
 				icon={ icon }
 				className="blocktune-sidebar"
-				// `className` lands on the panel inside the sidebar, so `render` names the
-				// sidebar's own container, which the chat fills.
 				// @ts-expect-error `PluginSidebar` passes `render` and `header` on to `ComplementaryArea`, but its types leave them out.
 				render={ <div className="blocktune-sidebar-area" /> }
 				header={
