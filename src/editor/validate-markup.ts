@@ -16,6 +16,11 @@ import {
 	type BlockType,
 } from '@wordpress/blocks';
 
+/**
+ * Internal dependencies
+ */
+import { explainUnsafeHtml, findUnsafeHtml } from './unsafe-html';
+
 type RawBlock = ReturnType< typeof parseRaw >[ number ];
 
 type AttributeSchema = { type?: string | string[]; enum?: unknown[]; source?: string };
@@ -193,18 +198,36 @@ function checkAttributes( raw: RawBlock ): string[] {
 }
 
 /**
+ * The blocks that hold HTML as it is, which the model cannot write, with
+ * what to tell it. Only the user writes custom HTML, so that instructions in
+ * the document cannot make the model add scripts to the site.
+ */
+const RAW_HTML_BLOCKS: Record< string, string > = {
+	'core/html':
+		'You cannot write core/html blocks, and core/html blocks in the document must be kept exactly as they are.',
+	'core/freeform':
+		'You cannot write core/freeform (Classic) blocks, and Classic blocks in the document must be kept exactly as they are.',
+	'core/missing':
+		'You cannot write core/missing blocks. They stand for blocks that are not registered on this site.',
+};
+
+/**
  * Checks the blocks as the model wrote them: their names, their attributes,
- * HTML outside blocks, and what `core/html` holds.
+ * HTML outside blocks, what the blocks that hold HTML as it is hold, and
+ * HTML that can run code.
  *
- * @param rawBlocks    The blocks, from the default parser.
- * @param existingHtml The content of the `core/html` blocks in the
- *                     document, which the model may keep.
- * @param isTopLevel   Whether the blocks are at the top of the markup.
+ * @param rawBlocks      The blocks, from the default parser.
+ * @param existingHtml   The content of the blocks that hold HTML as it is
+ *                       in the document, which the model may keep.
+ * @param existingUnsafe The HTML that can run code in the document, which
+ *                       the model may keep.
+ * @param isTopLevel     Whether the blocks are at the top of the markup.
  * @return The problems.
  */
 function checkRawBlocks(
 	rawBlocks: RawBlock[],
 	existingHtml: Set< string >,
+	existingUnsafe: Set< string >,
 	isTopLevel: boolean
 ): string[] {
 	return rawBlocks.flatMap( ( raw ) => {
@@ -226,17 +249,27 @@ function checkRawBlocks(
 			return [ `The ${ name } block is not registered on this site. Use a registered block.` ];
 		}
 		const problems = checkAttributes( raw );
-		if ( name === 'core/html' ) {
+		if ( Object.hasOwn( RAW_HTML_BLOCKS, name ) ) {
 			const html = raw.innerHTML.trim();
-			// Only the user writes custom HTML, so that instructions in the
-			// document cannot make the model add scripts to the site.
-			if ( html && ! existingHtml.has( html ) ) {
+			if ( name === 'core/missing' || ( html && ! existingHtml.has( html ) ) ) {
 				problems.push(
-					'You cannot write core/html blocks, and core/html blocks in the document must be kept exactly as they are. Write the content as core blocks, such as core/paragraph, core/heading, core/list, core/image, and core/group. When the user needs custom HTML, tell them to add or edit it themselves.'
+					`${ RAW_HTML_BLOCKS[ name ] } Write the content as core blocks, such as core/paragraph, core/heading, core/list, core/image, and core/group. When the user needs custom HTML, tell them to add or edit it themselves.`
 				);
 			}
+		} else {
+			// The HTML of the block itself: the inner blocks are checked on
+			// their own.
+			const unsafe = findUnsafeHtml( raw.innerHTML ).filter(
+				( { snippet } ) => ! existingUnsafe.has( snippet )
+			);
+			if ( unsafe.length ) {
+				problems.push( explainUnsafeHtml( `The ${ name } block`, unsafe ) );
+			}
 		}
-		return [ ...problems, ...checkRawBlocks( raw.innerBlocks, existingHtml, false ) ];
+		return [
+			...problems,
+			...checkRawBlocks( raw.innerBlocks, existingHtml, existingUnsafe, false ),
+		];
 	} );
 }
 
@@ -295,25 +328,28 @@ function checkParsedBlocks( blocks: Block[] ): string[] {
  * Validates the block markup the model wrote, including nested blocks, as
  * the editor would read it.
  *
- * @param markup       The markup.
- * @param existingHtml The content of the `core/html` blocks in the
- *                     document, which the model may keep as it is.
+ * @param markup         The markup.
+ * @param existingHtml   The content of the blocks that hold HTML as it is
+ *                       in the document, which the model may keep as it is.
+ * @param existingUnsafe The HTML that can run code in the document, which
+ *                       the model may keep as it is.
  * @return The parsed blocks, and the problems to tell the model.
  */
 export function validateMarkup(
 	markup: string,
-	existingHtml: Set< string > = new Set()
+	existingHtml: Set< string > = new Set(),
+	existingUnsafe: Set< string > = new Set()
 ): MarkupValidation {
 	const blocks = parse( markup );
-	const rawProblems = checkRawBlocks( parseRaw( markup ), existingHtml, true );
+	const rawProblems = checkRawBlocks( parseRaw( markup ), existingHtml, existingUnsafe, true );
 	const problems = [ ...rawProblems, ...checkParsedBlocks( blocks ) ];
 	// Only HTML that drifted from what the attributes write is fixed: an
-	// unknown block or attribute, HTML outside blocks, or core/html is
-	// always for the model to fix.
+	// unknown block or attribute, HTML outside blocks, HTML that can run
+	// code, or core/html is always for the model to fix.
 	if ( ! problems.length || rawProblems.length ) {
 		return { blocks, problems };
 	}
-	return autoFix( markup, blocks, existingHtml ) ?? { blocks, problems };
+	return autoFix( markup, blocks, existingHtml, existingUnsafe ) ?? { blocks, problems };
 }
 
 /**
@@ -391,15 +427,18 @@ function rebuild( blocks: Block[], changes: string[] ): Block[] {
  * blocks' attributes write. The fix is used only when it keeps the text,
  * media, and links, and the fixed markup passes every check.
  *
- * @param markup       The model's markup.
- * @param blocks       Its parsed blocks.
- * @param existingHtml The content of the `core/html` blocks in the document.
+ * @param markup         The model's markup.
+ * @param blocks         Its parsed blocks.
+ * @param existingHtml   The content of the blocks that hold HTML as it is
+ *                       in the document.
+ * @param existingUnsafe The HTML that can run code in the document.
  * @return The fixed blocks, and what changed, or nothing.
  */
 function autoFix(
 	markup: string,
 	blocks: Block[],
-	existingHtml: Set< string >
+	existingHtml: Set< string >,
+	existingUnsafe: Set< string >
 ): MarkupValidation | undefined {
 	const changes: string[] = [];
 	const fixedMarkup = serialize( rebuild( blocks, changes ) );
@@ -408,7 +447,7 @@ function autoFix(
 	}
 	const fixed = parse( fixedMarkup );
 	const problems = [
-		...checkRawBlocks( parseRaw( fixedMarkup ), existingHtml, true ),
+		...checkRawBlocks( parseRaw( fixedMarkup ), existingHtml, existingUnsafe, true ),
 		...checkParsedBlocks( fixed ),
 	];
 	if ( problems.length ) {
@@ -425,7 +464,8 @@ function autoFix(
 }
 
 /**
- * Collects the content of the `core/html` blocks among the blocks.
+ * Collects the content of the blocks that hold HTML as it is, `core/html`
+ * and Classic blocks, among the blocks.
  *
  * @param blocks The blocks.
  * @return The content.
@@ -434,7 +474,10 @@ export function collectHtml( blocks: Block[] ): Set< string > {
 	const html = new Set< string >();
 	const visit = ( items: Block[] ) =>
 		items.forEach( ( block ) => {
-			if ( block.name === 'core/html' && typeof block.attributes.content === 'string' ) {
+			if (
+				( block.name === 'core/html' || block.name === 'core/freeform' ) &&
+				typeof block.attributes.content === 'string'
+			) {
 				html.add( block.attributes.content.trim() );
 			}
 			visit( block.innerBlocks );

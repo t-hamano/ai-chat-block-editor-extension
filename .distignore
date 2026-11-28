@@ -25,10 +25,8 @@ composer.json
 composer.lock
 eslint.config.js
 package-lock.json
-package.json
 phpcs.xml.dist
 phpunit.xml.dist
-README.md
 tsconfig.json
 vitest.config.mjs
 webpack.config.js

@@ -14,6 +14,7 @@ import { findUniqueText } from '../ai/find-text';
 import type { AiEdit, AiEditResult } from '../platform';
 import { getClientIdByRef, getRef, serializeWithRefs, stripRefs } from './block-refs';
 import { locateText } from './locate-text';
+import { collectUnsafeHtml } from './unsafe-html';
 import { collectHtml, validateMarkup } from './validate-markup';
 
 function failed( reason: string ): AiEditResult {
@@ -58,7 +59,11 @@ export function createBlockTarget(): EditTarget {
 			blocks,
 			problems,
 			autoFix: fix,
-		} = validateMarkup( stripRefs( markup ), collectHtml( editor().getBlocks() ) );
+		} = validateMarkup(
+			stripRefs( markup ),
+			collectHtml( editor().getBlocks() ),
+			collectUnsafeHtml( editor().getBlocks() )
+		);
 		if ( problems.length ) {
 			return [
 				'The edit was not applied, because the markup has these problems:',
