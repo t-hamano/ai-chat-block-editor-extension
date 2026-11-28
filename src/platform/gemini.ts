@@ -17,11 +17,6 @@ import { connectionLost, requestAnswer, type AnswerEvent } from './transport';
 export const GEMINI_MODEL = 'gemini-3.1-pro-preview';
 
 /**
- * The most tokens one answer may use, including the model's thinking.
- */
-const MAX_OUTPUT_TOKENS = 64000;
-
-/**
  * The edit tool, as a function declaration of Google's Gemini API. It is
  * made from the shared tool, so every provider gets the same tool.
  */
@@ -104,6 +99,8 @@ export function toGeminiContents( messages: AiMessage[] ): GeminiContent[] {
 /**
  * Builds the body of a request to Gemini's `generateContent`.
  *
+ * The relay sets the token limit of the answer, so the body leaves it out.
+ *
  * The relay takes `model` out of the body and puts it in the address, as
  * Gemini wants it.
  *
@@ -119,7 +116,6 @@ export function buildGeminiBody( system: string, contents: GeminiContent[], mode
 		contents,
 		tools: [ { functionDeclarations: [ GEMINI_EDIT_TOOL, ...GEMINI_READ_TOOLS ] } ],
 		generationConfig: {
-			maxOutputTokens: MAX_OUTPUT_TOKENS,
 			// Summaries of the thoughts arrive, so the user sees that the model is thinking.
 			thinkingConfig: { includeThoughts: true },
 		},

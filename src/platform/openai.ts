@@ -17,11 +17,6 @@ import { connectionLost, requestAnswer, type AnswerEvent } from './transport';
 export const OPENAI_MODEL = 'gpt-6.1-sol';
 
 /**
- * The most tokens one answer may use, including the model's reasoning.
- */
-const MAX_OUTPUT_TOKENS = 64000;
-
-/**
  * The edit tool, as a function of OpenAI's Responses API. It is made from
  * the shared tool, so every provider gets the same tool.
  */
@@ -87,6 +82,8 @@ export function toOpenAiInput( messages: AiMessage[] ): OpenAiItem[] {
 /**
  * Builds the body of a request to OpenAI's Responses API.
  *
+ * The relay sets the token limit of the answer, so the body leaves it out.
+ *
  * Nothing is stored at OpenAI, so the reasoning comes back encrypted, to be
  * sent again while the model goes on with the same answer.
  *
@@ -98,7 +95,6 @@ export function toOpenAiInput( messages: AiMessage[] ): OpenAiItem[] {
 export function buildOpenAiBody( system: string, input: OpenAiItem[], model = OPENAI_MODEL ) {
 	return {
 		model,
-		max_output_tokens: MAX_OUTPUT_TOKENS,
 		instructions: system,
 		tools: [ OPENAI_EDIT_TOOL, ...OPENAI_READ_TOOLS ],
 		input,
