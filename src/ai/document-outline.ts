@@ -17,6 +17,24 @@ export const LONG_DOCUMENT = 60000;
 const LEADING_TEXT = 80;
 
 /**
+ * How many characters the outline has at most, about 10k tokens. A longer
+ * outline shows less of each block's text, and then only the top-level
+ * blocks.
+ */
+export const OUTLINE_LENGTH = 30000;
+
+/**
+ * How the outline is shortened, step by step, until it fits: how much of
+ * each block's text it shows, and whether it lists nested blocks.
+ */
+const OUTLINE_STEPS = [
+	{ leadingText: LEADING_TEXT, withNested: true },
+	{ leadingText: 40, withNested: true },
+	{ leadingText: 0, withNested: true },
+	{ leadingText: 0, withNested: false },
+];
+
+/**
  * How many blocks around the selection, on each side, are sent with the
  * outline, and how much of their markup at most.
  */
@@ -152,22 +170,49 @@ export function parseOutline( document: string ): OutlineBlock[] {
 /**
  * Describes a block in one line: its reference ID, name, and leading text.
  *
- * @param block  The block.
- * @param indent Whether to indent the line by the block's depth.
+ * @param block       The block.
+ * @param indent      Whether to indent the line by the block's depth.
+ * @param leadingText How much of the block's text to show.
  * @return The line.
  */
-function describeBlock( block: OutlineBlock, indent = true ): string {
+function describeBlock( block: OutlineBlock, indent = true, leadingText = LEADING_TEXT ): string {
 	const text =
-		block.text.length > LEADING_TEXT
-			? `${ block.text.slice( 0, LEADING_TEXT ).trimEnd() }…`
+		block.text.length > leadingText
+			? `${ block.text.slice( 0, leadingText ).trimEnd() }…`
 			: block.text;
 	return [
 		indent ? '  '.repeat( block.depth ) : '',
 		block.ref || '-',
 		' ',
 		block.name,
-		text ? `: ${ text }` : '',
+		text && leadingText ? `: ${ text }` : '',
 	].join( '' );
+}
+
+/**
+ * Lists the blocks in lines, shortened step by step until the list fits in
+ * the outline: with less of each block's text, and then with only the
+ * top-level blocks, each saying how many nested blocks it has.
+ *
+ * @param blocks The blocks of the document.
+ * @return The lines.
+ */
+function describeOutline( blocks: OutlineBlock[] ): string {
+	let lines = '';
+	for ( const { leadingText, withNested } of OUTLINE_STEPS ) {
+		lines = blocks
+			.filter( ( block ) => withNested || block.depth === 0 )
+			.map( ( block ) => {
+				const line = describeBlock( block, true, leadingText );
+				const nested = withNested ? 0 : flatten( block ).length - 1;
+				return nested ? `${ line } (${ nested } nested blocks)` : line;
+			} )
+			.join( '\n' );
+		if ( lines.length <= OUTLINE_LENGTH ) {
+			break;
+		}
+	}
+	return lines;
 }
 
 /**
@@ -251,7 +296,8 @@ export function isLongDocument( document: string ): boolean {
 /**
  * Shows a long document as an outline: each block in a line with its
  * reference ID, name, and leading text, nested blocks indented under their
- * parent. The blocks around the selection follow as block markup. When
+ * parent. A very long outline is shortened, as `describeOutline` tells.
+ * The blocks around the selection follow as block markup. When
  * the selection is text inside a block, that block comes with them, since
  * the selection has only the text.
  *
@@ -269,13 +315,7 @@ export function formatOutline( document: string, selection: string, textIn?: str
 			? [ textIn.toLowerCase() ]
 			: [ ...selection.matchAll( REF_COMMENT ) ].map( ( match ) => match[ 1 ].toLowerCase() )
 	);
-	const parts = [
-		[
-			'<outline>',
-			blocks.map( ( block ) => describeBlock( block ) ).join( '\n' ),
-			'</outline>',
-		].join( '\n' ),
-	];
+	const parts = [ [ '<outline>', describeOutline( blocks ), '</outline>' ].join( '\n' ) ];
 	const nearby = findNearby( blocks, document, refs, !! textIn );
 	if ( nearby.length ) {
 		parts.push( [ '<nearby>', ...nearby, '</nearby>' ].join( '\n' ) );
