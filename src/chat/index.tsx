@@ -192,7 +192,7 @@ type Props = {
 };
 
 export function Chat( { chat, isAvailable, documentRoot, draft, onDraftChange: setDraft }: Props ) {
-	const { conversation, isResponding, send, stop, reset } = chat;
+	const { conversation, isResponding, sendMessage, stopAnswer, startNewConversation } = chat;
 	const messagesRef = useRef< HTMLDivElement >( null );
 	// Whether the messages are scrolled to the bottom. The chat follows the
 	// answer only then, so it stays still while the user reads above.
@@ -226,7 +226,7 @@ export function Chat( { chat, isAvailable, documentRoot, draft, onDraftChange: s
 		if ( canSend ) {
 			// The user wants to see the answer to their message.
 			isAtBottomRef.current = true;
-			send( draft );
+			sendMessage( draft );
 			setDraft( '' );
 		}
 	};
@@ -295,7 +295,7 @@ export function Chat( { chat, isAvailable, documentRoot, draft, onDraftChange: s
 							) }
 						</Notice.Description>
 						<Notice.Actions>
-							<Notice.ActionButton onClick={ reset }>
+							<Notice.ActionButton onClick={ startNewConversation }>
 								{ __( 'New conversation', 'blocktune' ) }
 							</Notice.ActionButton>
 						</Notice.Actions>
@@ -360,7 +360,7 @@ export function Chat( { chat, isAvailable, documentRoot, draft, onDraftChange: s
 							label={ __( 'Stop', 'blocktune' ) }
 							tone="neutral"
 							size="compact"
-							onClick={ stop }
+							onClick={ stopAnswer }
 						/>
 					) : (
 						<IconButton

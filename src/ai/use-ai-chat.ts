@@ -33,9 +33,9 @@ type UseAiChatArgs = {
 export type AiChat = {
 	conversation: Conversation;
 	isResponding: boolean;
-	send: ( text: string ) => void;
-	stop: () => void;
-	reset: () => void;
+	sendMessage: ( text: string ) => void;
+	stopAnswer: () => void;
+	startNewConversation: () => void;
 };
 
 /**
@@ -92,7 +92,7 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 		[ commitBufferedText ]
 	);
 
-	const send = useCallback(
+	const sendMessage = useCallback(
 		( text: string ) => {
 			const message = text.trim();
 			if ( ! ai || ! message || controllerRef.current ) {
@@ -234,7 +234,7 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 		[ ai, createTarget, addTextToBuffer, commitBufferedText ]
 	);
 
-	const stop = useCallback( () => {
+	const stopAnswer = useCallback( () => {
 		const controller = controllerRef.current;
 		if ( ! controller ) {
 			return;
@@ -249,7 +249,7 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 		} );
 	}, [ commitBufferedText ] );
 
-	const reset = useCallback( () => {
+	const startNewConversation = useCallback( () => {
 		const controller = controllerRef.current;
 		controllerRef.current = null;
 		controller?.abort();
@@ -277,5 +277,5 @@ export function useAiChat( { ai, createTarget }: UseAiChatArgs ): AiChat {
 	const last = conversation.messages[ conversation.messages.length - 1 ];
 	const isResponding = last?.role === 'assistant' && last.status === 'streaming';
 
-	return { conversation, isResponding, send, stop, reset };
+	return { conversation, isResponding, sendMessage, stopAnswer, startNewConversation };
 }

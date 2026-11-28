@@ -86,16 +86,16 @@ export default function Sidebar() {
 	}, [] );
 	const createTarget = useCallback( () => createSelectionTarget( documentRoot ), [ documentRoot ] );
 	const chat = useAiChat( { ai, createTarget } );
-	const { stop, reset } = chat;
+	const { stopAnswer, startNewConversation } = chat;
 
 	// The conversation is about the blocks, so it ends when the user
 	// switches to the code editor.
 	useEffect( () => {
 		if ( ! isVisualEditor ) {
-			stop();
-			reset();
+			stopAnswer();
+			startNewConversation();
 		}
-	}, [ isVisualEditor, stop, reset ] );
+	}, [ isVisualEditor, stopAnswer, startNewConversation ] );
 
 	return (
 		<>
@@ -118,7 +118,7 @@ export default function Sidebar() {
 							variant="minimal"
 							tone="neutral"
 							size="compact"
-							onClick={ reset }
+							onClick={ startNewConversation }
 							disabled={ chat.conversation.messages.length === 0 }
 						/>
 						<IconButton
