@@ -8,12 +8,6 @@ import { getFreeformContentHandlerName, serialize, type Block } from '@wordpress
  */
 const REF_COMMENT = /<!--\s*ref:[a-z0-9]+\s*-->/gi;
 
-/**
- * Matches the opening delimiter of a block, and its name without the
- * `core/` prefix. Closing delimiters start with `/wp:` and do not match.
- */
-const OPENER = /<!--\s+wp:([a-z][a-z0-9_-]*(?:\/[a-z][a-z0-9_-]*)?)[\s\S]*?-->/g;
-
 // The reference IDs of the blocks, kept for the editor session so that a
 // block keeps its ID through the conversation, and after undo.
 const refs = new Map< string, string >();
@@ -56,8 +50,37 @@ export function stripRefs( markup: string ): string {
 	return markup.replace( REF_COMMENT, '' );
 }
 
-function flatten( blocks: Block[] ): Block[] {
-	return blocks.flatMap( ( block ) => [ block, ...flatten( block.innerBlocks ) ] );
+/**
+ * Puts a reference ID before the block, and before each of its inner blocks.
+ *
+ * Each inner block is serialized on its own, and found in the markup of its
+ * parent. When it is not there, as in an invalid block saved as it was
+ * written, it gets no ID.
+ *
+ * @param block  The block.
+ * @param markup The block's markup.
+ * @return The block's markup with reference IDs.
+ */
+function addRefs( block: Block, markup: string ): string {
+	// A classic block is saved without delimiters at the top level, so it
+	// gets no ID, nested or not.
+	const ref =
+		block.name === getFreeformContentHandlerName()
+			? ''
+			: `<!-- ref:${ getRef( block.clientId ) } -->`;
+	const parts = [ ref ];
+	let cursor = 0;
+	block.innerBlocks.forEach( ( innerBlock ) => {
+		const innerMarkup = serialize( innerBlock, { isInnerBlocks: true } );
+		const index = markup.indexOf( innerMarkup, cursor );
+		if ( index === -1 ) {
+			return;
+		}
+		parts.push( markup.slice( cursor, index ), addRefs( innerBlock, innerMarkup ) );
+		cursor = index + innerMarkup.length;
+	} );
+	parts.push( markup.slice( cursor ) );
+	return parts.join( '' );
 }
 
 /**
@@ -68,31 +91,6 @@ function flatten( blocks: Block[] ): Block[] {
  * @return The block markup with reference IDs.
  */
 export function serializeWithRefs( blocks: Block[] ): string {
-	const markup = serialize( blocks );
-	const openers = [ ...markup.matchAll( OPENER ) ].map( ( match ) => ( {
-		index: match.index,
-		name: match[ 1 ].includes( '/' ) ? match[ 1 ] : `core/${ match[ 1 ] }`,
-	} ) );
-	const insertions: { index: number; ref: string }[] = [];
-	let next = 0;
-	// The delimiters are in the same order as the blocks, depth first. A
-	// classic block is saved without delimiters, so it gets no ID.
-	flatten( blocks ).forEach( ( block ) => {
-		if ( block.name === getFreeformContentHandlerName() ) {
-			return;
-		}
-		const found = openers.findIndex(
-			( opener, index ) => index >= next && opener.name === block.name
-		);
-		if ( found === -1 ) {
-			return;
-		}
-		insertions.push( { index: openers[ found ].index, ref: getRef( block.clientId ) } );
-		next = found + 1;
-	} );
-	return insertions.reduceRight(
-		( result, { index, ref } ) =>
-			`${ result.slice( 0, index ) }<!-- ref:${ ref } -->${ result.slice( index ) }`,
-		markup
-	);
+	// The same as `serialize()`, which joins the blocks with a blank line.
+	return blocks.map( ( block ) => addRefs( block, serialize( block ) ) ).join( '\n\n' );
 }
