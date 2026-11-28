@@ -41,11 +41,17 @@ export type EditTarget = {
 	 */
 	getDocument: () => string;
 	/**
+	 * Keeps the blocks the model read as it now knows them, so that it can
+	 * edit the blocks the user changed while the answer streams.
+	 */
+	markRead: ( refs: string[] ) => void;
+	/**
 	 * Applies the model's edit, as one undo step: to the captured
 	 * selection, or for `replace_text`, to the text it names. Changes
 	 * nothing, and returns `dropped` when the selection no longer exists,
 	 * or `failed` when the text to replace is not in the document, or is
-	 * in more than one place.
+	 * in more than one place, or when the user changed the blocks to
+	 * replace since the model last read them.
 	 */
 	apply: ( edit: AiEdit ) => AiEditResult;
 };

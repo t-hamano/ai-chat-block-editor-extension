@@ -148,15 +148,38 @@ describe( 'createSelectionTarget', () => {
 		);
 	} );
 
-	it( 'drops the edit when the text changed after it was selected', () => {
+	it( 'fails, and tells why, when the text changed after it was selected', () => {
 		const [ id ] = setUp( 'One two' );
 		selectText( id, 0, 3 );
 		const target = createSelectionTarget();
 		dispatch( blockEditorStore ).updateBlockAttributes( id, { content: 'Changed' } );
 
 		expect( target.apply( { action: 'replace', markup: 'New' } ) ).toEqual( {
-			status: 'dropped',
+			status: 'failed',
+			reason: expect.stringContaining( 'The user changed the text of the block' ),
 		} );
+		expect(
+			target.apply( { action: 'replace_block', ref: getRef( id ), markup: paragraph( 'New' ) } )
+		).toMatchObject( { status: 'failed' } );
 		expect( documentNow() ).toBe( paragraph( 'Changed' ) );
+
+		target.markRead( [ getRef( id ) ] );
+		expect(
+			target.apply( { action: 'replace_block', ref: getRef( id ), markup: paragraph( 'New' ) } )
+		).toMatchObject( { status: 'applied' } );
+	} );
+
+	it( 'goes on editing the block after it replaced the selected text', () => {
+		const [ id ] = setUp( 'One two' );
+		selectText( id, 0, 3 );
+		const target = createSelectionTarget();
+
+		expect( target.apply( { action: 'replace', markup: 'Six' } ) ).toMatchObject( {
+			status: 'applied',
+		} );
+		expect(
+			target.apply( { action: 'replace_block', ref: getRef( id ), markup: paragraph( 'New' ) } )
+		).toMatchObject( { status: 'applied' } );
+		expect( documentNow() ).toBe( paragraph( 'New' ) );
 	} );
 } );
