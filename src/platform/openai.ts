@@ -19,9 +19,20 @@ export const OPENAI_MODEL = 'gpt-6.1-sol';
 /**
  * How hard the model reasons on an answer. Editing blocks does not need the
  * provider's default of `medium`, and a lower effort answers faster and
- * costs less. Every model the plugin chooses takes it.
+ * costs less.
  */
 export const OPENAI_EFFORT = 'low';
+
+/**
+ * Whether a model takes the effort. The pro models, such as `gpt-5-pro`,
+ * only reason at `high`, and reject a request that asks for less.
+ *
+ * @param model The model ID.
+ * @return Whether the model takes the effort.
+ */
+export function takesEffort( model: string ): boolean {
+	return ! /-pro\b/.test( model );
+}
 
 /**
  * The edit tool, as a function of OpenAI's Responses API. It is made from
@@ -92,7 +103,8 @@ export function toOpenAiInput( messages: AiMessage[] ): OpenAiItem[] {
  * The relay sets the token limit of the answer, so the body leaves it out.
  *
  * Nothing is stored at OpenAI, so the reasoning comes back encrypted, to be
- * sent again while the model goes on with the same answer.
+ * sent again while the model goes on with the same answer. The effort is set
+ * on the models that take it.
  *
  * @param system The system prompt.
  * @param input  The input items.
@@ -107,7 +119,7 @@ export function buildOpenAiBody( system: string, input: OpenAiItem[], model = OP
 		input,
 		store: false,
 		include: [ 'reasoning.encrypted_content' ],
-		reasoning: { effort: OPENAI_EFFORT },
+		...( takesEffort( model ) && { reasoning: { effort: OPENAI_EFFORT } } ),
 	};
 }
 
