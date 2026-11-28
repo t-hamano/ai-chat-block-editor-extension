@@ -1,4 +1,9 @@
 /**
+ * External dependencies
+ */
+import isEqual from 'fast-deep-equal';
+
+/**
  * WordPress dependencies
  */
 import { store as blockEditorStore } from '@wordpress/block-editor';
@@ -14,7 +19,7 @@ import { findUniqueText } from '../ai/find-text';
 import type { AiEdit, AiEditResult } from '../platform';
 import { getClientIdByRef, getRef, serializeWithRefs, stripRefs } from './block-refs';
 import { locateText } from './locate-text';
-import { findProtectedChange, isEqual } from './protected-attributes';
+import { findProtectedChange } from './protected-attributes';
 import { collectUnsafeHtml } from './unsafe-html';
 import { collectHtml, validateMarkup } from './validate-markup';
 

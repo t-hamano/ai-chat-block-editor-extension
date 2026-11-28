@@ -1,4 +1,9 @@
 /**
+ * External dependencies
+ */
+import isEqual from 'fast-deep-equal';
+
+/**
  * WordPress dependencies
  */
 import type { Block } from '@wordpress/blocks';
@@ -11,44 +16,16 @@ import { getBlockType } from '@wordpress/blocks';
 const PROTECTED_ATTRIBUTES = [ 'lock', 'templateLock', 'metadata' ];
 
 /**
- * Whether two attribute values are the same, whatever the order of their
- * keys.
+ * Whether a protected attribute is the same as in the markup the model
+ * read. The value in the editor can hold keys set to `undefined`, which
+ * the markup leaves out.
  *
- * @param a A value.
- * @param b Another value.
+ * @param value  The value in the editor.
+ * @param parsed The value parsed from the model's markup.
  * @return Whether they are the same.
  */
-export function isEqual( a: unknown, b: unknown ): boolean {
-	if ( a === b ) {
-		return true;
-	}
-	if ( ! a || ! b || typeof a !== 'object' || typeof b !== 'object' ) {
-		return false;
-	}
-	if ( Array.isArray( a ) !== Array.isArray( b ) ) {
-		return false;
-	}
-	// Rich text values, which keep their HTML out of their keys.
-	const isPlain = ( value: object ) =>
-		Array.isArray( value ) || Object.getPrototypeOf( value ) === Object.prototype;
-	if ( ! isPlain( a ) || ! isPlain( b ) ) {
-		return String( a ) === String( b );
-	}
-	const aKeys = Object.keys( a ).filter(
-		( key ) => ( a as Record< string, unknown > )[ key ] !== undefined
-	);
-	const bKeys = Object.keys( b ).filter(
-		( key ) => ( b as Record< string, unknown > )[ key ] !== undefined
-	);
-	return (
-		aKeys.length === bKeys.length &&
-		aKeys.every( ( key ) =>
-			isEqual(
-				( a as Record< string, unknown > )[ key ],
-				( b as Record< string, unknown > )[ key ]
-			)
-		)
-	);
+function isSame( value: unknown, parsed: unknown ): boolean {
+	return isEqual( value === undefined ? value : JSON.parse( JSON.stringify( value ) ), parsed );
 }
 
 /**
@@ -63,7 +40,7 @@ function findCarried( block: Block ): string | undefined {
 	return PROTECTED_ATTRIBUTES.find(
 		( key ) =>
 			block.attributes[ key ] !== undefined &&
-			! isEqual( block.attributes[ key ], defaults[ key ]?.default )
+			! isSame( defaults[ key ]?.default, block.attributes[ key ] )
 	);
 }
 
@@ -82,7 +59,7 @@ export function findProtectedChange( before: Block[], after: Block[] ): string |
 		const old = before[ index ]?.name === block.name ? before[ index ] : undefined;
 		const changed = old
 			? PROTECTED_ATTRIBUTES.find(
-					( key ) => ! isEqual( old.attributes[ key ], block.attributes[ key ] )
+					( key ) => ! isSame( old.attributes[ key ], block.attributes[ key ] )
 				)
 			: findCarried( block );
 		if ( changed ) {

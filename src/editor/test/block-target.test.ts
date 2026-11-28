@@ -485,7 +485,12 @@ describe( 'createBlockTarget', () => {
 		it( 'keeps the metadata the model leaves as it is, and fails when it is removed', () => {
 			const block = createBlock( 'test/paragraph', {
 				content: 'One',
-				metadata: { name: 'Intro', bindings: { content: { source: 'core/post-meta' } } },
+				// A key the editor cleared is left out of the markup.
+				metadata: {
+					name: 'Intro',
+					bindings: { content: { source: 'core/post-meta' } },
+					blockVisibility: undefined,
+				},
 			} );
 			dispatch( blockEditorStore ).resetBlocks( [ block ] );
 			const target = createBlockTarget();
