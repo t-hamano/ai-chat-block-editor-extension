@@ -3,7 +3,7 @@
 /**
  * External dependencies
  */
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 /**
  * WordPress dependencies
@@ -306,8 +306,8 @@ describe( 'createBlockTarget', () => {
 		const target = createBlockTarget();
 
 		const result = target.apply( { action: 'replace_text', find: 'Two', markup: 'Second' } );
-		expect( result ).toEqual( { status: 'applied', refs: [ expect.any( String ) ] } );
-		expect( ( result as { refs: string[] } ).refs[ 0 ] ).not.toBe( getRef( second ) );
+		// The block is edited in place, so it keeps its reference ID.
+		expect( result ).toEqual( { status: 'applied', refs: [ getRef( second ) ] } );
 		expect( documentNow() ).toBe(
 			[ 'One', 'Second words', 'Three' ].map( paragraph ).join( '\n\n' )
 		);
@@ -357,5 +357,257 @@ describe( 'createBlockTarget', () => {
 			} )
 		).toMatchObject( { status: 'failed' } );
 		expect( documentNow() ).toBe( paragraph( 'One' ) );
+	} );
+
+	describe( 'locked blocks', () => {
+		const locked = ( content: string, lock: Record< string, boolean > ) =>
+			`<!-- wp:test/paragraph ${ JSON.stringify( { lock } ) } -->\n<p>${ content }</p>\n<!-- /wp:test/paragraph -->`;
+
+		function setUpLocked( lock: Record< string, boolean > ) {
+			const block = createBlock( 'test/paragraph', { content: 'One', lock } );
+			dispatch( blockEditorStore ).resetBlocks( [ block ] );
+			dispatch( blockEditorStore ).selectBlock( block.clientId );
+			return block.clientId;
+		}
+
+		afterEach( () => {
+			dispatch( blockEditorStore ).updateSettings( { templateLock: false } );
+		} );
+
+		it( 'edits the content of a block that cannot be removed, in place', () => {
+			const id = setUpLocked( { remove: true } );
+			const ref = getRef( id );
+
+			expect(
+				createBlockTarget().apply( { action: 'replace_text', find: 'One', markup: 'Two' } )
+			).toEqual( { status: 'applied', refs: [ ref ] } );
+			expect(
+				createBlockTarget().apply( {
+					action: 'replace_block',
+					ref,
+					markup: locked( 'Three', { remove: true } ),
+				} )
+			).toEqual( { status: 'applied', refs: [ ref ] } );
+			expect(
+				createBlockTarget().apply( {
+					action: 'replace',
+					markup: locked( 'Four', { remove: true } ),
+				} )
+			).toEqual( { status: 'applied', refs: [ ref ] } );
+			expect( select( blockEditorStore ).getBlockAttributes( id ) ).toMatchObject( {
+				content: 'Four',
+				lock: { remove: true },
+			} );
+		} );
+
+		it( 'does not replace a block that cannot be removed with other blocks', () => {
+			const id = setUpLocked( { remove: true } );
+			const two = locked( 'One', { remove: true } ) + '\n\n' + paragraph( 'Two' );
+
+			expect(
+				createBlockTarget().apply( { action: 'replace_block', ref: getRef( id ), markup: two } )
+			).toEqual( {
+				status: 'failed',
+				reason: expect.stringContaining( 'cannot be replaced with other blocks' ),
+			} );
+			expect(
+				createBlockTarget().apply( { action: 'delete_block', ref: getRef( id ), markup: '' } )
+			).toEqual( { status: 'failed', reason: expect.stringContaining( 'cannot be removed' ) } );
+			expect( select( blockEditorStore ).getBlock( id ) ).not.toBeNull();
+		} );
+
+		it( 'edits the content of blocks in a template that is locked', () => {
+			const [ first ] = setUp( 'One', 'Two' );
+			dispatch( blockEditorStore ).updateSettings( { templateLock: 'all' } );
+
+			expect(
+				createBlockTarget().apply( { action: 'replace_text', find: 'One', markup: 'First' } )
+			).toEqual( { status: 'applied', refs: [ getRef( first ) ] } );
+			expect(
+				createBlockTarget().apply( {
+					action: 'replace_block',
+					ref: getRef( first ),
+					markup: paragraph( 'A' ) + '\n\n' + paragraph( 'B' ),
+				} )
+			).toMatchObject( { status: 'failed' } );
+			expect( documentNow() ).toBe( [ 'First', 'Two' ].map( paragraph ).join( '\n\n' ) );
+		} );
+
+		it( 'does not edit a block whose editing is locked', () => {
+			const id = setUpLocked( { edit: true } );
+
+			expect(
+				createBlockTarget().apply( { action: 'replace_text', find: 'One', markup: 'Two' } )
+			).toEqual( { status: 'failed', reason: expect.stringContaining( 'cannot be edited' ) } );
+			expect(
+				createBlockTarget().apply( {
+					action: 'replace_block',
+					ref: getRef( id ),
+					markup: locked( 'One', { edit: true } ) + '\n\n' + paragraph( 'Two' ),
+				} )
+			).toMatchObject( { status: 'failed' } );
+			expect( select( blockEditorStore ).getBlockAttributes( id )?.content ).toBe( 'One' );
+		} );
+	} );
+
+	describe( 'protected attributes', () => {
+		it( 'does not change the lock or the metadata of a block', () => {
+			const [ first ] = setUp( 'One' );
+			const target = createBlockTarget();
+			const withAttributes = ( attributes: object ) =>
+				`<!-- wp:test/paragraph ${ JSON.stringify( attributes ) } -->\n<p>One</p>\n<!-- /wp:test/paragraph -->`;
+
+			for ( const attributes of [ { lock: { remove: true } }, { metadata: { name: 'Intro' } } ] ) {
+				expect(
+					target.apply( {
+						action: 'replace_block',
+						ref: getRef( first ),
+						markup: withAttributes( attributes ),
+					} )
+				).toEqual( {
+					status: 'failed',
+					reason: expect.stringContaining( 'cannot be changed' ),
+				} );
+			}
+			expect(
+				target.apply( {
+					action: 'insert_after',
+					ref: getRef( first ),
+					markup: withAttributes( { metadata: { name: 'New' } } ),
+				} )
+			).toEqual( {
+				status: 'failed',
+				reason: expect.stringContaining( 'adds a "test/paragraph" block with the "metadata"' ),
+			} );
+			expect( documentNow() ).toBe( paragraph( 'One' ) );
+		} );
+
+		it( 'keeps the metadata the model leaves as it is, and fails when it is removed', () => {
+			const block = createBlock( 'test/paragraph', {
+				content: 'One',
+				// A key the editor cleared is left out of the markup.
+				metadata: {
+					name: 'Intro',
+					bindings: { content: { source: 'core/post-meta' } },
+					blockVisibility: undefined,
+				},
+			} );
+			dispatch( blockEditorStore ).resetBlocks( [ block ] );
+			const target = createBlockTarget();
+			const ref = getRef( block.clientId );
+			const markup = ( metadata?: object ) =>
+				`<!-- wp:test/paragraph ${ metadata ? JSON.stringify( { metadata } ) : '' } -->\n<p>Two</p>\n<!-- /wp:test/paragraph -->`;
+
+			expect( target.apply( { action: 'replace_block', ref, markup: markup() } ) ).toMatchObject( {
+				status: 'failed',
+			} );
+			// The keys in another order are the same metadata.
+			expect(
+				target.apply( {
+					action: 'replace_block',
+					ref,
+					markup: markup( {
+						bindings: { content: { source: 'core/post-meta' } },
+						name: 'Intro',
+					} ),
+				} )
+			).toEqual( { status: 'applied', refs: [ ref ] } );
+			expect( select( blockEditorStore ).getBlockAttributes( block.clientId ) ).toMatchObject( {
+				content: 'Two',
+				metadata: { name: 'Intro' },
+			} );
+		} );
+
+		it( 'finds a block with metadata when blocks are inserted or moved around it', () => {
+			const one = createBlock( 'test/paragraph', { content: 'One' } );
+			const named = createBlock( 'test/paragraph', {
+				content: 'Two',
+				metadata: { name: 'Intro' },
+			} );
+			dispatch( blockEditorStore ).resetBlocks( [ one, named ] );
+			dispatch( blockEditorStore ).multiSelect( one.clientId, named.clientId );
+			const withName = ( content: string ) =>
+				`<!-- wp:test/paragraph {"metadata":{"name":"Intro"}} -->\n<p>${ content }</p>\n<!-- /wp:test/paragraph -->`;
+
+			// A paragraph inserted before the named one.
+			expect(
+				createBlockTarget().apply( {
+					action: 'replace',
+					markup: [ paragraph( 'One' ), paragraph( 'New' ), withName( 'Two' ) ].join( '\n\n' ),
+				} )
+			).toMatchObject( { status: 'applied' } );
+			expect( documentNow() ).toBe(
+				[ paragraph( 'One' ), paragraph( 'New' ), withName( 'Two' ) ].join( '\n\n' )
+			);
+		} );
+
+		it( 'moves a block with metadata instead of moving the metadata to another block', () => {
+			const named = createBlock( 'test/paragraph', {
+				content: 'One',
+				metadata: { name: 'Intro' },
+			} );
+			const two = createBlock( 'test/paragraph', { content: 'Two' } );
+			dispatch( blockEditorStore ).resetBlocks( [ named, two ] );
+			dispatch( blockEditorStore ).multiSelect( named.clientId, two.clientId );
+
+			expect(
+				createBlockTarget().apply( {
+					action: 'replace',
+					markup: [
+						paragraph( 'Two' ),
+						'<!-- wp:test/paragraph {"metadata":{"name":"Intro"}} -->\n<p>One</p>\n<!-- /wp:test/paragraph -->',
+					].join( '\n\n' ),
+				} )
+			).toMatchObject( { status: 'applied' } );
+			// The blocks were replaced, not changed in place.
+			expect( select( blockEditorStore ).getBlock( named.clientId ) ).toBeNull();
+			expect( select( blockEditorStore ).getBlocks()[ 1 ].attributes ).toMatchObject( {
+				content: 'One',
+				metadata: { name: 'Intro' },
+			} );
+		} );
+
+		it( 'finds a list with a named item when a list is inserted before it', () => {
+			const item = createBlock( 'test/list-item', {
+				content: 'Item',
+				metadata: { name: 'Named' },
+			} );
+			const list = createBlock( 'test/list', {}, [ item ] );
+			dispatch( blockEditorStore ).resetBlocks( [ list ] );
+			const listMarkup = ( items: string ) =>
+				`<!-- wp:test/list -->\n<ul>${ items }</ul>\n<!-- /wp:test/list -->`;
+			const itemMarkup = ( content: string, attributes = '' ) =>
+				`<!-- wp:test/list-item ${ attributes }-->\n<li>${ content }</li>\n<!-- /wp:test/list-item -->`;
+			const named = listMarkup( itemMarkup( 'Item', '{"metadata":{"name":"Named"}} ' ) );
+
+			expect(
+				createBlockTarget().apply( {
+					action: 'replace_block',
+					ref: getRef( list.clientId ),
+					markup: [ listMarkup( itemMarkup( 'New' ) ), named ].join( '\n\n' ),
+				} )
+			).toMatchObject( { status: 'applied' } );
+			expect(
+				select( blockEditorStore ).getBlocks()[ 1 ].innerBlocks[ 0 ].attributes
+			).toMatchObject( { metadata: { name: 'Named' } } );
+		} );
+
+		it( 'does not change the protected attributes of inner blocks', () => {
+			const item = createBlock( 'test/list-item', { content: 'Item', lock: { remove: true } } );
+			const list = createBlock( 'test/list', {}, [ item ] );
+			dispatch( blockEditorStore ).resetBlocks( [ list ] );
+
+			expect(
+				createBlockTarget().apply( {
+					action: 'replace_block',
+					ref: getRef( list.clientId ),
+					markup:
+						'<!-- wp:test/list -->\n<ul><!-- wp:test/list-item -->\n<li>Item</li>\n<!-- /wp:test/list-item --></ul>\n<!-- /wp:test/list -->',
+				} )
+			).toEqual( {
+				status: 'failed',
+				reason: expect.stringContaining( 'the "lock" attribute of a "test/list-item" block' ),
+			} );
+		} );
 	} );
 } );
